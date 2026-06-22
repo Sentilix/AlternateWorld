@@ -9,4 +9,6 @@ alternateconfig.lua
 alternatedb.lua
 alternatecharacter.lua
 alternateinventory.lua
+alternateattunements.lua
+alternatenavigation.lua
 alternatemain.lua

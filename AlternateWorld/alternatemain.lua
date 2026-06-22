@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Alternate World - Main User Interface & Layout Frame
 -- ============================================================================
 
@@ -17,7 +17,11 @@ AlternateWorldMainFrame:SetScript("OnDragStop", AlternateWorldMainFrame.StopMovi
 AlternateWorldMainFrame:Hide()
 
 local selectedCharacterKey = nil
-local isAddonFullyLoaded = false -- Tracks state to block premature overwrites
+local isAddonFullyLoaded = false 
+
+local function GetSelectedCharacterKey()
+    return selectedCharacterKey
+end
 
 SLASH_ALTERNATEWORLD1 = "/aw"
 SLASH_ALTERNATEWORLD2 = "/alternateworld"
@@ -25,11 +29,18 @@ SlashCmdList["ALTERNATEWORLD"] = function()
     if AlternateWorldMainFrame:IsShown() then 
         AlternateWorldMainFrame:Hide() 
     else 
-        if AlternateWorldInventoryView then AlternateWorldInventoryView.HidePanel() end
+        AlternateWorldNavigation.HideAllPanels()
         AlternateWorldMainFrame:Show()
         AlternateWorldCharacterView.ShowData(selectedCharacterKey)
     end
 end
+
+-- Counts live countdowns on open frame updates
+AlternateWorldMainFrame:SetScript("OnUpdate", function(self, elapsed)
+    if isAddonFullyLoaded and AlternateWorldAttunementsView and AlternateWorldAttunementsView.OnUpdateTick then
+        AlternateWorldAttunementsView.OnUpdateTick(selectedCharacterKey)
+    end
+end)
 
 local TOPBAR_HEIGHT = 40
 local TOTAL_WIDTH = AlternateWorldMainFrame:GetWidth() - 20 
@@ -58,8 +69,11 @@ local ContentWindow = CreateFrame("Frame", nil, AlternateWorldMainFrame)
 ContentWindow:SetSize(CONTENT_WIDTH, FRAME_HEIGHT)
 ContentWindow:SetPoint("TOPLEFT", LeftMenu, "TOPRIGHT", 0, 0)
 
-local CharacterPanelFrame = AlternateWorldCharacterView.CreatePanel(ContentWindow)
-local InventoryPanelFrame = AlternateWorldInventoryView.CreatePanel(ContentWindow)
+AlternateWorldCharacterView.CreatePanel(ContentWindow)
+AlternateWorldInventoryView.CreatePanel(ContentWindow)
+AlternateWorldAttunementsView.CreatePanel(ContentWindow)
+
+AlternateWorldNavigation.CreateMenu(LeftMenu, GetSelectedCharacterKey)
 
 local function InitializeDropdown(self, level)
     if not AlternateWorldDB then return end
@@ -72,56 +86,15 @@ local function InitializeDropdown(self, level)
         info.func = function(button, arg1)
             selectedCharacterKey = arg1
             UIDropDownMenu_SetText(CharacterDropdown, displayName)
-            
-            if AlternateWorldCharacterView.IsShown() then
-                AlternateWorldCharacterView.ShowData(selectedCharacterKey)
-            elseif AlternateWorldInventoryView.IsShown() then
-                AlternateWorldInventoryView.ShowData(selectedCharacterKey)
-            end
+            AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey)
         end
         info.checked = (selectedCharacterKey == key)
         UIDropDownMenu_AddButton(info, level)
     end
 end
 
-local CharacterButton = CreateFrame("Frame", nil, LeftMenu)
-CharacterButton:SetSize(MENU_WIDTH - 20, 20)
-CharacterButton:SetPoint("TOPLEFT", LeftMenu, "TOPLEFT", 15, -15)
-CharacterButton:EnableMouse(true)
-
-local CharacterButtonText = CharacterButton:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-CharacterButtonText:SetPoint("LEFT", CharacterButton, "LEFT", 0, 0)
-CharacterButtonText:SetText("Character")
-
-CharacterButton:SetScript("OnEnter", function() CharacterButtonText:SetTextColor(1, 1, 1) end)
-CharacterButton:SetScript("OnLeave", function() CharacterButtonText:SetTextColor(1, 0.82, 0) end)
-CharacterButton:SetScript("OnMouseUp", function(self, button)
-    if button == "LeftButton" then
-        AlternateWorldInventoryView.HidePanel() 
-        AlternateWorldCharacterView.ShowData(selectedCharacterKey)
-    end
-end)
-
-local InventoryButton = CreateFrame("Frame", nil, LeftMenu)
-InventoryButton:SetSize(MENU_WIDTH - 20, 20)
-InventoryButton:SetPoint("TOPLEFT", CharacterButton, "BOTTOMLEFT", 0, -10)
-InventoryButton:EnableMouse(true)
-
-local InventoryButtonText = InventoryButton:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-InventoryButtonText:SetPoint("LEFT", InventoryButton, "LEFT", 0, 0)
-InventoryButtonText:SetText("Inventory")
-
-InventoryButton:SetScript("OnEnter", function() InventoryButtonText:SetTextColor(1, 1, 1) end)
-InventoryButton:SetScript("OnLeave", function() InventoryButtonText:SetTextColor(1, 0.82, 0) end)
-InventoryButton:SetScript("OnMouseUp", function(self, button)
-    if button == "LeftButton" then
-        AlternateWorldCharacterView.HidePanel() 
-        AlternateWorldInventoryView.ShowData(selectedCharacterKey)
-    end
-end)
-
 -- ============================================================================
--- 10. Global Addon Event Orchestration Interceptor
+-- 8. Global Addon Event Orchestration Interceptor
 -- ============================================================================
 
 AlternateWorldMainFrame:RegisterEvent("ADDON_LOADED")
@@ -133,8 +106,11 @@ AlternateWorldMainFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 AlternateWorldMainFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 AlternateWorldMainFrame:RegisterEvent("BANKFRAME_OPENED")
 AlternateWorldMainFrame:RegisterEvent("PLAYERBANKSLOTS_CHANGED")
--- FIXED: Replaced premature BAG_UPDATE event hook with the accurate delayed parser
 AlternateWorldMainFrame:RegisterEvent("BAG_UPDATE_DELAYED")
+AlternateWorldMainFrame:RegisterEvent("UNIT_QUEST_LOG_CHANGED")
+AlternateWorldMainFrame:RegisterEvent("ITEM_LOCK_CHANGED")
+-- FIXED: Added native Blizzard event hook that fires the second your Raid IDs finish loading
+AlternateWorldMainFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
 
 AlternateWorldMainFrame:SetScript("OnEvent", function(self, event, arg1, ...)
     if event == "ADDON_LOADED" and arg1 == "AlternateWorld" then
@@ -150,21 +126,21 @@ AlternateWorldMainFrame:SetScript("OnEvent", function(self, event, arg1, ...)
             local coloredName = AlternateWorldConfig.GetClassColoredText(selectedCharacterKey, currentClassToken)
             UIDropDownMenu_SetText(CharacterDropdown, coloredName)
         end
-        isAddonFullyLoaded = true -- Safe to accept data tracking snapshots now
+        isAddonFullyLoaded = true
+        
+        -- Request a fresh sync of instance IDs from Blizzard's core server
+        RequestRaidInfo()
     end
 
     if event == "BANKFRAME_OPENED" or event == "PLAYERBANKSLOTS_CHANGED" then
         AlternateWorldDBEngine.ScanBankData()
     end
 
-    -- FIXED: Blocks scanning triggers if the login variable sequence hasn't finished execution yet
     if isAddonFullyLoaded and event ~= "ADDON_LOADED" then
         AlternateWorldDBEngine.SaveCurrentCharacterData()
     end
 
-    if AlternateWorldCharacterView.IsShown() then
-        AlternateWorldCharacterView.ShowData(selectedCharacterKey)
-    elseif AlternateWorldInventoryView.IsShown() then
-        AlternateWorldInventoryView.ShowData(selectedCharacterKey)
+    if isAddonFullyLoaded then
+        AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey)
     end
 end)

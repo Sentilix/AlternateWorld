@@ -10,6 +10,9 @@
     <OutputPath>.</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="alternateattunements.lua">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="alternatecharacter.lua">
       <SubType>Code</SubType>
     </Content>
@@ -20,6 +23,9 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="alternatemain.lua">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="alternatenavigation.lua">
       <SubType>Code</SubType>
     </Content>
     <Content Include="AlternateWorld.toc">

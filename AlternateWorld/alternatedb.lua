@@ -21,6 +21,14 @@ local function GetAverageItemLevel()
 end
 
 local function GetCurrentSpec()
+    local currentLevel = UnitLevel("player") or 1
+    if currentLevel < 10 then 
+        return "No Talents Yet (under lvl 10)", "Interface\\Icons\\Spell_Nature_Invisibilty" 
+    end
+
+    local numTabs = GetNumTalentTabs() or 0
+    if numTabs == 0 then return nil, nil end -- Return nil so the saver knows it's empty/loading
+
     local _, classToken = UnitClass("player")
     if not classToken or not AlternateWorldConfig or not AlternateWorldConfig.TalentTrees[classToken] then 
         return "Unknown", "Interface\\Icons\\Spell_Nature_Invisibilty"
@@ -42,6 +50,10 @@ local function GetCurrentSpec()
         totalPointsAllocated = totalPointsAllocated + pointsInTab
     end
     
+    -- FIXED: If the engine returned tabs, but 0 points are counted on a lvl 10+ character during a loading screen,
+    -- return nil so we don't accidentally overwrite the player's real spec data with a blank map
+    if totalPointsAllocated == 0 then return nil, nil end
+
     local maxPoints, mainTreeIndex = -1, 1
     for i = 1, 3 do
         if treePoints[i] > maxPoints then
@@ -50,27 +62,19 @@ local function GetCurrentSpec()
         end
     end
     
-    if totalPointsAllocated == 0 then
-        return "Unspec (0/0/0)", "Interface\\Icons\\Spell_Nature_Invisibilty"
-    else
-        local formattedTreeString = "(" .. treePoints[1] .. "/" .. treePoints[2] .. "/" .. treePoints[3] .. ")"
-        return trees[mainTreeIndex].name .. " " .. formattedTreeString, trees[mainTreeIndex].icon
-    end
+    local treeString = trees[mainTreeIndex].name .. " (" .. treePoints[1] .. "/" .. treePoints[2] .. "/" .. treePoints[3] .. ")"
+    return treeString, trees[mainTreeIndex].icon
 end
 
--- FIXED: Replaced C_Container with live, synchronous global API links to bypass asynchronous server caching bugs
 local function ScanContainers(startBag, endBag)
     local itemsList = {}
     for bag = startBag, endBag do
-        -- Works flawlessly across both standard bags and bank bag slots
         local slots = C_Container.GetContainerNumSlots(bag) or 0
         for slot = 1, slots do
             local itemLink = C_Container.GetContainerItemLink(bag, slot)
             if itemLink then
-                -- Extract raw item ID from the item link string safely
                 local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
                 local containerInfo = C_Container.GetContainerItemInfo(bag, slot)
-                
                 if itemID and containerInfo then
                     table.insert(itemsList, {
                         id = itemID,
@@ -84,6 +88,47 @@ local function ScanContainers(startBag, endBag)
     return itemsList
 end
 
+local function HasItemEverywhere(targetID, cachedBankItems)
+    for bag = 0, 4 do
+        local slots = C_Container.GetContainerNumSlots(bag) or 0
+        for slot = 1, slots do
+            local itemLink = C_Container.GetContainerItemLink(bag, slot)
+            if itemLink then
+                local id = tonumber(string.match(itemLink, "item:(%d+)"))
+                if id == targetID then return true end
+            end
+        end
+    end
+    if cachedBankItems then
+        for _, itemData in ipairs(cachedBankItems) do
+            if itemData.id == targetID then return true end
+        end
+    end
+    return false
+end
+
+local function ScanRaidLockouts()
+    local savedLockouts = {}
+    local numSaved = GetNumSavedInstances() or 0
+
+    for i = 1, numSaved do
+        local name, _, reset, _, locked = GetSavedInstanceInfo(i)
+        if locked and reset and reset > 0 and name then
+            local key = nil
+            if string.find(name, "Molten Core") then key = "mc"
+            elseif string.find(name, "Blackwing Lair") then key = "bwl"
+            elseif string.find(name, "Onyxia") then key = "ony"
+            elseif string.find(name, "Naxxramas") then key = "naxx"
+            end
+
+            if key then
+                savedLockouts[key] = time() + reset
+            end
+        end
+    end
+    return savedLockouts
+end
+
 function AlternateWorldDBEngine.SaveCurrentCharacterData()
     if not AlternateWorldDB then AlternateWorldDB = {} end
     
@@ -93,12 +138,29 @@ function AlternateWorldDBEngine.SaveCurrentCharacterData()
     
     local myKey = charName .. " - " .. realmName
     local _, classToken = UnitClass("player")
-    local currentIlvl = GetAverageItemLevel()
-    local specName, specIcon = GetCurrentSpec()
+    
+    local currentIlvl = 0
+    pcall(function() currentIlvl = GetAverageItemLevel() end)
+    
+    -- FIXED: Protected talent scanning loop with strict fallback rules
+    local specName, specIcon = nil, nil
+    pcall(function() specName, specIcon = GetCurrentSpec() end)
+    
+    -- Cache recovery: If talent scanning returned nil (due to server lag), 
+    -- reuse the previously saved historical data instead of writing "Loading..."
+    if not specName and AlternateWorldDB[myKey] then
+        specName = AlternateWorldDB[myKey].specText or "Loading..."
+        specIcon = AlternateWorldDB[myKey].specIcon or "Interface\\Icons\\Spell_Nature_Invisibilty"
+    elseif not specName then
+        specName = "Loading..."
+        specIcon = "Interface\\Icons\\Spell_Nature_Invisibilty"
+    end
     
     local oldMax = 0
-    if AlternateWorldDB[myKey] and AlternateWorldDB[myKey].maxItemLevel then
-        oldMax = AlternateWorldDB[myKey].maxItemLevel
+    local existingLockouts = nil
+    if AlternateWorldDB[myKey] then
+        if AlternateWorldDB[myKey].maxItemLevel then oldMax = AlternateWorldDB[myKey].maxItemLevel end
+        if AlternateWorldDB[myKey].activeRaidIDs then existingLockouts = AlternateWorldDB[myKey].activeRaidIDs end
     end
     local newMax = math.max(oldMax, currentIlvl)
     
@@ -107,14 +169,35 @@ function AlternateWorldDBEngine.SaveCurrentCharacterData()
     
     local currentBankData = {}
     local currentBankTimestamp = "Never"
-    if AlternateWorldDB[myKey] then
-        if AlternateWorldDB[myKey].bankItems then currentBankData = AlternateWorldDB[myKey].bankItems end
-        if AlternateWorldDB[myKey].bankUpdated then currentBankTimestamp = AlternateWorldDB[myKey].bankUpdated end
+    if AlternateWorldDB[myKey] and AlternateWorldDB[myKey].bankItems then
+        currentBankData = AlternateWorldDB[myKey].bankItems
+        currentBankTimestamp = AlternateWorldDB[myKey].bankUpdated or "Never"
     end
     
     local currentBagData = ScanContainers(0, 4)
     local currentTimestamp = date("%Y-%m-%d %H:%M")
     
+    local isMC = C_QuestLog.IsQuestFlaggedCompleted(7848) or false
+    local isBWL = C_QuestLog.IsQuestFlaggedCompleted(7761) or false
+    local isOny = C_QuestLog.IsQuestFlaggedCompleted(6502) or C_QuestLog.IsQuestFlaggedCompleted(6570) or HasItemEverywhere(16309, currentBankData) or false
+    local isNaxx = C_QuestLog.IsQuestFlaggedCompleted(9121) or C_QuestLog.IsQuestFlaggedCompleted(9122) or C_QuestLog.IsQuestFlaggedCompleted(9123) or false
+
+    local isBRD = HasItemEverywhere(11000, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(4731) or false
+    local isScholo = HasItemEverywhere(13704, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(5511) or false
+    local isStrat = HasItemEverywhere(12382, currentBankData) or false
+    local isGnomeregan = HasItemEverywhere(6990, currentBankData) or false
+    local isMara = HasItemEverywhere(12219, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(5144) or false
+    local isDM = HasItemEverywhere(18250, currentBankData) or false
+    local isUBRS = HasItemEverywhere(12344, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(4742) or C_QuestLog.IsQuestFlaggedCompleted(4743) or false
+
+    local currentLockouts = ScanRaidLockouts()
+    
+    if GetNumSavedInstances() == 0 and existingLockouts then
+        for k, v in pairs(existingLockouts) do
+            if v > time() then currentLockouts[k] = v end
+        end
+    end
+
     AlternateWorldDB[myKey] = {
         name = charName,
         realm = realmName,
@@ -131,7 +214,21 @@ function AlternateWorldDBEngine.SaveCurrentCharacterData()
         bagItems = currentBagData,
         bankItems = currentBankData,
         bagsUpdated = currentTimestamp,
-        bankUpdated = currentBankTimestamp
+        bankUpdated = currentBankTimestamp,
+        attunements = {
+            mc = isMC,
+            bwl = isBWL,
+            ony = isOny,
+            naxx = isNaxx,
+            brd = isBRD,
+            scholo = isScholo,
+            strat = isStrat,
+            gnomer = isGnomeregan,
+            mara = isMara,
+            dm = isDM,
+            ubrs = isUBRS
+        },
+        activeRaidIDs = currentLockouts
     }
 end
 
