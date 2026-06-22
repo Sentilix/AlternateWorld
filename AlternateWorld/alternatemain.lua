@@ -2,6 +2,8 @@
 -- Alternate World - Main User Interface & Layout Frame
 -- ============================================================================
 
+AlternateWorldMainFrameEngine = {}
+
 local AlternateWorldMainFrame = CreateFrame("Frame", "AlternateWorldMainFrame", UIParent, "BasicFrameTemplateWithInset")
 AlternateWorldMainFrame:SetSize(600, 460) 
 AlternateWorldMainFrame:SetPoint("CENTER", UIParent, "CENTER") 
@@ -17,7 +19,6 @@ AlternateWorldMainFrame:SetScript("OnDragStop", AlternateWorldMainFrame.StopMovi
 AlternateWorldMainFrame:Hide()
 
 local selectedCharacterKey = nil
-local isAddonFullyLoaded = false 
 
 local function GetSelectedCharacterKey()
     return selectedCharacterKey
@@ -35,8 +36,9 @@ SlashCmdList["ALTERNATEWORLD"] = function()
     end
 end
 
+-- Live update loop handler
 AlternateWorldMainFrame:SetScript("OnUpdate", function(self, elapsed)
-    if isAddonFullyLoaded and AlternateWorldAttunementsView and AlternateWorldAttunementsView.OnUpdateTick then
+    if AlternateWorldCore and AlternateWorldCore.IsFullyLoaded() and AlternateWorldAttunementsView and AlternateWorldAttunementsView.OnUpdateTick then
         AlternateWorldAttunementsView.OnUpdateTick(selectedCharacterKey)
     end
 end)
@@ -68,9 +70,11 @@ local ContentWindow = CreateFrame("Frame", nil, AlternateWorldMainFrame)
 ContentWindow:SetSize(CONTENT_WIDTH, FRAME_HEIGHT)
 ContentWindow:SetPoint("TOPLEFT", LeftMenu, "TOPRIGHT", 0, 0)
 
+-- Build sub-panels canvases hooks
 AlternateWorldCharacterView.CreatePanel(ContentWindow)
 AlternateWorldInventoryView.CreatePanel(ContentWindow)
 AlternateWorldAttunementsView.CreatePanel(ContentWindow)
+AlternateWorldHistoryView.CreatePanel(ContentWindow)
 
 AlternateWorldNavigation.CreateMenu(LeftMenu, GetSelectedCharacterKey)
 
@@ -78,18 +82,13 @@ local function InitializeDropdown(self, level)
     if not AlternateWorldDB then return end
     
     local sortedKeys = {}
-    for key in pairs(AlternateWorldDB) do
-        table.insert(sortedKeys, key)
-    end
+    for key in pairs(AlternateWorldDB) do table.insert(sortedKeys, key) end
     table.sort(sortedKeys)
     
     local info = UIDropDownMenu_CreateInfo()
-    
     for _, key in ipairs(sortedKeys) do
         local data = AlternateWorldDB[key]
         local displayName = AlternateWorldConfig.GetClassColoredText(key, data.classToken)
-        
-        -- FIXED: Compute and inject inline faction textures strings natively directly before names
         local factionIconInline = ""
         if data.faction == "Alliance" then
             factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
@@ -97,7 +96,6 @@ local function InitializeDropdown(self, level)
             factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t "
         end
         
-        -- Attach the texture directly to the button text parameter
         info.text = factionIconInline .. displayName
         info.value = key
         info.arg1 = key
@@ -111,61 +109,26 @@ local function InitializeDropdown(self, level)
     end
 end
 
--- ============================================================================
--- 8. Global Addon Event Orchestration Interceptor
--- ============================================================================
-
-AlternateWorldMainFrame:RegisterEvent("ADDON_LOADED")
-AlternateWorldMainFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-AlternateWorldMainFrame:RegisterEvent("CHARACTER_POINTS_CHANGED")
-AlternateWorldMainFrame:RegisterEvent("SPELLS_CHANGED")
-AlternateWorldMainFrame:RegisterEvent("PLAYER_MONEY")
-AlternateWorldMainFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-AlternateWorldMainFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
-AlternateWorldMainFrame:RegisterEvent("BANKFRAME_OPENED")
-AlternateWorldMainFrame:RegisterEvent("PLAYERBANKSLOTS_CHANGED")
-AlternateWorldMainFrame:RegisterEvent("BAG_UPDATE_DELAYED")
-AlternateWorldMainFrame:RegisterEvent("UNIT_QUEST_LOG_CHANGED")
-AlternateWorldMainFrame:RegisterEvent("ITEM_LOCK_CHANGED")
-AlternateWorldMainFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
-
-AlternateWorldMainFrame:SetScript("OnEvent", function(self, event, arg1, ...)
-    if event == "ADDON_LOADED" and arg1 == "AlternateWorld" then
-        if not AlternateWorldDB then AlternateWorldDB = {} end
+-- Core Callback Link: Triggered natively by the background Core engine when addon loads
+function AlternateWorldMainFrameEngine.OnAddonLoaded()
+    local myName = UnitName("player")
+    local myRealm = GetRealmName()
+    if myName and myRealm then
+        selectedCharacterKey = myName .. " - " .. myRealm
+        UIDropDownMenu_Initialize(CharacterDropdown, InitializeDropdown)
         
-        local myName = UnitName("player")
-        local myRealm = GetRealmName()
-        if myName and myRealm then
-            selectedCharacterKey = myName .. " - " .. myRealm
-            UIDropDownMenu_Initialize(CharacterDropdown, InitializeDropdown)
-            
-            local currentClassToken = select(2, UnitClass("player"))
-            local coloredName = AlternateWorldConfig.GetClassColoredText(selectedCharacterKey, currentClassToken)
-            
-            -- Set local player faction icon on first boot
-            local myFaction = UnitFactionGroup("player")
-            local myFactionIcon = ""
-            if myFaction == "Alliance" then
-                myFactionIcon = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
-            elseif myFaction == "Horde" then
-                myFactionIcon = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t "
-            end
-            
-            UIDropDownMenu_SetText(CharacterDropdown, myFactionIcon .. coloredName)
-        end
-        isAddonFullyLoaded = true
-        RequestRaidInfo()
+        local currentClassToken = select(2, UnitClass("player"))
+        local coloredName = AlternateWorldConfig.GetClassColoredText(selectedCharacterKey, currentClassToken)
+        local myFaction = UnitFactionGroup("player")
+        local myFactionIcon = ""
+        if myFaction == "Alliance" then myFactionIcon = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
+        elseif myFaction == "Horde" then myFactionIcon = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t " end
+        
+        UIDropDownMenu_SetText(CharacterDropdown, myFactionIcon .. coloredName)
     end
+end
 
-    if event == "BANKFRAME_OPENED" or event == "PLAYERBANKSLOTS_CHANGED" then
-        AlternateWorldDBEngine.ScanBankData()
-    end
-
-    if isAddonFullyLoaded and event ~= "ADDON_LOADED" then
-        AlternateWorldDBEngine.SaveCurrentCharacterData()
-    end
-
-    if isAddonFullyLoaded then
-        AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey)
-    end
-end)
+-- Core Callback Link: Repaints the actively viewed panel blueprint layer on background ticks
+function AlternateWorldMainFrameEngine.RefreshUI()
+    AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey)
+end

@@ -59,7 +59,7 @@ local function UpdateGlobalAccountStats()
         "Characters, |cFFC41F3BHorde:|r\n" ..
         "Characters, total:"
 
-    -- FIXED: Switched "Level 60:" color encoding to matching golden yellow inside the value column matrix
+    -- Apply data strings values cleanly
     local valuesString = string.format(
         "%s\n" ..
         "%s\n" ..
@@ -119,17 +119,20 @@ function AlternateWorldCharacterView.CreatePanel(parentWindow)
     -- BOTTOM SECTION GRAPHICS GRID (Account Totals)
     -- ========================================================================
     
+    -- Account Totals Heading (Forced to GameFontNormalLarge, white text, matching the character header)
     AccountTotalsHeading = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     AccountTotalsHeading:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 105, -240)
     AccountTotalsHeading:SetJustifyH("LEFT")
     AccountTotalsHeading:SetTextColor(1, 1, 1) 
     AccountTotalsHeading:SetText("Account Totals")
 
+    -- Bottom Labels Column (Perfect vertical alignment with TopLabelsText)
     BottomLabelsText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     BottomLabelsText:SetPoint("TOPLEFT", AccountTotalsHeading, "BOTTOMLEFT", 0, -8)
     BottomLabelsText:SetJustifyH("LEFT")
     BottomLabelsText:SetTextColor(1, 1, 1) 
 
+    -- Bottom Values Column (Perfect vertical alignment with TopValuesText)
     BottomValuesText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     BottomValuesText:SetPoint("TOPLEFT", BottomLabelsText, "TOPLEFT", 140, 0)
     BottomValuesText:SetJustifyH("LEFT")
@@ -177,13 +180,14 @@ function AlternateWorldCharacterView.ShowData(selectedCharacterKey)
         coloredFaction = "|cFFC41F3BHorde|r"
     end
 
+    -- FIXED: Replaced "Money:" with "Gold:" to achieve absolute structural harmony
     TopLabelsText:SetText(
         "Class:\n" ..
         "Spec:\n" ..
         "Race:\n" ..
         "Faction:\n\n" .. 
         "Location:\n" ..
-        "Money:\n" ..
+        "Gold:\n" .. -- FIXED HERE
         "Item Level:\n" ..
         "Gearscore (Est.):"
     )
@@ -206,7 +210,7 @@ function AlternateWorldCharacterView.ShowData(selectedCharacterKey)
     else
         local raceToken = data.race or "Human"
         if raceToken == "Night Elf" then raceToken = "NightElf" end
-        if raceToken == "Undead" then raceToken = "Scourge" end 
+        if raceToken == "Scourge" then raceToken = "Undead" end 
         
         local genderString = "Male"
         if data.gender == "Female" then genderString = "Female" end

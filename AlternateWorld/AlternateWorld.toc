@@ -7,8 +7,11 @@
 
 alternateconfig.lua
 alternatedb.lua
+alternatescraper.lua
+alternatecore.lua
 alternatecharacter.lua
 alternateinventory.lua
 alternateattunements.lua
+alternatehistory.lua
 alternatenavigation.lua
 alternatemain.lua
