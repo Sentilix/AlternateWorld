@@ -16,6 +16,9 @@
     <Content Include="alternatecharacter.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="alternatecomm.lua">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="alternateconfig.lua">
       <SubType>Code</SubType>
     </Content>

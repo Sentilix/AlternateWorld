@@ -10,6 +10,7 @@ alternatedb.lua
 alternatescraper.lua
 alternateprofscraper.lua
 alternatecore.lua
+alternatecomm.lua
 alternatecharacter.lua
 alternateinventory.lua
 alternateattunements.lua

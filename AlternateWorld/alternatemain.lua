@@ -8,7 +8,7 @@ local AlternateWorldMainFrame = CreateFrame("Frame", "AlternateWorldMainFrame", 
 AlternateWorldMainFrame:SetSize(600, 460) 
 AlternateWorldMainFrame:SetPoint("CENTER", UIParent, "CENTER") 
 
-local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.1.0"
+local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.2.0"
 AlternateWorldMainFrame.TitleText:SetText("Alternate World v" .. addonVersion)
 
 AlternateWorldMainFrame:SetMovable(true)
@@ -24,6 +24,7 @@ local function GetSelectedCharacterKey()
     return selectedCharacterKey
 end
 
+-- SLASH COMMAND 1: Standard GUI Toggler
 SLASH_ALTERNATEWORLD1 = "/aw"
 SLASH_ALTERNATEWORLD2 = "/alternateworld"
 SlashCmdList["ALTERNATEWORLD"] = function()
@@ -33,6 +34,33 @@ SlashCmdList["ALTERNATEWORLD"] = function()
         AlternateWorldNavigation.HideAllPanels()
         AlternateWorldMainFrame:Show()
         AlternateWorldCharacterView.ShowData(selectedCharacterKey)
+    end
+end
+
+-- NEW UI METHOD: Class-colors the sender name and prints the reported version safely into local chat
+function AlternateWorldMainFrameEngine.PrintVersionResult(senderName, reportedVersion)
+    local cleanName = string.match(senderName, "([^%-]+)") or senderName
+    local _, classToken = UnitClass(cleanName)
+    local formattedName = cleanName
+    
+    if classToken and AlternateWorldConfig and AlternateWorldConfig.GetClassColoredText then
+        formattedName = AlternateWorldConfig.GetClassColoredText(cleanName, classToken)
+    end
+    
+    local msg = string.format(
+        "|cFF2266DD[|r|cFF00CCFFAlternate World|r|cFF2266DD] |r%s|cFF2266DD is using version |r|cFFFFD700%s|r", 
+        formattedName, 
+        reportedVersion
+    )
+    print(msg)
+end
+
+-- SLASH COMMAND 2: Group/Raid Version Checker Engine routed to the new safe gateway
+SLASH_ALTERNATEWORLDVERSION1 = "/awversion"
+SLASH_ALTERNATEWORLDVERSION2 = "/alternateworldversion"
+SlashCmdList["ALTERNATEWORLDVERSION"] = function()
+    if AlternateWorldComm and AlternateWorldComm.ExecuteVersionCheck then
+        AlternateWorldComm.ExecuteVersionCheck()
     end
 end
 
@@ -70,12 +98,11 @@ local ContentWindow = CreateFrame("Frame", nil, AlternateWorldMainFrame)
 ContentWindow:SetSize(CONTENT_WIDTH, FRAME_HEIGHT)
 ContentWindow:SetPoint("TOPLEFT", LeftMenu, "TOPRIGHT", 0, 0)
 
--- Build sub-panels canvases hooks
 AlternateWorldCharacterView.CreatePanel(ContentWindow)
 AlternateWorldInventoryView.CreatePanel(ContentWindow)
 AlternateWorldAttunementsView.CreatePanel(ContentWindow)
 AlternateWorldHistoryView.CreatePanel(ContentWindow)
-AlternateWorldProfessionsView.CreatePanel(ContentWindow) -- FIXED: Added panel framework initialization loop
+AlternateWorldProfessionsView.CreatePanel(ContentWindow)
 
 AlternateWorldNavigation.CreateMenu(LeftMenu, GetSelectedCharacterKey)
 
@@ -110,7 +137,6 @@ local function InitializeDropdown(self, level)
     end
 end
 
--- Core Callback Link: Triggered natively by the background Core engine when addon loads
 function AlternateWorldMainFrameEngine.OnAddonLoaded()
     local myName = UnitName("player")
     local myRealm = GetRealmName()
@@ -126,10 +152,14 @@ function AlternateWorldMainFrameEngine.OnAddonLoaded()
         elseif myFaction == "Horde" then myFactionIcon = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t " end
         
         UIDropDownMenu_SetText(CharacterDropdown, myFactionIcon .. coloredName)
+        
+        -- FIXED: Safely activate the communication listener once all window engines are 100% declared
+        if AlternateWorldComm and AlternateWorldComm.Initialize then
+            AlternateWorldComm.Initialize()
+        end
     end
 end
 
--- Core Callback Link: Repaints the actively viewed panel blueprint layer on background ticks
 function AlternateWorldMainFrameEngine.RefreshUI()
     AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey)
 end

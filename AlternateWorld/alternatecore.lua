@@ -4,9 +4,6 @@
 
 AlternateWorldCore = {}
 
--- ============================================================================
--- CONFIGURATION CONSTANTS
--- ============================================================================
 -- Production Mode: Set to "0070dd" for Rare+. Set to "ff9d9d9d" for sandbox testing.
 local LOOT_THRESHOLD_QUALITY = "0070dd" 
 
@@ -85,7 +82,10 @@ function AlternateWorldCore.Initialize()
             
             isAddonFullyLoaded = true
             RequestRaidInfo()
-            
+        end
+
+        if event == "PLAYER_ENTERING_WORLD" then
+            -- FIXED: Removed the unreliable asynced RegisterPrefix call from here
             if AlternateWorldDBEngine and AlternateWorldDBEngine.SaveCurrentCharacterData then
                 AlternateWorldDBEngine.SaveCurrentCharacterData()
             end
@@ -114,9 +114,7 @@ function AlternateWorldCore.Initialize()
             pendingLevelUpLog = nil
         end
 
-        -- FIXED: Enforced absolute personal loot detection rules to block raid/party loot contamination
         if event == "CHAT_MSG_LOOT" and arg1 then
-            -- Verify if the string pattern explicitly matches the local player's own receiving alerts
             local isPersonalLoot = string.find(arg1, "You receive loot:") or string.find(arg1, "Du modtager bytte:")
             
             if isPersonalLoot then
