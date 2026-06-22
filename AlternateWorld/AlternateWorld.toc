@@ -1,0 +1,12 @@
+## Title: Alternate World
+## Interface: 11508
+## Notes: Alternate Character Information
+## Author: Mimma @ EU-Pyrewood Village
+## Version: 0.1.0
+## SavedVariables: AlternateWorldDB
+
+alternateconfig.lua
+alternatedb.lua
+alternatecharacter.lua
+alternateinventory.lua
+alternatemain.lua
