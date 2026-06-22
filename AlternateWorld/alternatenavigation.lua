@@ -4,12 +4,13 @@
 
 AlternateWorldNavigation = {}
 
--- FIXED: Appended HistoryView cleanly to the master menu routing dict array
+-- FIXED: Appended ProfessionsView cleanly as item number 5 in the routing matrix
 local MENU_ITEMS = {
     { text = "Character", view = AlternateWorldCharacterView },
     { text = "Inventory", view = AlternateWorldInventoryView },
     { text = "Attunements", view = AlternateWorldAttunementsView },
-    { text = "History", view = AlternateWorldHistoryView } -- NEW ITEM 4
+    { text = "History", view = AlternateWorldHistoryView },
+    { text = "Professions", view = AlternateWorldProfessionsView } -- NEW ITEM 5
 }
 
 local navigationButtons = {}

@@ -7,7 +7,7 @@ AlternateWorldCore = {}
 -- ============================================================================
 -- CONFIGURATION CONSTANTS
 -- ============================================================================
--- FIXED: Changed back to "0070dd" for Rare+ items. Addon will now ignore grey/green loot!
+-- Production Mode: Set to "0070dd" for Rare+. Set to "ff9d9d9d" for sandbox testing.
 local LOOT_THRESHOLD_QUALITY = "0070dd" 
 
 local CoreFrame = nil
@@ -114,23 +114,28 @@ function AlternateWorldCore.Initialize()
             pendingLevelUpLog = nil
         end
 
+        -- FIXED: Absolute strict validation gate to prevent any white or unlinked items from leaking
         if event == "CHAT_MSG_LOOT" and arg1 then
             local myName = UnitName("player")
             if arg2 == myName or not arg2 or arg2 == "" or string.find(arg1, "You receive") or string.find(arg1, "Du modtager") then
+                
                 local cleanLink = string.match(arg1, "(|c%x+|Hitem.-|h%[.-%]|h|r)")
+                local shouldLog = false -- FIXED: Enforced strict false default state initialization
+                
                 if cleanLink then
-                    local shouldLog = false
                     if LOOT_THRESHOLD_QUALITY == "ff9d9d9d" then
+                        -- Testing override branch
                         shouldLog = true
                     else
+                        -- Strict production gate: explicitly look for verified hex quality matches
                         if string.find(cleanLink, "cff0070dd") or string.find(cleanLink, "cffa335ee") or string.find(cleanLink, "cffff8000") then
                             shouldLog = true
                         end
                     end
-                    
-                    if shouldLog and AlternateWorldHistoryView and AlternateWorldHistoryView.LogEvent then
-                        AlternateWorldHistoryView.LogEvent(string.format("|cFFFFFFFFLooted item:|r %s", cleanLink))
-                    end
+                end
+                
+                if shouldLog and cleanLink and AlternateWorldHistoryView and AlternateWorldHistoryView.LogEvent then
+                    AlternateWorldHistoryView.LogEvent(string.format("|cFFFFFFFFLooted item:|r %s", cleanLink))
                 end
             end
         end

@@ -34,6 +34,15 @@
     <Content Include="alternatenavigation.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="alternateprofessiongrid.lua">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="alternateprofessions.lua">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="alternateprofscraper.lua">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="alternatescraper.lua">
       <SubType>Code</SubType>
     </Content>

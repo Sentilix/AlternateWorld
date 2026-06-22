@@ -75,6 +75,7 @@ AlternateWorldCharacterView.CreatePanel(ContentWindow)
 AlternateWorldInventoryView.CreatePanel(ContentWindow)
 AlternateWorldAttunementsView.CreatePanel(ContentWindow)
 AlternateWorldHistoryView.CreatePanel(ContentWindow)
+AlternateWorldProfessionsView.CreatePanel(ContentWindow) -- FIXED: Added panel framework initialization loop
 
 AlternateWorldNavigation.CreateMenu(LeftMenu, GetSelectedCharacterKey)
 

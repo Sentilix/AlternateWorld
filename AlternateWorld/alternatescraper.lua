@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - Live Data Scraping Module
+-- Alternate World - Live Data Scraping Module (Core Chars)
 -- ============================================================================
 
 AlternateWorldScraper = {}
@@ -60,7 +60,7 @@ local function GetCurrentSpec()
         end
     end
     
-    local treeString = trees[mainTreeIndex].name .. " (" .. treePoints[1] .. "/" .. treePoints[2] .. "/" .. treePoints[3] .. ")"
+    local treeString = trees[mainTreeIndex].name .. " (" .. treePoints .. "/" .. treePoints .. "/" .. treePoints .. ")"
     return treeString, trees[mainTreeIndex].icon
 end
 
@@ -127,7 +127,6 @@ local function ScanRaidLockouts()
     return savedLockouts
 end
 
--- Master Scraper Loop: Compiles all individual scanning parameters into an isolated data array package
 function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     local currentIlvl = 0
     pcall(function() currentIlvl = GetAverageItemLevel() end)
@@ -135,7 +134,6 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     local pSpecName, pSpecIcon = nil, nil
     pcall(function() pSpecName, pSpecIcon = GetCurrentSpec() end)
     
-    -- Recover historical talent cache if server queries throttle out during screen loading states
     if not pSpecName and existingCharData then
         pSpecName = existingCharData.specText or "Loading..."
         pSpecIcon = existingCharData.specIcon or "Interface\\Icons\\Spell_Nature_Invisibilty"
@@ -144,11 +142,9 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         pSpecIcon = "Interface\\Icons\\Spell_Nature_Invisibilty"
     end
     
-    local oldMax = 0
-    local existingLockouts = nil
-    local currentBankData = {}
-    local currentBankTimestamp = "Never"
-    local existingHistory = {}
+    local oldMax, existingLockouts = 0, nil
+    local currentBankData, currentBankTimestamp = {}, "Never"
+    local existingHistory, existingProfessions = {}, {}
     
     if existingCharData then
         oldMax = existingCharData.maxItemLevel or 0
@@ -156,6 +152,7 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         currentBankData = existingCharData.bankItems or {}
         currentBankTimestamp = existingCharData.bankUpdated or "Never"
         existingHistory = existingCharData.historyLog or {}
+        existingProfessions = existingCharData.professions or {}
     end
     local newMax = math.max(oldMax, currentIlvl)
     
@@ -165,7 +162,6 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     local currentBagData = AlternateWorldScraper.ScanContainers(0, 4)
     local currentTimestamp = date("%Y-%m-%d %H:%M")
     
-    -- Complete Core Quest-ID checking matrix
     local isMC = C_QuestLog.IsQuestFlaggedCompleted(7848) or false
     local isBWL = C_QuestLog.IsQuestFlaggedCompleted(7761) or false
     local isOny = C_QuestLog.IsQuestFlaggedCompleted(6502) or C_QuestLog.IsQuestFlaggedCompleted(6570) or HasItemEverywhere(16309, currentBankData) or false
@@ -186,7 +182,12 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         end
     end
 
-    -- Construct and return the finalized object array package directly back to core database saver
+    -- Run tradeskills updater injection if available
+    local finalProfessions = existingProfessions
+    if AlternateWorldProfessionScraper and AlternateWorldProfessionScraper.GetUpdatedProfessions then
+        finalProfessions = AlternateWorldProfessionScraper.GetUpdatedProfessions(existingProfessions)
+    end
+
     return {
         name = UnitName("player"),
         realm = GetRealmName(),
@@ -212,6 +213,7 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         activeRaidIDs = currentLockouts,
         faction = UnitFactionGroup("player") or "Unknown",
         level = UnitLevel("player") or 1,
-        historyLog = existingHistory
+        historyLog = existingHistory,
+        professions = finalProfessions
     }
 end

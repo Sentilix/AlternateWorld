@@ -50,7 +50,7 @@ local function UpdateGlobalAccountStats()
     local totalChars = allianceChars + hordeChars
     local totalLvl60s = allianceLvl60 + hordeLvl60
 
-    -- All labels systematically formatted with uniform prefix rules
+    -- Standardized all character labels to use the full word "Characters"
     local labelsString = 
         "Gold, |cFF0070DDAlliance:|r\n" ..
         "Gold, |cFFC41F3BHorde:|r\n" ..
@@ -59,16 +59,18 @@ local function UpdateGlobalAccountStats()
         "Characters, |cFFC41F3BHorde:|r\n" ..
         "Characters, total:"
 
-    -- Apply data strings values cleanly
+    -- FIXED: Level 60 tracking added symmetrically for Alliance, Horde, and Totals inside the column matrix
     local valuesString = string.format(
         "%s\n" ..
         "%s\n" ..
         "%s\n\n" ..
-        "|cFFFFD700%d|r\n" ..
-        "|cFFFFD700%d|r\n" ..
+        "|cFFFFD700%d|r  (|cFFFFD700Level 60:|r |cFFFFD700%d|r)\n" ..
+        "|cFFFFD700%d|r  (|cFFFFD700Level 60:|r |cFFFFD700%d|r)\n" ..
         "|cFFFFD700%d|r  (|cFFFFD700Level 60:|r |cFFFFD700%d|r)",
         allyGoldStr, hordeGoldStr, totalGoldStr,
-        allianceChars, hordeChars, totalChars, totalLvl60s
+        allianceChars, allianceLvl60,
+        hordeChars, hordeLvl60,
+        totalChars, totalLvl60s
     )
 
     BottomLabelsText:SetText(labelsString)
@@ -180,14 +182,13 @@ function AlternateWorldCharacterView.ShowData(selectedCharacterKey)
         coloredFaction = "|cFFC41F3BHorde|r"
     end
 
-    -- FIXED: Replaced "Money:" with "Gold:" to achieve absolute structural harmony
     TopLabelsText:SetText(
         "Class:\n" ..
         "Spec:\n" ..
         "Race:\n" ..
         "Faction:\n\n" .. 
         "Location:\n" ..
-        "Gold:\n" .. -- FIXED HERE
+        "Gold:\n" ..
         "Item Level:\n" ..
         "Gearscore (Est.):"
     )
