@@ -27,7 +27,7 @@ local function GetCurrentSpec()
     end
 
     local numTabs = GetNumTalentTabs() or 0
-    if numTabs == 0 then return nil, nil end -- Return nil so the saver knows it's empty/loading
+    if numTabs == 0 then return nil, nil end 
 
     local _, classToken = UnitClass("player")
     if not classToken or not AlternateWorldConfig or not AlternateWorldConfig.TalentTrees[classToken] then 
@@ -50,8 +50,6 @@ local function GetCurrentSpec()
         totalPointsAllocated = totalPointsAllocated + pointsInTab
     end
     
-    -- FIXED: If the engine returned tabs, but 0 points are counted on a lvl 10+ character during a loading screen,
-    -- return nil so we don't accidentally overwrite the player's real spec data with a blank map
     if totalPointsAllocated == 0 then return nil, nil end
 
     local maxPoints, mainTreeIndex = -1, 1
@@ -62,7 +60,7 @@ local function GetCurrentSpec()
         end
     end
     
-    local treeString = trees[mainTreeIndex].name .. " (" .. treePoints[1] .. "/" .. treePoints[2] .. "/" .. treePoints[3] .. ")"
+    local treeString = trees[mainTreeIndex].name .. " (" .. treePoints .. "/" .. treePoints .. "/" .. treePoints .. ")"
     return treeString, trees[mainTreeIndex].icon
 end
 
@@ -142,18 +140,15 @@ function AlternateWorldDBEngine.SaveCurrentCharacterData()
     local currentIlvl = 0
     pcall(function() currentIlvl = GetAverageItemLevel() end)
     
-    -- FIXED: Protected talent scanning loop with strict fallback rules
-    local specName, specIcon = nil, nil
-    pcall(function() specName, specIcon = GetCurrentSpec() end)
+    local pSpecName, pSpecIcon = nil, nil
+    pcall(function() pSpecName, pSpecIcon = GetCurrentSpec() end)
     
-    -- Cache recovery: If talent scanning returned nil (due to server lag), 
-    -- reuse the previously saved historical data instead of writing "Loading..."
-    if not specName and AlternateWorldDB[myKey] then
-        specName = AlternateWorldDB[myKey].specText or "Loading..."
-        specIcon = AlternateWorldDB[myKey].specIcon or "Interface\\Icons\\Spell_Nature_Invisibilty"
-    elseif not specName then
-        specName = "Loading..."
-        specIcon = "Interface\\Icons\\Spell_Nature_Invisibilty"
+    if not pSpecName and AlternateWorldDB[myKey] then
+        pSpecName = AlternateWorldDB[myKey].specText or "Loading..."
+        pSpecIcon = AlternateWorldDB[myKey].specIcon or "Interface\\Icons\\Spell_Nature_Invisibilty"
+    elseif not pSpecName then
+        pSpecName = "Loading..."
+        pSpecIcon = "Interface\\Icons\\Spell_Nature_Invisibilty"
     end
     
     local oldMax = 0
@@ -191,12 +186,14 @@ function AlternateWorldDBEngine.SaveCurrentCharacterData()
     local isUBRS = HasItemEverywhere(12344, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(4742) or C_QuestLog.IsQuestFlaggedCompleted(4743) or false
 
     local currentLockouts = ScanRaidLockouts()
-    
     if GetNumSavedInstances() == 0 and existingLockouts then
         for k, v in pairs(existingLockouts) do
             if v > time() then currentLockouts[k] = v end
         end
     end
+
+    -- NEW: Extract faction names string natively ("Alliance" or "Horde")
+    local factionGroup = UnitFactionGroup("player") or "Unknown"
 
     AlternateWorldDB[myKey] = {
         name = charName,
@@ -206,8 +203,8 @@ function AlternateWorldDBEngine.SaveCurrentCharacterData()
         classNameLocal = UnitClass("player") or "Unknown",
         zone = GetRealZoneText() or "Unknown",
         money = GetMoney() or 0,
-        specText = specName,
-        specIcon = specIcon,
+        specText = pSpecName,
+        specIcon = pSpecIcon,
         itemLevel = currentIlvl,
         maxItemLevel = newMax,
         gender = genderString,
@@ -228,7 +225,9 @@ function AlternateWorldDBEngine.SaveCurrentCharacterData()
             dm = isDM,
             ubrs = isUBRS
         },
-        activeRaidIDs = currentLockouts
+        activeRaidIDs = currentLockouts,
+        faction = factionGroup,       -- NEW: Saved into DB
+        level = UnitLevel("player") or 1 -- NEW: Saved into DB
     }
 end
 

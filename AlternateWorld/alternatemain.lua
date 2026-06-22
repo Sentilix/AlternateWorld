@@ -35,7 +35,6 @@ SlashCmdList["ALTERNATEWORLD"] = function()
     end
 end
 
--- Counts live countdowns on open frame updates
 AlternateWorldMainFrame:SetScript("OnUpdate", function(self, elapsed)
     if isAddonFullyLoaded and AlternateWorldAttunementsView and AlternateWorldAttunementsView.OnUpdateTick then
         AlternateWorldAttunementsView.OnUpdateTick(selectedCharacterKey)
@@ -77,15 +76,34 @@ AlternateWorldNavigation.CreateMenu(LeftMenu, GetSelectedCharacterKey)
 
 local function InitializeDropdown(self, level)
     if not AlternateWorldDB then return end
+    
+    local sortedKeys = {}
+    for key in pairs(AlternateWorldDB) do
+        table.insert(sortedKeys, key)
+    end
+    table.sort(sortedKeys)
+    
     local info = UIDropDownMenu_CreateInfo()
-    for key, data in pairs(AlternateWorldDB) do
+    
+    for _, key in ipairs(sortedKeys) do
+        local data = AlternateWorldDB[key]
         local displayName = AlternateWorldConfig.GetClassColoredText(key, data.classToken)
-        info.text = displayName
+        
+        -- FIXED: Compute and inject inline faction textures strings natively directly before names
+        local factionIconInline = ""
+        if data.faction == "Alliance" then
+            factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
+        elseif data.faction == "Horde" then
+            factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t "
+        end
+        
+        -- Attach the texture directly to the button text parameter
+        info.text = factionIconInline .. displayName
         info.value = key
         info.arg1 = key
         info.func = function(button, arg1)
             selectedCharacterKey = arg1
-            UIDropDownMenu_SetText(CharacterDropdown, displayName)
+            UIDropDownMenu_SetText(CharacterDropdown, factionIconInline .. displayName)
             AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey)
         end
         info.checked = (selectedCharacterKey == key)
@@ -109,7 +127,6 @@ AlternateWorldMainFrame:RegisterEvent("PLAYERBANKSLOTS_CHANGED")
 AlternateWorldMainFrame:RegisterEvent("BAG_UPDATE_DELAYED")
 AlternateWorldMainFrame:RegisterEvent("UNIT_QUEST_LOG_CHANGED")
 AlternateWorldMainFrame:RegisterEvent("ITEM_LOCK_CHANGED")
--- FIXED: Added native Blizzard event hook that fires the second your Raid IDs finish loading
 AlternateWorldMainFrame:RegisterEvent("UPDATE_INSTANCE_INFO")
 
 AlternateWorldMainFrame:SetScript("OnEvent", function(self, event, arg1, ...)
@@ -124,11 +141,19 @@ AlternateWorldMainFrame:SetScript("OnEvent", function(self, event, arg1, ...)
             
             local currentClassToken = select(2, UnitClass("player"))
             local coloredName = AlternateWorldConfig.GetClassColoredText(selectedCharacterKey, currentClassToken)
-            UIDropDownMenu_SetText(CharacterDropdown, coloredName)
+            
+            -- Set local player faction icon on first boot
+            local myFaction = UnitFactionGroup("player")
+            local myFactionIcon = ""
+            if myFaction == "Alliance" then
+                myFactionIcon = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
+            elseif myFaction == "Horde" then
+                myFactionIcon = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t "
+            end
+            
+            UIDropDownMenu_SetText(CharacterDropdown, myFactionIcon .. coloredName)
         end
         isAddonFullyLoaded = true
-        
-        -- Request a fresh sync of instance IDs from Blizzard's core server
         RequestRaidInfo()
     end
 
