@@ -114,20 +114,19 @@ function AlternateWorldCore.Initialize()
             pendingLevelUpLog = nil
         end
 
-        -- FIXED: Absolute strict validation gate to prevent any white or unlinked items from leaking
+        -- FIXED: Enforced absolute personal loot detection rules to block raid/party loot contamination
         if event == "CHAT_MSG_LOOT" and arg1 then
-            local myName = UnitName("player")
-            if arg2 == myName or not arg2 or arg2 == "" or string.find(arg1, "You receive") or string.find(arg1, "Du modtager") then
-                
+            -- Verify if the string pattern explicitly matches the local player's own receiving alerts
+            local isPersonalLoot = string.find(arg1, "You receive loot:") or string.find(arg1, "Du modtager bytte:")
+            
+            if isPersonalLoot then
                 local cleanLink = string.match(arg1, "(|c%x+|Hitem.-|h%[.-%]|h|r)")
-                local shouldLog = false -- FIXED: Enforced strict false default state initialization
+                local shouldLog = false 
                 
                 if cleanLink then
                     if LOOT_THRESHOLD_QUALITY == "ff9d9d9d" then
-                        -- Testing override branch
                         shouldLog = true
                     else
-                        -- Strict production gate: explicitly look for verified hex quality matches
                         if string.find(cleanLink, "cff0070dd") or string.find(cleanLink, "cffa335ee") or string.find(cleanLink, "cffff8000") then
                             shouldLog = true
                         end
