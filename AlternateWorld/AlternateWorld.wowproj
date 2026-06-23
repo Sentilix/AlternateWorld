@@ -22,6 +22,9 @@
     <Content Include="alternateconfig.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="alternateconstants.lua">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="alternatecore.lua">
       <SubType>Code</SubType>
     </Content>
@@ -35,6 +38,12 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="alternatenavigation.lua">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="alternateprofui.lua">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="alternateprofengine.lua">
       <SubType>Code</SubType>
     </Content>
     <Content Include="alternateprofessiongrid.lua">

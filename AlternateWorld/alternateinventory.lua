@@ -1,147 +1,162 @@
 -- ============================================================================
--- Alternate World - Inventory View Module Panel
+-- Alternate World - Inventory View Module Panel (v0.2.0 - PERSONALIZED)
 -- ============================================================================
 
 AlternateWorldInventoryView = {}
 
 local InventoryPanel = nil
-local ScrollFrame = nil
-local ScrollContent = nil
+local BagScrollFrame = nil
+local BagScrollContent = nil
 
--- Generates a grid layout of items inside a specific container block frame
-local function BuildItemGrid(parentFrame, itemsList, titleText, timestamp)
-    -- Remove old dynamically generated entries before drawing a new snapshot
-    if parentFrame.Items then
-        for _, btn in ipairs(parentFrame.Items) do btn:Hide() end
-    end
-    parentFrame.Items = {}
+local BagsTitleText = nil
+local BagsLastUpdateText = nil
+local BankTitleText = nil
+local BankLastUpdateText = nil
+local BankEmptyTextString = nil
 
-    -- FIXED: Injected gray timestamp line strictly ABOVE section title labels
-    if not parentFrame.TimeLabel then
-        parentFrame.TimeLabel = parentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        parentFrame.TimeLabel:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 10, 0)
-        parentFrame.TimeLabel:SetTextColor(0.65, 0.65, 0.65) -- Slate Gray
-    end
-    parentFrame.TimeLabel:SetText("Last updated: " .. (timestamp or "Never"))
+local AW_BagButtonPool = {}
+local AW_BankButtonPool = {}
 
-    -- Label Title (Shifted down below the newly introduced TimeLabel)
-    if not parentFrame.Title then
-        parentFrame.Title = parentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-        parentFrame.Title:SetPoint("TOPLEFT", parentFrame.TimeLabel, "BOTTOMLEFT", 0, -4)
-    end
-    parentFrame.Title:SetText(titleText)
-
-    if not itemsList or #itemsList == 0 then
-        if not parentFrame.EmptyLabel then
-            parentFrame.EmptyLabel = parentFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            parentFrame.EmptyLabel:SetPoint("TOPLEFT", parentFrame.Title, "BOTTOMLEFT", 10, -10)
-        end
-        parentFrame.EmptyLabel:SetText("No data cached yet for this section.")
-        parentFrame.EmptyLabel:Show()
-        return 50 
-    else
-        if parentFrame.EmptyLabel then parentFrame.EmptyLabel:Hide() end
-    end
-
-    local ICON_SIZE = 32
-    local SPACING = 6
-    local COLUMNS = 9
-    local row, col = 0, 0
-
-    for i, itemData in ipairs(itemsList) do
-        local btn = CreateFrame("Button", nil, parentFrame, "ItemButtonTemplate")
-        btn:SetSize(ICON_SIZE, ICON_SIZE)
-        
-        -- Y-Offset adjusted to account for double top header strings
-        local xOffset = 10 + (col * (ICON_SIZE + SPACING))
-        local yOffset = -45 - (row * (ICON_SIZE + SPACING))
-        btn:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", xOffset, yOffset)
-        
-        if itemData.icon then btn.icon:SetTexture(itemData.icon) end
-        
-        if btn.Count then
-            if itemData.count and itemData.count > 1 then
-                btn.Count:SetText(itemData.count)
-                btn.Count:Show() 
-            else
-                btn.Count:SetText("")
-                btn.Count:Hide() 
-            end
-        end
-
-        btn:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetItemByID(itemData.id)
-            GameTooltip:Show()
-        end)
-        btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-        table.insert(parentFrame.Items, btn)
-
-        col = col + 1
-        if col >= COLUMNS then
-            col = 0
-            row = row + 1
-        end
-    end
-
-    local finalRows = col == 0 and row or row + 1
-    return 50 + (finalRows * (ICON_SIZE + SPACING))
-end
+local BUTTON_SIZE, PADDING, BUTTONS_PER_ROW = 36, 6, 9
 
 function AlternateWorldInventoryView.CreatePanel(parentWindow)
     if InventoryPanel then return InventoryPanel end
 
-    InventoryPanel = CreateFrame("Frame", nil, parentWindow)
+    InventoryPanel = CreateFrame("Frame", "AWInventoryPanelGlobal", parentWindow)
     InventoryPanel:SetAllPoints(parentWindow)
     InventoryPanel:Hide()
 
-    -- Main scrolling container architecture
-    ScrollFrame = CreateFrame("ScrollFrame", "AlternateWorldInventoryScrollFrame", InventoryPanel, "UIPanelScrollFrameTemplate")
-    ScrollFrame:SetPoint("TOPLEFT", InventoryPanel, "TOPLEFT", 10, -10)
-    ScrollFrame:SetPoint("BOTTOMRIGHT", InventoryPanel, "BOTTOMRIGHT", -30, 10)
+    BagScrollFrame = CreateFrame("ScrollFrame", "AW_InventoryScrollFrame", InventoryPanel, "UIPanelScrollFrameTemplate")
+    BagScrollFrame:SetPoint("TOPLEFT", InventoryPanel, "TOPLEFT", 0, -5)
+    BagScrollFrame:SetPoint("BOTTOMRIGHT", InventoryPanel, "BOTTOMRIGHT", -30, 15)
 
-    ScrollContent = CreateFrame("Frame", nil, ScrollFrame)
-    ScrollContent:SetSize(parentWindow:GetWidth() - 40, 1) 
-    ScrollFrame:SetScrollChild(ScrollContent)
+    BagScrollContent = CreateFrame("Frame", nil, BagScrollFrame)
+    BagScrollContent:SetSize(InventoryPanel:GetWidth() - 40, 1)
+    BagScrollFrame:SetScrollChild(BagScrollContent)
 
-    ScrollContent.BagsFrame = CreateFrame("Frame", nil, ScrollContent)
-    ScrollContent.BagsFrame:SetPoint("TOPLEFT", ScrollContent, "TOPLEFT", 0, -10)
-    ScrollContent.BagsFrame:SetWidth(parentWindow:GetWidth() - 40)
+    BagsTitleText = BagScrollContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    BagsTitleText:SetPoint("TOPLEFT", BagScrollContent, "TOPLEFT", 15, -10)
 
-    ScrollContent.BankFrame = CreateFrame("Frame", nil, ScrollContent)
-    ScrollContent.BankFrame:SetWidth(parentWindow:GetWidth() - 40)
+    BagsLastUpdateText = BagScrollContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    BagsLastUpdateText:SetPoint("TOPLEFT", BagsTitleText, "BOTTOMLEFT", 0, -2)
+
+    BankTitleText = BagScrollContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    BankLastUpdateText = BagScrollContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+
+    BankEmptyTextString = BagScrollContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    BankEmptyTextString:SetText("|cFF888888Bank vault has not been scanned yet on this character.|r")
 
     return InventoryPanel
 end
 
+local function RenderGridSection(itemDataList, buttonPool, startX, startY, poolPrefix)
+    local col, row = 0, 0
+    for i, itemObj in ipairs(itemDataList) do
+        local btn = buttonPool[i]
+        if not btn then
+            btn = CreateFrame("Button", "AW_InvGrid" .. poolPrefix .. i, BagScrollContent, "ItemButtonTemplate")
+            btn:SetSize(BUTTON_SIZE, BUTTON_SIZE)
+            btn:SetScript("OnEnter", function(self)
+                if self.itemID then
+                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                    GameTooltip:SetHyperlink("item:" .. self.itemID)
+                    GameTooltip:Show()
+                end
+            end)
+            btn:SetScript("OnLeave", function(self) GameTooltip:Hide() end)
+            buttonPool[i] = btn
+        end
+
+        local xOffset = startX + (col * (BUTTON_SIZE + PADDING))
+        local yOffset = startY - (row * (BUTTON_SIZE + PADDING))
+        btn:SetPoint("TOPLEFT", BagScrollContent, "TOPLEFT", xOffset, yOffset)
+
+        local itemTexture = C_Item.GetItemIconByID(itemObj.id) or "interface\\icons\\inv_misc_questionmark"
+        local iconTextureFrame = _G[btn:GetName() .. "IconTexture"]
+        if iconTextureFrame then iconTextureFrame:SetTexture(itemTexture) end
+
+        local countTextFrame = _G[btn:GetName() .. "Count"]
+        if countTextFrame then
+            if itemObj.count > 1 then countTextFrame:SetText(itemObj.count) countTextFrame:Show()
+            else countTextFrame:Hide() end
+        end
+
+        btn.itemID = itemObj.id
+        btn:Show()
+
+        col = col + 1
+        if col >= BUTTONS_PER_ROW then col = 0 row = row + 1 end
+    end
+    return col > 0 and (row + 1) or row
+end
+
+local function CompileSortedArray(rawItemsTable)
+    local itemArray = {}
+    if rawItemsTable then
+        for _, itemData in ipairs(rawItemsTable) do
+            local rawNumericID = tonumber(itemData.id)
+            if rawNumericID then
+                local currentName = itemData.name
+                if not currentName or currentName == "Unknown Item" or currentName == "" then
+                    currentName = GetItemInfo(rawNumericID) or "Unknown Item"
+                end
+                table.insert(itemArray, { id = rawNumericID, name = currentName, count = itemData.count or 1 })
+            end
+        end
+    end
+    table.sort(itemArray, function(a, b) return a.name < b.name end)
+    return itemArray
+end
+
 function AlternateWorldInventoryView.ShowData(selectedCharacterKey)
     if not InventoryPanel or not AlternateWorldDB or not selectedCharacterKey then return end
-    
     local data = AlternateWorldDB[selectedCharacterKey]
     if not data then return end
 
-    -- FIXED: Draw Grid 1 using independent bagsUpdated timestamp parameter
-    local bagsHeight = BuildItemGrid(ScrollContent.BagsFrame, data.bagItems, "|cFFFFFFFF" .. data.name .. "'s Bags|r", data.bagsUpdated)
-    ScrollContent.BagsFrame:SetHeight(bagsHeight)
+    -- FIXED LOGIC: Handles native language grammar apostrophe formatting rules cleanly
+    local charName = data.name or "Character"
+    local genitiveName = charName .. "'s"
+    if string.sub(charName, -1) == "s" or string.sub(charName, -1) == "S" then
+        genitiveName = charName .. "'"
+    end
 
-    -- Reposition Grid 2 safely below Grid 1 dynamically
-    ScrollContent.BankFrame:SetPoint("TOPLEFT", ScrollContent.BagsFrame, "BOTTOMLEFT", 0, -25)
+    if BagsTitleText then BagsTitleText:SetText("|cFFFFFFFF" .. genitiveName .. " Bag Inventory|r") end
+    BagsLastUpdateText:SetText("Last Scan: |cFF888888" .. (data.bagsUpdated or "Never Scanned") .. "|r")
 
-    -- FIXED: Draw Grid 2 using independent bankUpdated timestamp parameter
-    local bankHeight = BuildItemGrid(ScrollContent.BankFrame, data.bankItems, "|cFFFFFFFF" .. data.name .. "'s Bank|r", data.bankUpdated)
-    ScrollContent.BankFrame:SetHeight(bankHeight)
+    for _, btn in ipairs(AW_BagButtonPool) do btn:Hide() end
+    for _, btn in ipairs(AW_BankButtonPool) do btn:Hide() end
+    BankTitleText:Hide() BankLastUpdateText:Hide() BankEmptyTextString:Hide()
 
-    local totalHeight = bagsHeight + bankHeight + 50
-    ScrollContent:SetHeight(totalHeight)
+    local sortedBags = CompileSortedArray(data.bagItems)
+    local bagsRowsUsed = RenderGridSection(sortedBags, AW_BagButtonPool, 15, -50, "Bag")
+    local bagsHeightDelta = bagsRowsUsed * (BUTTON_SIZE + PADDING)
 
+    local bankTopY = -60 - bagsHeightDelta
+    BankTitleText:SetPoint("TOPLEFT", BagScrollContent, "TOPLEFT", 15, bankTopY)
+    BankTitleText:SetText("|cFFFFFFFF" .. genitiveName .. " Bank Vault|r")
+    BankTitleText:Show()
+
+    BankLastUpdateText:SetPoint("TOPLEFT", BankTitleText, "BOTTOMLEFT", 0, -2)
+    BankLastUpdateText:SetText("Last Scan: |cFF888888" .. (data.bankUpdated or "Never Scanned") .. "|r")
+    BankLastUpdateText:Show()
+
+    local bankHeightDelta = 40
+    if not data.bankItems or #data.bankItems == 0 then
+        BankEmptyTextString:SetPoint("TOPLEFT", BankLastUpdateText, "BOTTOMLEFT", 0, -10)
+        BankEmptyTextString:Show()
+        bankHeightDelta = 30
+    else
+        local sortedBank = CompileSortedArray(data.bankItems)
+        local bankRowsUsed = RenderGridSection(sortedBank, AW_BankButtonPool, 15, bankTopY - 40, "Bank")
+        bankHeightDelta = bankRowsUsed * (BUTTON_SIZE + PADDING) + 20
+    end
+
+    local totalContentCanvasHeight = math.abs(bankTopY) + bankHeightDelta + 20
+    BagScrollContent:SetHeight(totalContentCanvasHeight)
     InventoryPanel:Show()
 end
 
-function AlternateWorldInventoryView.HidePanel()
-    if InventoryPanel then InventoryPanel:Hide() end
-end
+function AlternateWorldInventoryView.HidePanel() if InventoryPanel then InventoryPanel:Hide() end end
+function AlternateWorldInventoryView.IsShown() return InventoryPanel and InventoryPanel:IsShown() end
 
-function AlternateWorldInventoryView.IsShown()
-    return InventoryPanel and InventoryPanel:IsShown()
-end
+-- End of [alternateinventory.lua]

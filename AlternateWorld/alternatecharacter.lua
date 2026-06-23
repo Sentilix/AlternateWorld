@@ -1,235 +1,194 @@
 -- ============================================================================
--- Alternate World - Character View Module Panel & Global Statistics
+-- Alternate World - Character Profile & Account Totals View Panel (v0.2.0)
 -- ============================================================================
 
 AlternateWorldCharacterView = {}
 
 local CharacterPanel = nil
-local Portrait = nil
-local CharacterHeadingText = nil
-local DividerLine = nil     
-local AccountTotalsHeading = nil
+local MainTitleText = nil
+local LastUpdateText = nil
+local DefaultPortrait2D = nil
 
--- Separate FontStrings for Top Section to ensure perfect vertical column alignment
-local TopLabelsText = nil
-local TopValuesText = nil
+local DetailLine1 = nil
+local DetailLine2 = nil
+local SpecIconTexture = nil
+local SpecTextString = nil
+local ClassIconTexture = nil
 
--- Separate FontStrings for Bottom Section to maintain the exact same column grid
-local BottomLabelsText = nil
-local BottomValuesText = nil
+local InfoTextLeft = nil
+local AccountTotalsHeadingText = nil
+local AccountTotalsLeft = nil
+local AccountTotalsRight = nil
 
--- Internal Helper: Calculates dynamic totals over all cached DB entries
-local function UpdateGlobalAccountStats()
-    if not AlternateWorldDB then return end
+local ProfLineFramesPool = {}
 
-    local allianceGold, hordeGold = 0, 0
-    local allianceChars, hordeChars = 0, 0
-    local allianceLvl60, hordeLvl60 = 0, 0
-
-    for _, data in pairs(AlternateWorldDB) do
-        local gold = tonumber(data.money) or 0
-        local lvl = tonumber(data.level) or 1
-        local fact = data.faction or "Unknown"
-
-        if fact == "Alliance" then
-            allianceGold = allianceGold + gold
-            allianceChars = allianceChars + 1
-            if lvl == 60 then allianceLvl60 = allianceLvl60 + 1 end
-        elseif fact == "Horde" then
-            hordeGold = hordeGold + gold
-            hordeChars = hordeChars + 1
-            if lvl == 60 then hordeLvl60 = hordeLvl60 + 1 end
-        end
-    end
-
-    local totalCombinedGold = allianceGold + hordeGold
-    local totalGoldStr = GetMoneyString(totalCombinedGold, true)
-    local allyGoldStr = GetMoneyString(allianceGold, true)
-    local hordeGoldStr = GetMoneyString(hordeGold, true)
-
-    local totalChars = allianceChars + hordeChars
-    local totalLvl60s = allianceLvl60 + hordeLvl60
-
-    -- Standardized all character labels to use the full word "Characters"
-    local labelsString = 
-        "Gold, |cFF0070DDAlliance:|r\n" ..
-        "Gold, |cFFC41F3BHorde:|r\n" ..
-        "Gold, total:\n\n" ..
-        "Characters, |cFF0070DDAlliance:|r\n" ..
-        "Characters, |cFFC41F3BHorde:|r\n" ..
-        "Characters, total:"
-
-    -- FIXED: Level 60 tracking added symmetrically for Alliance, Horde, and Totals inside the column matrix
-    local valuesString = string.format(
-        "%s\n" ..
-        "%s\n" ..
-        "%s\n\n" ..
-        "|cFFFFD700%d|r  (|cFFFFD700Level 60:|r |cFFFFD700%d|r)\n" ..
-        "|cFFFFD700%d|r  (|cFFFFD700Level 60:|r |cFFFFD700%d|r)\n" ..
-        "|cFFFFD700%d|r  (|cFFFFD700Level 60:|r |cFFFFD700%d|r)",
-        allyGoldStr, hordeGoldStr, totalGoldStr,
-        allianceChars, allianceLvl60,
-        hordeChars, hordeLvl60,
-        totalChars, totalLvl60s
-    )
-
-    BottomLabelsText:SetText(labelsString)
-    BottomValuesText:SetText(valuesString)
+local function FormatMoneyString(copperCoins)
+    local gold = math.floor(copperCoins / 10000)
+    local silver = math.floor((copperCoins % 10000) / 100)
+    local copper = copperCoins % 100
+    return string.format("|cFFFFD700%dg|r |cFFC0C0C0%ds|r |cFFB87333%dc|r", gold, silver, copper)
 end
 
 function AlternateWorldCharacterView.CreatePanel(parentWindow)
     if CharacterPanel then return CharacterPanel end
 
-    CharacterPanel = CreateFrame("Frame", nil, parentWindow)
+    CharacterPanel = CreateFrame("Frame", "AWCharacterPanelGlobal", parentWindow)
     CharacterPanel:SetAllPoints(parentWindow)
-    CharacterPanel:Hide() 
+    CharacterPanel:Hide()
 
-    Portrait = CharacterPanel:CreateTexture(nil, "ARTWORK")
-    Portrait:SetSize(70, 70)
-    Portrait:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 20, -20)
+    MainTitleText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    MainTitleText:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 20, -10)
+    MainTitleText:SetText("|cFFFFFFFFCharacter Profile Overview|r")
 
-    LastUpdatedText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    LastUpdatedText:SetPoint("TOPLEFT", Portrait, "TOPRIGHT", 15, 10)
-    LastUpdatedText:SetJustifyH("LEFT")
-    LastUpdatedText:SetTextColor(0.65, 0.65, 0.65)
+    LastUpdateText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    LastUpdateText:SetPoint("TOPLEFT", MainTitleText, "BOTTOMLEFT", 0, -2)
 
-    -- Character Header (Name-Realm)
-    CharacterHeadingText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    CharacterHeadingText:SetPoint("TOPLEFT", Portrait, "TOPRIGHT", 15, -5)
-    CharacterHeadingText:SetJustifyH("LEFT")
+    DefaultPortrait2D = CharacterPanel:CreateTexture(nil, "OVERLAY")
+    DefaultPortrait2D:SetSize(50, 50)
+    DefaultPortrait2D:SetPoint("TOPLEFT", LastUpdateText, "BOTTOMLEFT", 0, -10)
 
-    -- ========================================================================
-    -- TOP SECTION GRAPHICS GRID
-    -- ========================================================================
-    
-    TopLabelsText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    TopLabelsText:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 105, -52)
-    TopLabelsText:SetJustifyH("LEFT")
-    TopLabelsText:SetTextColor(1, 1, 1)
+    DetailLine1 = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    DetailLine1:SetPoint("TOPLEFT", DefaultPortrait2D, "TOPRIGHT", 15, -2)
+    DetailLine1:SetJustifyH("LEFT")
 
-    TopValuesText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    TopValuesText:SetPoint("TOPLEFT", TopLabelsText, "TOPLEFT", 140, 0)
-    TopValuesText:SetJustifyH("LEFT")
+    ClassIconTexture = CharacterPanel:CreateTexture(nil, "OVERLAY")
+    ClassIconTexture:SetSize(14, 14)
+    ClassIconTexture:SetPoint("TOPLEFT", DetailLine1, "BOTTOMLEFT", 0, -4)
+    ClassIconTexture:Hide()
 
-    -- Visual Separator line texture
-    DividerLine = CharacterPanel:CreateTexture(nil, "ARTWORK")
-    DividerLine:SetSize(parentWindow:GetWidth() - 40, 1)
-    DividerLine:SetPoint("BOTTOMLEFT", CharacterPanel, "BOTTOMLEFT", 20, 165)
-    DividerLine:SetColorTexture(0.5, 0.5, 0.5, 0.3) 
+    DetailLine2 = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    DetailLine2:SetPoint("LEFT", ClassIconTexture, "RIGHT", 5, 0)
+    DetailLine2:SetJustifyH("LEFT")
 
-    -- ========================================================================
-    -- BOTTOM SECTION GRAPHICS GRID (Account Totals)
-    -- ========================================================================
-    
-    -- Account Totals Heading (Forced to GameFontNormalLarge, white text, matching the character header)
-    AccountTotalsHeading = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    AccountTotalsHeading:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 105, -240)
-    AccountTotalsHeading:SetJustifyH("LEFT")
-    AccountTotalsHeading:SetTextColor(1, 1, 1) 
-    AccountTotalsHeading:SetText("Account Totals")
+    SpecIconTexture = CharacterPanel:CreateTexture(nil, "OVERLAY")
+    SpecIconTexture:SetSize(14, 14)
+    SpecIconTexture:SetPoint("TOPLEFT", ClassIconTexture, "BOTTOMLEFT", 0, -5)
+    SpecIconTexture:Hide()
 
-    -- Bottom Labels Column (Perfect vertical alignment with TopLabelsText)
-    BottomLabelsText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    BottomLabelsText:SetPoint("TOPLEFT", AccountTotalsHeading, "BOTTOMLEFT", 0, -8)
-    BottomLabelsText:SetJustifyH("LEFT")
-    BottomLabelsText:SetTextColor(1, 1, 1) 
+    SpecTextString = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    SpecTextString:SetPoint("LEFT", SpecIconTexture, "RIGHT", 6, 0)
+    SpecTextString:SetJustifyH("LEFT")
 
-    -- Bottom Values Column (Perfect vertical alignment with TopValuesText)
-    BottomValuesText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    BottomValuesText:SetPoint("TOPLEFT", BottomLabelsText, "TOPLEFT", 140, 0)
-    BottomValuesText:SetJustifyH("LEFT")
+    InfoTextLeft = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    InfoTextLeft:SetPoint("TOPLEFT", DefaultPortrait2D, "BOTTOMLEFT", 0, -32)
+    InfoTextLeft:SetJustifyH("LEFT")
+
+    AccountTotalsHeadingText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    AccountTotalsHeadingText:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 20, -255)
+    AccountTotalsHeadingText:SetText("|cFFFFFFFFAccount Totals Overview|r")
+
+    AccountTotalsLeft = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    AccountTotalsLeft:SetPoint("TOPLEFT", AccountTotalsHeadingText, "BOTTOMLEFT", 0, -10)
+    AccountTotalsLeft:SetJustifyH("LEFT")
+
+    AccountTotalsRight = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    AccountTotalsRight:SetPoint("TOPLEFT", AccountTotalsHeadingText, "BOTTOMLEFT", 220, -10)
+    AccountTotalsRight:SetJustifyH("LEFT")
 
     return CharacterPanel
 end
 
 function AlternateWorldCharacterView.ShowData(selectedCharacterKey)
     if not CharacterPanel or not AlternateWorldDB or not selectedCharacterKey then return end
-    
     local data = AlternateWorldDB[selectedCharacterKey]
     if not data then return end
-    
-    local charLvl = data.level or 1
-    CharacterHeadingText:SetText("|cFFFFFFFF" .. data.name .. " (Lvl " .. charLvl .. ") - " .. data.realm .. "|r")
-    
-    local timestamp = data.bagsUpdated or "Never"
-    LastUpdatedText:SetText("Last updated: " .. timestamp)
-    
-    local classIconInline = AlternateWorldConfig.GetInlineClassIcon(data.classToken)
-    local specIconInline = "|T" .. (data.specIcon or "Interface\\Icons\\Spell_Nature_Invisibilty") .. ":14:14:0:0|t "
-    local goldText = GetMoneyString(data.money, true)
-    
-    local gearScoreEstimate = math.floor(data.itemLevel * 4.8)
-    local highestGearScoreEstimate = math.floor(data.maxItemLevel * 4.8)
 
-    local displaySpecText = data.specText or "Loading..."
-    local displaySpecIcon = data.specIcon or "Interface\\Icons\\Spell_Nature_Invisibilty"
+    LastUpdateText:SetText("Last Update: |cFF888888" .. (data.bagsUpdated or "Unknown") .. "|r")
+
+    if DefaultPortrait2D then
+        DefaultPortrait2D:SetTexture("Interface\\CharacterFrame\\TemporaryPortrait")
+        if data.name == UnitName("player") then SetPortraitTexture(DefaultPortrait2D, "player") end
+    end
+
+    local classColorHex = "|cFFFFFFFF"
+    if data.classToken and RAID_CLASS_COLORS[data.classToken] then
+        local c = RAID_CLASS_COLORS[data.classToken]
+        classColorHex = string.format("|cff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
+    end
+
+    DetailLine1:SetText(classColorHex .. data.name .. "|r  |cFF888888-|r  |cFFFFFFFF" .. (data.realm or "Unknown") .. "|r")
+
+    -- FIXED LOCAL REFERENCE: Pull coords from the newly setup AlternateWorldConstants module
+    if ClassIconTexture and data.classToken and AlternateWorldConstants and AlternateWorldConstants.CLASS_COORDS[data.classToken] then
+        local coords = AlternateWorldConstants.CLASS_COORDS[data.classToken]
+        ClassIconTexture:SetTexture("Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes")
+        ClassIconTexture:SetTexCoord(coords[1], coords[2], coords[3], coords[4])
+        ClassIconTexture:Show()
+    else
+        if ClassIconTexture then ClassIconTexture:Hide() end
+    end
+
+    local factionColored = data.faction == "Alliance" and "|cFF0070DDAlliance|r" or "|cFFFF0000Horde|r"
+    DetailLine2:SetText((data.race or "Human") .. " " .. (data.gender or "Female") .. " " .. classColorHex .. (data.classNameLocal or "Character") .. "|r of the " .. factionColored .. "  |cFFFFFFFF(Level " .. (data.level or 60) .. ")|r")
+
+    if data.specIcon then
+        SpecIconTexture:SetTexture(data.specIcon)
+        SpecIconTexture:Show()
+        SpecTextString:SetText(string.format("|cFFFFFFFF%s|r", data.specText or "Fury (0/51/0)"))
+    else
+        SpecIconTexture:Hide()
+        SpecTextString:SetText("|cFF888888No Specialization Allocations|r")
+    end
+
+    local currentIlvl = data.itemLevel or 0
+    local maxIlvl = data.maxItemLevel or 0
+    InfoTextLeft:SetText(string.format("Gold: %s\n\nItem Level: |cFFFFFFFF%.1f|r  |cFF888888(Max: %.1f)|r\n\nZone: |cFFFFFFFF%s|r", FormatMoneyString(data.money or 0), currentIlvl, maxIlvl, data.zone or "Unknown"))
+
+    local currentRealm = data.realm or GetRealmName()
+    local allyGold, hordeGold, allyChars, hordeChars, ally60s, horde60s = 0, 0, 0, 0, 0, 0
     
-    if displaySpecText == "Loading..." then
-        for key, savedData in pairs(AlternateWorldDB) do
-            if key == selectedCharacterKey and savedData.specText and savedData.specText ~= "Loading..." then
-                displaySpecText = savedData.specText
-                displaySpecIcon = savedData.specIcon or displaySpecIcon
-                break
+    for _, loopChar in pairs(AlternateWorldDB) do
+        if loopChar.realm == currentRealm then
+            if loopChar.faction == "Alliance" then
+                allyGold = allyGold + (loopChar.money or 0)
+                allyChars = allyChars + 1
+                if loopChar.level == 60 then ally60s = ally60s + 1 end
+            elseif loopChar.faction == "Horde" then
+                hordeGold = hordeGold + (loopChar.money or 0)
+                hordeChars = hordeChars + 1
+                if loopChar.level == 60 then horde60s = horde60s + 1 end
             end
         end
     end
-    specIconInline = "|T" .. displaySpecIcon .. ":14:14:0:0|t "
 
-    local coloredFaction = "|cFFFFD700Unknown|r"
-    if data.faction == "Alliance" then
-        coloredFaction = "|cFF0070DDAlliance|r"
-    elseif data.faction == "Horde" then
-        coloredFaction = "|cFFC41F3BHorde|r"
+    AccountTotalsLeft:SetText(string.format("Gold, Alliance: %s\nGold, Horde: %s\nGold, Total: %s", FormatMoneyString(allyGold), FormatMoneyString(hordeGold), FormatMoneyString(allyGold + hordeGold)))
+    AccountTotalsRight:SetText(string.format("Chars, Alliance: |cFFFFFFFF%d|r  |cFF888888(level 60: %d)|r\nChars, Horde: |cFFFFFFFF%d|r  |cFF888888(level 60: %d)|r\nChars, Total: |cFFFFFFFF%d|r  |cFF888888(level 60: %d)|r", allyChars, ally60s, hordeChars, horde60s, allyChars + hordeChars, ally60s + horde60s))
+
+    for _, line in ipairs(ProfLineFramesPool) do line:Hide() line.Icon:Hide() line.Text:SetText("") end
+    local foundProfessions = {}
+    if data.professions then
+        for profName, profData in pairs(data.professions) do
+            table.insert(foundProfessions, { name = profName, level = profData.level or 0, maxLevel = profData.maxLevel or 0 })
+        end
+    end
+    table.sort(foundProfessions, function(a, b) return a.name < b.name end)
+
+    for i, profObj in ipairs(foundProfessions) do
+        local lineFrame = ProfLineFramesPool[i]
+        if not lineFrame then
+            lineFrame = CreateFrame("Frame", nil, CharacterPanel)
+            lineFrame:SetSize(220, 16)
+            if i == 1 then lineFrame:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 240, -115)
+            else lineFrame:SetPoint("TOPLEFT", ProfLineFramesPool[i - 1], "BOTTOMLEFT", 0, -8) end
+            
+            lineFrame.Icon = lineFrame:CreateTexture(nil, "OVERLAY")
+            lineFrame.Icon:SetSize(14, 14)
+            lineFrame.Icon:SetPoint("LEFT", lineFrame, "LEFT", 0, 0)
+            
+            lineFrame.Text = lineFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            lineFrame.Text:SetPoint("LEFT", lineFrame.Icon, "RIGHT", 6, 0)
+            lineFrame.Text:SetJustifyH("LEFT")
+            ProfLineFramesPool[i] = lineFrame
+        end
+        if AlternateWorldProfEngine then lineFrame.Icon:SetTexture(AlternateWorldProfEngine.GetProfessionIconTexture(profObj.name)) lineFrame.Icon:Show() end
+        lineFrame.Text:SetText(string.format("%s: |cFFFFFFFF%d/%d|r", profObj.name, profObj.level, profObj.maxLevel))
+        lineFrame:Show()
     end
 
-    TopLabelsText:SetText(
-        "Class:\n" ..
-        "Spec:\n" ..
-        "Race:\n" ..
-        "Faction:\n\n" .. 
-        "Location:\n" ..
-        "Gold:\n" ..
-        "Item Level:\n" ..
-        "Gearscore (Est.):"
-    )
-
-    TopValuesText:SetText(
-        classIconInline .. "|cFFFFD700" .. data.classNameLocal .. "|r\n" ..
-        specIconInline .. "|cFFFFD700" .. displaySpecText .. "|r\n" ..
-        "|cFFFFD700" .. data.race .. "|r\n" ..
-        coloredFaction .. "\n\n" .. 
-        "|cFFFFD700" .. (data.zone or "Unknown") .. "|r\n" ..
-        goldText .. "\n" ..
-        "|cFFFFD700" .. data.itemLevel .. " (Max: " .. data.maxItemLevel .. ")|r\n" ..
-        "|cFFFFD700" .. gearScoreEstimate .. " (Max: " .. highestGearScoreEstimate .. ")|r"
-    )
-    
-    local currentLocalKey = UnitName("player") .. " - " .. GetRealmName()
-    if selectedCharacterKey == currentLocalKey then
-        SetPortraitTexture(Portrait, "player")
-        Portrait:SetTexCoord(0, 1, 0, 1) 
-    else
-        local raceToken = data.race or "Human"
-        if raceToken == "Night Elf" then raceToken = "NightElf" end
-        if raceToken == "Scourge" then raceToken = "Undead" end 
-        
-        local genderString = "Male"
-        if data.gender == "Female" then genderString = "Female" end
-        
-        local fallbackPortraitPath = "Interface\\CharacterFrame\\TemporaryPortrait-" .. genderString .. "-" .. raceToken
-        
-        Portrait:SetTexture(fallbackPortraitPath)
-        Portrait:SetTexCoord(0, 1, 0, 1) 
-    end
-    
-    UpdateGlobalAccountStats()
     CharacterPanel:Show()
 end
 
-function AlternateWorldCharacterView.HidePanel()
-    if CharacterPanel then CharacterPanel:Hide() end
-end
+function AlternateWorldCharacterView.HidePanel() if CharacterPanel then CharacterPanel:Hide() end end
+function AlternateWorldCharacterView.IsShown() return CharacterPanel and CharacterPanel:IsShown() end
 
-function AlternateWorldCharacterView.IsShown()
-    return CharacterPanel and CharacterPanel:IsShown()
-end
+-- End of [alternatecharacter.lua]

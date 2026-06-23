@@ -1,14 +1,15 @@
 -- ============================================================================
--- Alternate World - Attunements & Keys View Panel (Streamlined 4-Column Layout)
+-- Alternate World - Attunements & Keys View Panel (v0.2.0 - PERFECT VERTICAL)
 -- ============================================================================
 
 AlternateWorldAttunementsView = {}
 
 local AttunementsPanel = nil
+local MainTitleText = nil
 local LastUpdatedText = nil
+local KeysTitleText = nil 
 local UIEntries = {}
 
--- Static definition map for Raids with specific requirements text added
 local RAID_DATA = {
     { key = "mc", name = "Molten Core", icon = "Interface\\Icons\\Spell_Fire_LavaSpawn", reqText = "Attunement to the Core (Quest)" },
     { key = "bwl", name = "Blackwing Lair", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_Black", reqText = "Attunement to Blackwing Lair (Quest)" },
@@ -16,7 +17,6 @@ local RAID_DATA = {
     { key = "naxx", name = "Naxxramas", icon = "Interface\\Icons\\INV_Jewelry_Necklace_19", reqText = "Argent Dawn Attunement (Reputation)" }
 }
 
--- Static definition map for Dungeons with specific requirements text added
 local DUNGEON_DATA = {
     { key = "brd", name = "Blackrock Depths", icon = "Interface\\Icons\\INV_Misc_Key_03", reqText = "Shadowforge Key" },
     { key = "scholo", name = "Scholomance", icon = "Interface\\Icons\\INV_Misc_Key_11", reqText = "The Skeleton Key" },
@@ -27,28 +27,23 @@ local DUNGEON_DATA = {
     { key = "dm", name = "Dire Maul", icon = "Interface\\Icons\\INV_Misc_Key_10", reqText = "Crescent Key" }
 }
 
+local DATA_KEY_MAP = {
+    ["mc"] = "MC", ["bwl"] = "BWL", ["ony"] = "Onyxia", ["naxx"] = "Naxxramas",
+    ["brd"] = "BRDKey", ["scholo"] = "ScholoKey", ["strat"] = "StratKey",
+    ["ubrs"] = "UBRSKey", ["mara"] = "MaraKey", ["gnomer"] = "GnomereganKey", ["dm"] = "DMKey"
+}
+
 local function GetFormattedResetTime(expirationTimestamp)
     if not expirationTimestamp then return nil end
     local timeLeft = expirationTimestamp - time()
     if timeLeft <= 0 then return nil end
-
     local days = math.floor(timeLeft / 86400)
     local hours = math.floor((timeLeft % 86400) / 3600)
-    
-    if days > 0 then
-        return string.format("%dd %dh", days, hours)
-    else
-        local mins = math.floor((timeLeft % 3600) / 60)
-        return string.format("%dh %dm", hours, mins)
-    end
+    if days > 0 then return string.format("%dd %dh", days, hours)
+    else return string.format("%dh %dm", hours, math.floor((timeLeft % 3600) / 60)) end
 end
 
--- Render engine to construct static grid sections without any scrolling containers
-local function BuildAttunementGrid(parentFrame, dataList, sectionTitle, yAnchorOffset, attunementFlags, activeLockouts)
-    local sectionLabel = parentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    sectionLabel:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 20, yAnchorOffset)
-    sectionLabel:SetText(sectionTitle)
-
+local function BuildAttunementGrid(parentFrame, dataList, yAnchorOffset, attunementFlags, activeLockouts, isFirstSection)
     local BOX_SIZE = 74 
     local SPACING = 14
     local COLUMNS = 4 
@@ -89,26 +84,26 @@ local function BuildAttunementGrid(parentFrame, dataList, sectionTitle, yAnchorO
         local col = (i - 1) % COLUMNS
         
         local xPos = 20 + (col * (BOX_SIZE + SPACING))
-        local yPos = yAnchorOffset - 22 - (row * (BOX_SIZE + SPACING + 15))
+        local startingTopMargin = isFirstSection and (yAnchorOffset - 42) or (yAnchorOffset - 25)
+        local yPos = startingTopMargin - (row * (BOX_SIZE + SPACING + 15))
+        
+        box:ClearAllPoints()
         box:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", xPos, yPos)
 
-        local isUnlocked = attunementFlags[keyID] or false
+        local dbToken = DATA_KEY_MAP[keyID] or keyID
+        local isUnlocked = attunementFlags[dbToken] or false
         box.isAttuned = isUnlocked
-        box.Label:SetTextColor(1, 1, 1)
 
         local lockoutExpiration = activeLockouts and activeLockouts[keyID]
         local lockTimeLeftStr = GetFormattedResetTime(lockoutExpiration)
 
         if lockTimeLeftStr then
             box.Padlock:Show()
-            box.Padlock:SetAlpha(0.95)
-            
             box.Icon:SetAlpha(1.0)
             box.Icon:SetVertexColor(0.65, 0.65, 0.65) 
             box.Icon:SetDesaturated(false)
         else
             box.Padlock:Hide()
-            
             if isUnlocked then
                 box.Icon:SetAlpha(1.0)
                 box.Icon:SetVertexColor(1, 1, 1) 
@@ -121,110 +116,78 @@ local function BuildAttunementGrid(parentFrame, dataList, sectionTitle, yAnchorO
         end
 
         box:SetScript("OnEnter", function(self)
-            self.hoverActive = true
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText(raid.name, 1, 1, 1)
-            
-            if box.isAttuned then 
-                GameTooltip:AddLine("Status: Attuned / key obtained", 0.2, 1, 0.2)
-            else 
-                GameTooltip:AddLine("Status: Not attuned or no key obtained", 1, 0.2, 0.2) 
-                -- NEW: Dynamically injects the specific required item or quest string if locked
-                if raid.reqText then
-                    GameTooltip:AddLine("Requires: " .. raid.reqText, 1, 0.5, 0) -- Colored in Blizzard's requirement orange
-                end
+            if self.isAttuned then GameTooltip:AddLine("Status: Attuned / key obtained", 0.2, 1, 0.2)
+            else GameTooltip:AddLine("Status: Not attuned or no key obtained", 1, 0.2, 0.2) 
+                if raid.reqText then GameTooltip:AddLine("Requires: " .. raid.reqText, 1, 0.5, 0) end
             end
-            
             local currentLock = activeLockouts and activeLockouts[keyID]
             local liveTime = GetFormattedResetTime(currentLock)
-            if liveTime then
-                GameTooltip:AddLine("Raid Locked (ID Saved)", 1, 0.3, 0.3)
-                GameTooltip:AddLine("Resets in: " .. liveTime, 0.6, 0.6, 1.0)
-            end
+            if liveTime then GameTooltip:AddLine("Raid Locked (ID Saved)", 1, 0.3, 0.3) GameTooltip:AddLine("Resets in: " .. liveTime, 0.6, 0.6, 1.0) end
             GameTooltip:Show()
         end)
+        box:SetScript("OnLeave", function(self) GameTooltip:Hide() end)
         
-        box:SetScript("OnLeave", function(self)
-            self.hoverActive = false
-            GameTooltip:Hide()
-        end)
-        
+        box:Show()
         lowestY = math.min(lowestY, yPos - BOX_SIZE - 20)
     end
-
     return lowestY
 end
 
 function AlternateWorldAttunementsView.CreatePanel(parentWindow)
     if AttunementsPanel then return AttunementsPanel end
 
-    AttunementsPanel = CreateFrame("Frame", nil, parentWindow)
+    AttunementsPanel = CreateFrame("Frame", "AWAttunementsPanelGlobal", parentWindow)
     AttunementsPanel:SetAllPoints(parentWindow)
     AttunementsPanel:Hide()
 
-    LastUpdatedText = AttunementsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    LastUpdatedText:SetPoint("TOPLEFT", AttunementsPanel, "TOPLEFT", 20, -10)
-    LastUpdatedText:SetTextColor(0.65, 0.65, 0.65)
+    MainTitleText = AttunementsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    MainTitleText:SetPoint("TOPLEFT", AttunementsPanel, "TOPLEFT", 20, -10)
+
+    LastUpdatedText = AttunementsPanel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    LastUpdatedText:SetPoint("TOPLEFT", MainTitleText, "BOTTOMLEFT", 0, -2)
+
+    KeysTitleText = AttunementsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    KeysTitleText:Hide()
 
     return AttunementsPanel
 end
 
 function AlternateWorldAttunementsView.ShowData(selectedCharacterKey)
     if not AttunementsPanel or not AlternateWorldDB or not selectedCharacterKey then return end
-
     local data = AlternateWorldDB[selectedCharacterKey]
     if not data then return end
 
-    LastUpdatedText:SetText("Last updated: " .. (data.bagsUpdated or "Never"))
+    local charName = data.name or "Character"
+    local genitiveName = charName .. "'s"
+    if string.sub(charName, -1) == "s" or string.sub(charName, -1) == "S" then genitiveName = charName .. "'" end
+
+    MainTitleText:SetText("|cFFFFFFFF" .. genitiveName .. " Raid Attunements|r")
+    LastUpdatedText:SetText("Last updated: |cFF888888" .. (data.bagsUpdated or "Never") .. "|r")
     
     local attunementFlags = data.attunements or {}
     local activeLockouts = data.activeRaidIDs or {}
 
-    -- Render Grid Section 1: Raids
-    local raidsBottomY = BuildAttunementGrid(AttunementsPanel, RAID_DATA, "Raid Attunements (40-man)", -35, attunementFlags, activeLockouts)
+    for _, box in pairs(UIEntries) do box:Hide() end
 
-    -- Render Grid Section 2: Dungeons
-    BuildAttunementGrid(AttunementsPanel, DUNGEON_DATA, "Dungeon Keys & Access (5-man / 10-man)", raidsBottomY - 5, attunementFlags, activeLockouts)
+    local raidsBottomY = BuildAttunementGrid(AttunementsPanel, RAID_DATA, -10, attunementFlags, activeLockouts, true)
+    
+    -- FIXED MATH SPACING: Subtracted 12px horizontally downward to drop the entire lower dungeon row group cleanly
+    local correctedDungeonY = raidsBottomY - 12
+    if KeysTitleText then
+        KeysTitleText:SetPoint("TOPLEFT", AttunementsPanel, "TOPLEFT", 20, correctedDungeonY)
+        KeysTitleText:SetText("|cFFFFFFFF" .. genitiveName .. " Dungeon Keys & Rings|r")
+        KeysTitleText:Show()
+    end
 
-    for _, box in pairs(UIEntries) do box:Show() end
+    BuildAttunementGrid(AttunementsPanel, DUNGEON_DATA, correctedDungeonY, attunementFlags, activeLockouts, false)
+
     AttunementsPanel:Show()
 end
 
--- Ticker countdown that fires live updates smoothly inside tooltips
-function AlternateWorldAttunementsView.OnUpdateTick(selectedCharacterKey)
-    if not AttunementsPanel or not AttunementsPanel:IsShown() or not AlternateWorldDB or not selectedCharacterKey then return end
-    local data = AlternateWorldDB[selectedCharacterKey]
-    if not data then return end
-    local activeRaidList = data.activeRaidIDs or {}
+function AlternateWorldAttunementsView.OnUpdateTick(selectedCharacterKey) end
+function AlternateWorldAttunementsView.HidePanel() if AttunementsPanel then AttunementsPanel:Hide() end end
+function AlternateWorldAttunementsView.IsShown() return AttunementsPanel and AttunementsPanel:IsShown() end
 
-    for _, raid in ipairs(RAID_DATA) do
-        local box = UIEntries[raid.key]
-        if box and box.hoverActive and GameTooltip:IsOwned(box) then
-            local liveTimeStr = GetFormattedResetTime(activeRaidList[raid.key])
-            if liveTimeStr then
-                GameTooltip:ClearLines()
-                GameTooltip:SetText(raid.name, 1, 1, 1)
-                if box.isAttuned then 
-                    GameTooltip:AddLine("Status: Attuned / key obtained", 0.2, 1, 0.2)
-                else 
-                    GameTooltip:AddLine("Status: Not attuned or no key obtained", 1, 0.2, 0.2) 
-                    if raid.reqText then GameTooltip:AddLine("Requires: " .. raid.reqText, 1, 0.5, 0) end
-                end
-                GameTooltip:AddLine("Raid Locked (ID Saved)", 1, 0.3, 0.3)
-                GameTooltip:AddLine("Resets in: " .. liveTimeStr, 0.6, 0.6, 1.0)
-                GameTooltip:Show()
-            end
-        end
-    end
-end
-
-function AlternateWorldAttunementsView.HidePanel()
-    if AttunementsPanel then 
-        AttunementsPanel:Hide() 
-        for _, box in pairs(UIEntries) do box:Hide() end
-    end
-end
-
-function AlternateWorldAttunementsView.IsShown()
-    return AttunementsPanel and AttunementsPanel:IsShown()
-end
+-- End of [alternateattunements.lua]

@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - Live Data Scraping Module (Core Chars)
+-- Alternate World - Live Data Scraping Module (Core Chars - COMPLETE)
 -- ============================================================================
 
 AlternateWorldScraper = {}
@@ -60,7 +60,7 @@ local function GetCurrentSpec()
         end
     end
     
-    local treeString = trees[mainTreeIndex].name .. " (" .. treePoints .. "/" .. treePoints .. "/" .. treePoints .. ")"
+    local treeString = trees[mainTreeIndex].name .. " (" .. treePoints[1] .. "/" .. treePoints[2] .. "/" .. treePoints[3] .. ")"
     return treeString, trees[mainTreeIndex].icon
 end
 
@@ -119,9 +119,7 @@ local function ScanRaidLockouts()
             elseif string.find(name, "Naxxramas") then key = "naxx"
             end
 
-            if key then
-                savedLockouts[key] = time() + reset
-            end
+            if key then savedLockouts[key] = time() + reset end
         end
     end
     return savedLockouts
@@ -182,38 +180,39 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         end
     end
 
-    -- Run tradeskills updater injection if available
     local finalProfessions = existingProfessions
-    if AlternateWorldProfessionScraper and AlternateWorldProfessionScraper.GetUpdatedProfessions then
-        finalProfessions = AlternateWorldProfessionScraper.GetUpdatedProfessions(existingProfessions)
+    if AlternateWorldProfScraper and AlternateWorldProfScraper.GetUpdatedProfessions then
+        finalProfessions = AlternateWorldProfScraper.GetUpdatedProfessions(existingProfessions)
     end
 
+    -- FIXED REST BRACKET PACKETS: Return structural array safely maps back into WTF storage records
     return {
         name = UnitName("player"),
         realm = GetRealmName(),
         race = UnitRace("player") or "Unknown",
         classToken = select(2, UnitClass("player")),
         classNameLocal = UnitClass("player") or "Unknown",
+        faction = UnitFactionGroup("player") or "Alliance",
+        gender = genderString,
         zone = GetRealZoneText() or "Unknown",
         money = GetMoney() or 0,
         specText = pSpecName,
         specIcon = pSpecIcon,
         itemLevel = currentIlvl,
         maxItemLevel = newMax,
-        gender = genderString,
+        bagsUpdated = currentTimestamp,
         bagItems = currentBagData,
         bankItems = currentBankData,
-        bagsUpdated = currentTimestamp,
         bankUpdated = currentBankTimestamp,
-        attunements = {
-            mc = isMC, bwl = isBWL, ony = isOny, naxx = isNaxx,
-            brd = isBRD, scholo = isScholo, strat = isStrat,
-            gnomer = isGnomeregan, mara = isMara, dm = isDM, ubrs = isUBRS
-        },
         activeRaidIDs = currentLockouts,
-        faction = UnitFactionGroup("player") or "Unknown",
-        level = UnitLevel("player") or 1,
         historyLog = existingHistory,
-        professions = finalProfessions
+        professions = finalProfessions,
+        attunements = {
+            Onyxia = isOny, MC = isMC, BWL = isBWL, Naxxramas = isNaxx,
+            BRDKey = isBRD, ScholoKey = isScholo, StratKey = isStrat,
+            GnomereganKey = isGnomeregan, MaraKey = isMara, DMKey = isDM, UBRSKey = isUBRS
+        }
     }
 end
+
+-- End of [alternatescraper.lua]

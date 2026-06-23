@@ -5,17 +5,19 @@
 ## Version: 0.2.0
 ## SavedVariables: AlternateWorldDB
 
+alternateconstants.lua
 alternateconfig.lua
 alternatedb.lua
 alternatescraper.lua
 alternateprofscraper.lua
 alternatecore.lua
 alternatecomm.lua
+alternateprofengine.lua
+alternateprofui.lua
 alternatecharacter.lua
 alternateinventory.lua
 alternateattunements.lua
 alternatehistory.lua
 alternatenavigation.lua
-alternateprofessiongrid.lua
 alternateprofessions.lua
 alternatemain.lua

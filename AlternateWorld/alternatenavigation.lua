@@ -1,30 +1,34 @@
 -- ============================================================================
--- Alternate World - Navigation & Menu Routing Module
+-- Alternate World - Navigation & Menu Routing Module (DYNAMIC v0.2.0)
 -- ============================================================================
 
 AlternateWorldNavigation = {}
 
--- FIXED: Appended ProfessionsView cleanly as item number 5 in the routing matrix
+-- FIXED: Converted views to strict global string registry keys to eliminate load-time nil pointers
 local MENU_ITEMS = {
-    { text = "Character", view = AlternateWorldCharacterView },
-    { text = "Inventory", view = AlternateWorldInventoryView },
-    { text = "Attunements", view = AlternateWorldAttunementsView },
-    { text = "History", view = AlternateWorldHistoryView },
-    { text = "Professions", view = AlternateWorldProfessionsView } -- NEW ITEM 5
+    { text = "Character", viewKey = "AlternateWorldCharacterView" },
+    { text = "Inventory", viewKey = "AlternateWorldInventoryView" },
+    { text = "Attunements", viewKey = "AlternateWorldAttunementsView" },
+    { text = "History", viewKey = "AlternateWorldHistoryView" },
+    { text = "Professions", viewKey = "AlternateWorldProfessionsView" }
 }
 
 local navigationButtons = {}
 
 function AlternateWorldNavigation.HideAllPanels()
     for _, item in ipairs(MENU_ITEMS) do
-        if item.view and item.view.HidePanel then item.view.HidePanel() end
+        local viewObj = _G[item.viewKey]
+        if viewObj and viewObj.HidePanel then viewObj.HidePanel() end
     end
 end
 
 function AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey)
     for _, item in ipairs(MENU_ITEMS) do
-        if item.view and item.view.IsShown and item.view.IsShown() then
-            item.view.ShowData(selectedCharacterKey)
+        local viewObj = _G[item.viewKey]
+        if viewObj and viewObj.IsShown and viewObj.IsShown() then
+            if viewObj.ShowData then
+                viewObj.ShowData(selectedCharacterKey)
+            end
             return
         end
     end
@@ -52,11 +56,13 @@ function AlternateWorldNavigation.CreateMenu(leftMenuFrame, getSelectedKeyFunc)
         btn:SetScript("OnEnter", function() btn.Text:SetTextColor(1, 1, 1) end)
         btn:SetScript("OnLeave", function() btn.Text:SetTextColor(1, 0.82, 0) end)
 
+        -- FIXED: Fetch the view object dynamically from global space inside the mouse event runtime boundary
         btn:SetScript("OnMouseUp", function(self, button)
             if button == "LeftButton" then
                 AlternateWorldNavigation.HideAllPanels()
-                if item.view and item.view.ShowData then
-                    item.view.ShowData(getSelectedKeyFunc())
+                local viewObj = _G[item.viewKey]
+                if viewObj and viewObj.ShowData then
+                    viewObj.ShowData(getSelectedKeyFunc())
                 end
             end
         end)

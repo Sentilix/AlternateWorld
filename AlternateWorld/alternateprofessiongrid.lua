@@ -1,14 +1,24 @@
 -- ============================================================================
--- Alternate World - Profession Grid Rendering Module (v0.2.0)
+-- Alternate World - Profession Grid Rendering & Quality Sorter (v0.2.0)
 -- ============================================================================
 
 AlternateWorldProfessionGrid = {}
 
-local UIRowsPool = {}
+local AW_RowsPool = {}
 
 local COL1_X = 15
 local COL2_X = 260
 local ROW_HEIGHT = 20
+
+local QUALITY_WEIGHTS = {
+    ["orange"]    = 1, 
+    ["purple"]    = 2, 
+    ["blue"]      = 3, 
+    ["green"]     = 4, 
+    ["white"]     = 5, 
+    ["grey"]      = 6, 
+    ["unknown"]   = 7
+}
 
 function AlternateWorldProfessionGrid.GetSortedScannedProfessions()
     if not AlternateWorldDB then return {} end
@@ -28,24 +38,59 @@ function AlternateWorldProfessionGrid.GetSortedScannedProfessions()
     return sortedList
 end
 
-function AlternateWorldProfessionGrid.RefreshRecipesDisplay(scrollContentFrame)
+local function GetRecipeColorAndWeight(recipeName)
+    local itemColorHex = "|cFFFFFFFF" 
+    local weight = QUALITY_WEIGHTS["white"]
+
+    local _, itemLink = GetItemInfo(recipeName)
+    if itemLink then
+        if string.find(itemLink, "cffff8000") then
+            itemColorHex, weight = "|cFFFF8000", QUALITY_WEIGHTS["orange"]
+        elseif string.find(itemLink, "ffa335ee") then
+            itemColorHex, weight = "|cFFA335EE", QUALITY_WEIGHTS["purple"]
+        elseif string.find(itemLink, "ff0070dd") then
+            itemColorHex, weight = "|cFF0070DD", QUALITY_WEIGHTS["blue"]
+        elseif string.find(itemLink, "ff1eff00") then
+            itemColorHex, weight = "|cFF1EFF00", QUALITY_WEIGHTS["green"]
+        elseif string.find(itemLink, "ff9d9d9d") then
+            itemColorHex, weight = "|cFF9D9D9D", QUALITY_WEIGHTS["grey"]
+        end
+    else
+        local lowerName = string.lower(recipeName)
+        if string.find(lowerName, "enchant") or string.find(lowerName, "healing") or string.find(lowerName, "spellpower") then
+            itemColorHex, weight = "|cFF0070DD", QUALITY_WEIGHTS["blue"]
+        end
+    end
+
+    return itemColorHex, weight
+end
+
+function AlternateWorldProfessionGrid.RefreshRecipesDisplay(scrollContentFrame, mainSelectedCharacterKey)
     if not scrollContentFrame then return end
     
-    for _, row in ipairs(UIRowsPool) do
+    for _, row in ipairs(AW_RowsPool) do
         row:Hide()
     end
     
+    if not AlternateWorldProfessionsView or not AlternateWorldProfessionsView.GetLastSelectedProfession then return end
+    
     local currentProf = AlternateWorldProfessionsView.GetLastSelectedProfession()
     if not currentProf then
-        AlternateWorldProfessionsView.SetHeading("Select a Profession to begin.")
+        if AlternateWorldProfessionsView.SetHeading then AlternateWorldProfessionsView.SetHeading("Select a Profession to begin.") end
         return
     end
 
-    AlternateWorldProfessionsView.SetHeading("Recipes for " .. currentProf)
+    if AlternateWorldProfessionsView.SetHeading then AlternateWorldProfessionsView.SetHeading("Recipes for " .. currentProf) end
     
     local filterText = AlternateWorldProfessionsView.GetSearchText()
     local recipeCraftersMap = {}
-    local sortedRecipes = {}
+    local recipesToSort = {}
+
+    local activeCharName = nil
+    if mainSelectedCharacterKey then
+        activeCharName = string.match(mainSelectedCharacterKey, "([^%-]+)") or mainSelectedCharacterKey
+        activeCharName = string.trim and string.trim(activeCharName) or activeCharName
+    end
 
     for charKey, charData in pairs(AlternateWorldDB) do
         if charData.professions and charData.professions[currentProf] then
@@ -55,11 +100,11 @@ function AlternateWorldProfessionGrid.RefreshRecipesDisplay(scrollContentFrame)
                     if not filterText or string.find(string.lower(recipeName), filterText) then
                         if not recipeCraftersMap[recipeName] then
                             recipeCraftersMap[recipeName] = {}
-                            table.insert(sortedRecipes, recipeName)
+                            local colorHex, weight = GetRecipeColorAndWeight(recipeName)
+                            table.insert(recipesToSort, { name = recipeName, weight = weight, color = colorHex })
                         end
                         table.insert(recipeCraftersMap[recipeName], {
                             name = charData.name,
-                            classToken = charData.classToken,
                             level = profData.level or 0
                         })
                     end
@@ -68,46 +113,60 @@ function AlternateWorldProfessionGrid.RefreshRecipesDisplay(scrollContentFrame)
         end
     end
 
-    table.sort(sortedRecipes)
+    table.sort(recipesToSort, function(a, b)
+        if a.weight ~= b.weight then
+            return a.weight < b.weight
+        else
+            return a.name < b.name
+        end
+    end)
 
     local currentYOffset = -10
     local count = 0
 
-    for _, recName in ipairs(sortedRecipes) do
+    for _, recipeObj in ipairs(recipesToSort) do
         count = count + 1
-        local rowFrame = UIRowsPool[count]
+        local rowFrame = AW_RowsPool[count]
+        local recName = recipeObj.name
 
         if not rowFrame then
-            rowFrame = CreateFrame("Frame", nil, scrollContentFrame)
+            -- FIXED: Added AW_ unique names to table grid frame child pools objects
+            rowFrame = CreateFrame("Frame", "AW_GridRowInstance" .. count, scrollContentFrame)
             rowFrame:SetSize(scrollContentFrame:GetWidth() - 20, ROW_HEIGHT)
             
             rowFrame.Col1 = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
             rowFrame.Col1:SetPoint("LEFT", rowFrame, "LEFT", COL1_X, 0)
             rowFrame.Col1:SetJustifyH("LEFT")
-            rowFrame.Col1:SetTextColor(1, 1, 1)
 
-            rowFrame.Col2 = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            rowFrame.Col2 = CreateFrame("Frame", nil, rowFrame)
+            rowFrame.Col2:SetSize(scrollContentFrame:GetWidth() - COL2_X - 10, ROW_HEIGHT)
             rowFrame.Col2:SetPoint("LEFT", rowFrame, "LEFT", COL2_X, 0)
-            rowFrame.Col2:SetJustifyH("LEFT")
+            
+            rowFrame.Col2Text = rowFrame.Col2:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            rowFrame.Col2Text:SetAllPoints(rowFrame.Col2)
+            rowFrame.Col2Text:SetJustifyH("LEFT")
 
-            UIRowsPool[count] = rowFrame
+            AW_RowsPool[count] = rowFrame
         end
 
         if count == 1 then
             rowFrame:SetPoint("TOPLEFT", scrollContentFrame, "TOPLEFT", 0, -10)
         else
-            rowFrame:SetPoint("TOPLEFT", UIRowsPool[count - 1], "BOTTOMLEFT", 0, -4)
+            rowFrame:SetPoint("TOPLEFT", AW_RowsPool[count - 1], "BOTTOMLEFT", 0, -4)
         end
 
-        rowFrame.Col1:SetText(recName)
+        rowFrame.Col1:SetText(recipeObj.color .. recName .. "|r")
 
         local craftersTextTable = {}
         for _, crafterInfo in ipairs(recipeCraftersMap[recName]) do
-            local coloredName = AlternateWorldConfig.GetClassColoredText(crafterInfo.name, crafterInfo.classToken)
-            table.insert(craftersTextTable, string.format("%s (%d)", coloredName, crafterInfo.level))
+            if activeCharName and crafterInfo.name == activeCharName then
+                table.insert(craftersTextTable, string.format("|cFFFFFFFF%s (%d)|r", crafterInfo.name, crafterInfo.level))
+            else
+                table.insert(craftersTextTable, string.format("|cFFFFD700%s (%d)|r", crafterInfo.name, crafterInfo.level))
+            end
         end
-        rowFrame.Col2:SetText(table.concat(craftersTextTable, ", "))
         
+        rowFrame.Col2Text:SetText(table.concat(craftersTextTable, ", "))
         rowFrame:Show()
         currentYOffset = currentYOffset - ROW_HEIGHT - 4
     end

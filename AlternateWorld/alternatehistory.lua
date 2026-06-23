@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - History & Log Module Panel
+-- Alternate World - History & Log Module Panel (v0.2.0 - MASTER GENOPRETTET)
 -- ============================================================================
 
 AlternateWorldHistoryView = {}
@@ -20,7 +20,6 @@ function AlternateWorldHistoryView.CreatePanel(parentWindow)
     HistoryHeadingText = HistoryPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     HistoryHeadingText:SetPoint("TOPLEFT", HistoryPanel, "TOPLEFT", 20, -10)
 
-    -- Create Scrollable Area for long log lists
     ScrollFrame = CreateFrame("ScrollFrame", "AlternateWorldHistoryScrollFrame", HistoryPanel, "UIPanelScrollFrameTemplate")
     ScrollFrame:SetPoint("TOPLEFT", HistoryPanel, "TOPLEFT", 10, -35)
     ScrollFrame:SetPoint("BOTTOMRIGHT", HistoryPanel, "BOTTOMRIGHT", -30, 10)
@@ -34,13 +33,15 @@ end
 
 function AlternateWorldHistoryView.ShowData(selectedCharacterKey)
     if not HistoryPanel or not AlternateWorldDB or not selectedCharacterKey then return end
-
     local data = AlternateWorldDB[selectedCharacterKey]
     if not data then return end
 
-    HistoryHeadingText:SetText("|cFFFFFFFF" .. data.name .. "'s History Log|r")
+    -- FIXED LOGIC: Handles native language grammar apostrophe formatting rules cleanly
+    local charName = data.name or "Character"
+    local genitiveName = charName .. "'s"
+    if string.sub(charName, -1) == "s" or string.sub(charName, -1) == "S" then genitiveName = charName .. "'" end
+    HistoryHeadingText:SetText("|cFFFFFFFF" .. genitiveName .. " History Log|r")
 
-    -- Hide old strings to redraw cleanly
     for _, fs in ipairs(LogFontStrings) do fs:Hide() end
 
     local historyLog = data.historyLog or {}
@@ -55,7 +56,6 @@ function AlternateWorldHistoryView.ShowData(selectedCharacterKey)
         ScrollContent:SetHeight(30)
     else
         local totalHeight = 10
-        -- Draw logs backwards to show the newest events at the top of the screen
         local count = 0
         for i = #historyLog, 1, -1 do
             count = count + 1
@@ -68,14 +68,22 @@ function AlternateWorldHistoryView.ShowData(selectedCharacterKey)
                 LogFontStrings[count] = fs
             end
 
-            if not previousAnchor then
-                fs:SetPoint("TOPLEFT", ScrollContent, "TOPLEFT", 10, -10)
+            if not previousAnchor then fs:SetPoint("TOPLEFT", ScrollContent, "TOPLEFT", 10, -10)
+            else fs:SetPoint("TOPLEFT", previousAnchor, "BOTTOMLEFT", 0, -8) end
+
+            -- FIXED UNPACKER: Detects if the database entry is a sub-table or raw text line string
+            local finalTimestamp = "2026-01-01 00:00:00"
+            local finalEventText = ""
+            
+            if type(entry) == "table" then
+                finalTimestamp = entry.date or finalTimestamp
+                finalEventText = entry.text or "Unknown Loot Event Data"
             else
-                fs:SetPoint("TOPLEFT", previousAnchor, "BOTTOMLEFT", 0, -8)
+                finalEventText = tostring(entry)
             end
 
             -- Format: [Timestamp] in White with seconds included, Event details in original layout colors
-            fs:SetText("|cFFFFFFFF[" .. (entry.date or "2026-01-01 00:00:00") .. "]|r  " .. entry.text)
+            fs:SetText("|cFFFFFFFF[" .. finalTimestamp .. "]|r  " .. finalEventText)
             fs:Show()
             
             previousAnchor = fs
@@ -87,7 +95,6 @@ function AlternateWorldHistoryView.ShowData(selectedCharacterKey)
     HistoryPanel:Show()
 end
 
--- Database Helper: Injects raw formatted lines safely into character profiles logs
 function AlternateWorldHistoryView.LogEvent(eventText)
     local charName = UnitName("player")
     local realmName = GetRealmName()
@@ -103,13 +110,7 @@ function AlternateWorldHistoryView.LogEvent(eventText)
     })
 end
 
-function AlternateWorldHistoryView.HidePanel()
-    if HistoryPanel then 
-        HistoryPanel:Hide() 
-    end
-end
+function AlternateWorldHistoryView.HidePanel() if HistoryPanel then HistoryPanel:Hide() end end
+function AlternateWorldHistoryView.IsShown() return HistoryPanel and HistoryPanel:IsShown() end
 
--- FIXED: Renamed from AlternateWorldCharacterView back to AlternateWorldHistoryView to block layout leaks!
-function AlternateWorldHistoryView.IsShown()
-    return HistoryPanel and HistoryPanel:IsShown()
-end
+-- End of [alternatehistory.lua]
