@@ -15,6 +15,7 @@ alternatecomm.lua
 alternateprofengine.lua
 alternateprofui.lua
 alternatecharacter.lua
+alternatecharacterui.lua
 alternateinventory.lua
 alternateattunements.lua
 alternatehistory.lua
