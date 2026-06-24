@@ -18,6 +18,7 @@ alternatecharacter.lua
 alternateinventory.lua
 alternateattunements.lua
 alternatehistory.lua
+alternaterestedxp.lua
 alternatenavigation.lua
 alternateprofessions.lua
 alternatemain.lua

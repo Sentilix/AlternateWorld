@@ -55,6 +55,9 @@
     <Content Include="alternateprofscraper.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="alternaterestedxp.lua">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="alternatescraper.lua">
       <SubType>Code</SubType>
     </Content>

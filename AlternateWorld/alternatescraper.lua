@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - Live Data Scraping Module (Core Chars - COMPLETE)
+-- Alternate World - Live Data Scraping Module (Core Chars - v0.3.0)
 -- ============================================================================
 
 AlternateWorldScraper = {}
@@ -185,10 +185,11 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         finalProfessions = AlternateWorldProfScraper.GetUpdatedProfessions(existingProfessions)
     end
 
-    -- FIXED REST BRACKET PACKETS: Return structural array safely maps back into WTF storage records
+    -- FIXED REST CAPTURE ENGINE: Extracted live leveling experience pools and rest parameters safely
     return {
         name = UnitName("player"),
         realm = GetRealmName(),
+        level = UnitLevel("player") or 1,
         race = UnitRace("player") or "Unknown",
         classToken = select(2, UnitClass("player")),
         classNameLocal = UnitClass("player") or "Unknown",
@@ -207,6 +208,10 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         activeRaidIDs = currentLockouts,
         historyLog = existingHistory,
         professions = finalProfessions,
+        currentXP = UnitXP("player") or 0,
+        maxXP = UnitXPMax("player") or 1,
+        restedXP = GetXPExhaustion() or 0,
+        isResting = IsResting() and true or false,
         attunements = {
             Onyxia = isOny, MC = isMC, BWL = isBWL, Naxxramas = isNaxx,
             BRDKey = isBRD, ScholoKey = isScholo, StratKey = isStrat,
