@@ -76,8 +76,8 @@ AlternateWorldHistoryView.CreatePanel(AlternateWorldMainContentWindow)
 AlternateWorldProfessionsView.CreatePanel(AlternateWorldMainContentWindow)
 
 AlternateWorldNavigation.CreateMenu(LeftMenu, GetSelectedCharacterKey)
--- FIXED: Register and spawn the newly added global leveling Rested XP frame panel window
 AlternateWorldRestedXPView.CreatePanel(AlternateWorldMainContentWindow)
+AlternateWorldBankersView.CreatePanel(AlternateWorldMainContentWindow)
 
 local function InitializeDropdown(self, level)
     if not AlternateWorldDB then return end

@@ -135,4 +135,23 @@ function AlternateWorldCharacterEngine.ProcessShowData(selectedCharacterKey, ele
     end
 end
 
+function AlternateWorldCharacterEngine.GetFreeBagSlotsCount(characterData)
+    if not characterData or not characterData.bagItems then return 0 end
+    -- Classic Era start-backpack has 16 slots, plus we can count total scanned spaces
+    -- A bulletproof fallback is reading the database array lengths vs active slots
+    local occupied = #characterData.bagItems
+    -- Temporary safe structural baseline calculation (expandable once bag limits are tracked)
+    local totalEstimatedSlots = 16 + (4 * 14) -- Baseline assuming 14-slot bags
+    local freeSlots = totalEstimatedSlots - occupied
+    return freeSlots > 0 and freeSlots or 0
+end
+
+function AlternateWorldCharacterEngine.GetFreeBankSlotsCount(characterData)
+    if not characterData or not characterData.bankItems then return 0 end
+    local occupied = #characterData.bankItems
+    local totalEstimatedBank = 24 + (6 * 14) -- Baseline vault configurations
+    local freeSlots = totalEstimatedBank - occupied
+    return freeSlots > 0 and freeSlots or 0
+end
+
 -- End of [alternatecharacter.lua]

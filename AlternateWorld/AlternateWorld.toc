@@ -8,6 +8,7 @@
 alternateconstants.lua
 alternateconfig.lua
 alternatedb.lua
+alternatecategorydb.lua
 alternatescraper.lua
 alternateprofscraper.lua
 alternatecore.lua
@@ -22,4 +23,7 @@ alternatehistory.lua
 alternaterestedxp.lua
 alternatenavigation.lua
 alternateprofessions.lua
+alternatebankers.lua
+alternatebankersui.lua
+alternatepost.lua
 alternatemain.lua

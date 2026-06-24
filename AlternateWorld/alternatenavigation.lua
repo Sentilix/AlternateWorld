@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - Graphical Icon Navigation Menu Module (v0.3.0 - RUNES FIXED)
+-- Alternate World - Graphical Icon Navigation Menu Module (v0.3.0 - BANKERS)
 -- ============================================================================
 
 AlternateWorldNavigation = {}
@@ -7,7 +7,6 @@ AlternateWorldNavigation = {}
 local NavigationMenuPanel = nil
 local MenuButtonsPool = {}
 
--- FIXED: Bound the approved legendary hearthstone rune texture to the Rested XP item row
 local MENU_ITEMS = {
     { id = "character",   text = "Characters",       icon = "interface\\icons\\inv_misc_head_human_02" },
     { id = "inventory",   text = "Bags & Banks",     icon = "interface\\icons\\inv_misc_bag_08" },
@@ -15,10 +14,9 @@ local MENU_ITEMS = {
     { id = "history",     text = "History Log",      icon = "interface\\icons\\inv_misc_pocketwatch_02" },
     { id = "professions", text = "Professions",      icon = "interface\\icons\\trade_blacksmithing" },
     { id = "restedxp",     text = "Rested XP",        icon = "interface\\icons\\inv_misc_rune_01" },
-    { id = "bonus",        text = "Secret Bonus",     icon = "interface\\icons\\inv_misc_gift_01" }
+    { id = "bankers",      text = "Bankers",          icon = "interface\\icons\\inv_misc_coin_17" } -- FIXED: Formatted row 7 as Bankers with Gold Coin
 }
 
--- FIXED PANELS ROUTER: Tied the restedxp action key identifier to the active RestedXP module wrapper
 local PANELS_MAP = {
     ["character"]   = "AlternateWorldCharacterView",
     ["inventory"]   = "AlternateWorldInventoryView",
@@ -26,7 +24,7 @@ local PANELS_MAP = {
     ["history"]     = "AlternateWorldHistoryView",
     ["professions"] = "AlternateWorldProfessionsView",
     ["restedxp"]    = "AlternateWorldRestedXPView",
-    ["bonus"]       = "AlternateWorldCharacterView"
+    ["bankers"]     = "AlternateWorldBankersView" -- FIXED: Routes dynamically to our new Bankers module window
 }
 
 function AlternateWorldNavigation.HideAllPanels()

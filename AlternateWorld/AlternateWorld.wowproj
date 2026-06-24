@@ -13,6 +13,15 @@
     <Content Include="alternateattunements.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="alternatebankers.lua">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="alternatebankersui.lua">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="alternatecategorydb.lua">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="alternatecharacter.lua">
       <SubType>Code</SubType>
     </Content>
@@ -41,6 +50,9 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="alternatenavigation.lua">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="alternatepost.lua">
       <SubType>Code</SubType>
     </Content>
     <Content Include="alternateprofui.lua">
