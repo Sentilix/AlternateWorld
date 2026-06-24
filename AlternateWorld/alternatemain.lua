@@ -1,5 +1,5 @@
 ﻿-- ============================================================================
--- Alternate World - Main User Interface & Layout Frame (v0.2.0 - BOOT FIXED)
+-- Alternate World - Main User Interface & Layout Frame (v0.3.0 - MENU BG RESTORED)
 -- ============================================================================
 
 AlternateWorldMainFrameEngine = {}
@@ -9,7 +9,7 @@ AlternateWorldMainFrame:SetSize(600, 460)
 AlternateWorldMainFrame:SetPoint("CENTER", UIParent, "CENTER") 
 AlternateWorldMainFrame:SetFrameStrata("HIGH")
 
-local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.2.0"
+local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.3.0"
 AlternateWorldMainFrame.TitleText:SetText("Alternate World v" .. addonVersion)
 
 AlternateWorldMainFrame:SetMovable(true)
@@ -59,6 +59,7 @@ local LeftMenu = CreateFrame("Frame", nil, AlternateWorldMainFrame)
 LeftMenu:SetSize(MENU_WIDTH, FRAME_HEIGHT)
 LeftMenu:SetPoint("TOPLEFT", AlternateWorldMainTopBar, "BOTTOMLEFT", 0, -5)
 
+-- FIXED: Restored the classic atmospheric semitransparent background texture mapping layer
 local menuBg = LeftMenu:CreateTexture(nil, "BACKGROUND")
 menuBg:SetAllPoints(LeftMenu)
 menuBg:SetTexture("Interface\\TalentFrame\\PriestDiscipline-Topleft")
@@ -106,7 +107,6 @@ end
 function AlternateWorldMainFrameEngine.OnAddonLoaded()
     local myName = UnitName("player")
     if myName and AlternateWorldDB then
-        -- FIXED BOOTSTRAPPER: Dynamic database lookup to auto-bind the true matching key entry profile on login
         local foundKey = nil
         for dbKey in pairs(AlternateWorldDB) do
             local cleanDbName = string.match(dbKey, "([^%-]+)") or dbKey

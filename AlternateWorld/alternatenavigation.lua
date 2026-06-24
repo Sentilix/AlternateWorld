@@ -1,73 +1,95 @@
 -- ============================================================================
--- Alternate World - Navigation & Menu Routing Module (DYNAMIC v0.2.0)
+-- Alternate World - Graphical Icon Navigation Menu Module (v0.3.0 - RUNES FIXED)
 -- ============================================================================
 
 AlternateWorldNavigation = {}
 
--- FIXED: Converted views to strict global string registry keys to eliminate load-time nil pointers
+local NavigationMenuPanel = nil
+local MenuButtonsPool = {}
+
+-- FIXED: Bound the approved legendary hearthstone rune texture to the Rested XP item row
 local MENU_ITEMS = {
-    { text = "Character", viewKey = "AlternateWorldCharacterView" },
-    { text = "Inventory", viewKey = "AlternateWorldInventoryView" },
-    { text = "Attunements", viewKey = "AlternateWorldAttunementsView" },
-    { text = "History", viewKey = "AlternateWorldHistoryView" },
-    { text = "Professions", viewKey = "AlternateWorldProfessionsView" }
+    { id = "character",   text = "Characters",       icon = "interface\\icons\\inv_misc_head_human_02" },
+    { id = "inventory",   text = "Bags & Banks",     icon = "interface\\icons\\inv_misc_bag_08" },
+    { id = "attunements", text = "Raids & Dungeons", icon = "interface\\icons\\inv_misc_head_dragon_01" },
+    { id = "history",     text = "History Log",      icon = "interface\\icons\\inv_misc_pocketwatch_02" },
+    { id = "professions", text = "Professions",      icon = "interface\\icons\\trade_blacksmithing" },
+    { id = "restedxp",     text = "Rested XP",        icon = "interface\\icons\\inv_misc_rune_01" },
+    { id = "bonus",        text = "Secret Bonus",     icon = "interface\\icons\\inv_misc_gift_01" }
 }
 
-local navigationButtons = {}
+-- FIXED PANELS ROUTER: Tied the restedxp action key identifier to the active RestedXP module wrapper
+local PANELS_MAP = {
+    ["character"]   = "AlternateWorldCharacterView",
+    ["inventory"]   = "AlternateWorldInventoryView",
+    ["attunements"] = "AlternateWorldAttunementsView",
+    ["history"]     = "AlternateWorldHistoryView",
+    ["professions"] = "AlternateWorldProfessionsView",
+    ["restedxp"]    = "AlternateWorldRestedXPView",
+    ["bonus"]       = "AlternateWorldCharacterView"
+}
 
 function AlternateWorldNavigation.HideAllPanels()
-    for _, item in ipairs(MENU_ITEMS) do
-        local viewObj = _G[item.viewKey]
-        if viewObj and viewObj.HidePanel then viewObj.HidePanel() end
+    for _, globalName in pairs(PANELS_MAP) do
+        local obj = _G[globalName]
+        if obj and obj.HidePanel then obj.HidePanel() end
     end
 end
 
 function AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey)
-    for _, item in ipairs(MENU_ITEMS) do
-        local viewObj = _G[item.viewKey]
-        if viewObj and viewObj.IsShown and viewObj.IsShown() then
-            if viewObj.ShowData then
-                viewObj.ShowData(selectedCharacterKey)
-            end
+    if not selectedCharacterKey then return end
+    for id, globalName in pairs(PANELS_MAP) do
+        local obj = _G[globalName]
+        if obj and obj.IsShown and obj.IsShown() and obj.ShowData then
+            obj.ShowData(selectedCharacterKey)
             return
         end
     end
+    if AlternateWorldCharacterView and AlternateWorldCharacterView.ShowData then
+        AlternateWorldCharacterView.ShowData(selectedCharacterKey)
+    end
 end
 
-function AlternateWorldNavigation.CreateMenu(leftMenuFrame, getSelectedKeyFunc)
-    local previousAnchor = nil
+function AlternateWorldNavigation.CreateMenu(parentMenuFrame, GetSelectedCharacterKeyFunc)
+    if NavigationMenuPanel then return NavigationMenuPanel end
+    NavigationMenuPanel = parentMenuFrame
 
     for i, item in ipairs(MENU_ITEMS) do
-        local btn = CreateFrame("Frame", nil, leftMenuFrame)
-        btn:SetSize(leftMenuFrame:GetWidth() - 20, 20)
+        local btn = CreateFrame("Button", "AW_NavIconButton" .. i, NavigationMenuPanel)
+        btn:SetSize(NavigationMenuPanel:GetWidth() - 10, 48)
         
-        if not previousAnchor then
-            btn:SetPoint("TOPLEFT", leftMenuFrame, "TOPLEFT", 15, -15)
-        else
-            btn:SetPoint("TOPLEFT", previousAnchor, "BOTTOMLEFT", 0, -10)
-        end
+        if i == 1 then btn:SetPoint("TOPLEFT", NavigationMenuPanel, "TOPLEFT", 5, -15)
+        else btn:SetPoint("TOPLEFT", MenuButtonsPool[i - 1], "BOTTOMLEFT", 0, -3) end
 
-        btn:EnableMouse(true)
+        btn.Icon = btn:CreateTexture(nil, "OVERLAY")
+        btn.Icon:SetSize(32, 32)
+        btn.Icon:SetPoint("TOP", btn, "TOP", 0, 0)
+        btn.Icon:SetTexture(item.icon)
 
-        btn.Text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        btn.Text:SetPoint("LEFT", btn, "LEFT", 0, 0)
+        btn.Text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        btn.Text:SetPoint("TOP", btn.Icon, "BOTTOM", 0, -1)
         btn.Text:SetText(item.text)
+        btn.Text:SetJustifyH("CENTER")
 
-        btn:SetScript("OnEnter", function() btn.Text:SetTextColor(1, 1, 1) end)
-        btn:SetScript("OnLeave", function() btn.Text:SetTextColor(1, 0.82, 0) end)
+        local highlight = btn:CreateTexture(nil, "HIGHLIGHT")
+        highlight:SetAllPoints(btn.Icon)
+        highlight:SetTexture("Interface\\Buttons\\CheckButtonHilight")
+        highlight:SetBlendMode("ADD")
 
-        -- FIXED: Fetch the view object dynamically from global space inside the mouse event runtime boundary
-        btn:SetScript("OnMouseUp", function(self, button)
-            if button == "LeftButton" then
-                AlternateWorldNavigation.HideAllPanels()
-                local viewObj = _G[item.viewKey]
-                if viewObj and viewObj.ShowData then
-                    viewObj.ShowData(getSelectedKeyFunc())
-                end
+        btn:SetScript("OnClick", function()
+            PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
+            AlternateWorldNavigation.HideAllPanels()
+            local targetObj = _G[PANELS_MAP[item.id]]
+            local activeKey = GetSelectedCharacterKeyFunc and GetSelectedCharacterKeyFunc()
+            if targetObj and targetObj.ShowData and activeKey then
+                targetObj.ShowData(activeKey)
             end
         end)
 
-        table.insert(navigationButtons, btn)
-        previousAnchor = btn
+        MenuButtonsPool[i] = btn
     end
+
+    return NavigationMenuPanel
 end
+
+-- End of [alternatenavigation.lua]
