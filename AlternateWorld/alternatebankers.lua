@@ -74,7 +74,7 @@ function AlternateWorldBankersEngine.InitializeCorePanel(parentWindow)
     SubTitleText:SetText("Assign designated warehouse managers scoped per Realm for both factions")
 
     BankersScrollFrame = CreateFrame("ScrollFrame", "AW_BankersScrollFrameInstance", BankersPanel, "UIPanelScrollFrameTemplate")
-    BankersScrollFrame:SetPoint("TOPLEFT", BankersPanel, "TOPLEFT", 0, -85)
+    BankersScrollFrame:SetPoint("TOPLEFT", BankersPanel, "TOPLEFT", 0, -105)
     BankersScrollFrame:SetPoint("BOTTOMRIGHT", BankersPanel, "BOTTOMRIGHT", -30, 15)
 
     BankersScrollContent = CreateFrame("Frame", nil, BankersScrollFrame)
@@ -117,4 +117,39 @@ function AlternateWorldBankersEngine.GetCategoryBanker(realmName, faction, categ
     return factionData and factionData[categoryID] or nil
 end
 
+function AlternateWorldBankersEngine.AddVirtualBanker(name, classToken, faction, realmName)
+    if not AlternateWorldDB or not name or name == "" then return end
+    -- Create a unique global character profile key for the virtual unit
+    local virtualKey = name .. " - " .. (realmName or GetRealmName())
+    
+    AlternateWorldDB[virtualKey] = {
+        name = name,
+        realm = realmName or GetRealmName(),
+        faction = faction or "Alliance",
+        classToken = string.upper(classToken or "WARRIOR"),
+        isVirtual = true -- THE INTERNAL FILTER SHIELD: Hides him from main character view dropdowns
+    }
+    if AlternateWorldMainFrameEngine and AlternateWorldMainFrameEngine.RefreshUI then 
+        AlternateWorldMainFrameEngine.RefreshUI() 
+    end
+end
+
+function AlternateWorldBankersEngine.DeleteVirtualBanker(virtualKey)
+    if AlternateWorldDB and AlternateWorldDB[virtualKey] then
+        AlternateWorldDB[virtualKey] = nil
+        -- Clean up any assigned bankers categories using this ghost manager
+        if AlternateWorldDB.Settings and AlternateWorldDB.Settings.Bankers then
+            for rCtx, rData in pairs(AlternateWorldDB.Settings.Bankers) do
+                for fCtx, fData in pairs(rData) do
+                    for catID, bKey in pairs(fData) do
+                        if bKey == virtualKey then fData[catID] = nil end
+                    end
+                end
+            end
+        end
+        if AlternateWorldMainFrameEngine and AlternateWorldMainFrameEngine.RefreshUI then 
+            AlternateWorldMainFrameEngine.RefreshUI() 
+        end
+    end
+end
 -- End of [alternatebankers.lua]

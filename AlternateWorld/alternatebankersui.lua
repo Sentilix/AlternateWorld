@@ -170,7 +170,7 @@ function AlternateWorldBankersView.ShowData(selectedCharacterKey)
 
     local scrollFrame = _G["AW_BankersScrollFrameInstance"]
     if scrollFrame then
-        scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -105)
+        scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -115)
     end
 
     for _, line in ipairs(AW_BankerRowsPool) do line:Hide() end
@@ -270,6 +270,413 @@ function AlternateWorldBankersView.IsShown()
         return panel and panel:IsShown()
     end
     return false
+end
+
+-- ============================================================================
+-- v0.4.0 VIRTUAL CHARACTERS ENGINE: Handles Dual-Box Multi-Account Properties
+-- ============================================================================
+
+local AW_VirtualButtonsPool = {}
+local VirtualDialogFrame = nil
+
+local function InitializeClassDropdown(self)
+    local classes = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
+    local info = UIDropDownMenu_CreateInfo()
+    local currentValue = self.selectedValue
+    
+    for _, classToken in ipairs(classes) do
+        local color = RAID_CLASS_COLORS[classToken]
+        local colorHex = string.format("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
+        
+        info.text = colorHex .. string.sub(classToken, 1, 1) .. string.lower(string.sub(classToken, 2)) .. "|r"
+        info.value = classToken
+        info.arg1 = classToken 
+        info.checked = (currentValue == classToken)
+        
+        info.func = function(button)
+            local targetClass = button.arg1
+            UIDropDownMenu_SetText(self, button:GetText())
+            self.selectedValue = targetClass
+        end
+        UIDropDownMenu_AddButton(info)
+    end
+end
+
+local function InitializeFactionDropdown(self)
+    local factions = { { id = "Alliance", text = "|cFF0070DDAlliance|r" }, { id = "Horde", text = "|cFFFF0000Horde|r" } }
+    local info = UIDropDownMenu_CreateInfo()
+    local currentValue = self.selectedValue
+    
+    for _, f in ipairs(factions) do
+        info.text = f.text
+        info.value = f.id
+        info.arg1 = f.id
+        info.checked = (currentValue == f.id)
+        
+        info.func = function(button)
+            local targetFaction = button.arg1
+            UIDropDownMenu_SetText(self, button:GetText())
+            self.selectedValue = targetFaction
+        end
+        UIDropDownMenu_AddButton(info)
+    end
+end
+
+local function InitializeRealmDropdown(self)
+    local info = UIDropDownMenu_CreateInfo()
+    local currentValue = self.selectedValue
+    
+    info.text = "|cFF888888(Custom Realm...)|r"
+    info.value = "custom"
+    info.arg1 = "custom"
+    info.checked = (currentValue == "custom")
+    info.func = function(button)
+        UIDropDownMenu_SetText(self, "(Custom Realm...)")
+        self.selectedValue = "custom"
+        if VirtualDialogFrame and VirtualDialogFrame.CustomRealmBox then
+            VirtualDialogFrame.CustomRealmBox:Show()
+            VirtualDialogFrame.CustomRealmBox:SetText("")
+            VirtualDialogFrame.CustomRealmBox:SetFocus()
+        end
+    end
+    UIDropDownMenu_AddButton(info)
+
+    local knownRealmsMap = {}
+    if AlternateWorldDB then
+        for key, data in pairs(AlternateWorldDB) do
+            if key ~= "Settings" and data and data.realm and data.realm ~= "Unknown" then
+                knownRealmsMap[data.realm] = true
+            end
+        end
+    end
+    
+    local sortedRealms = {}
+    for rName in pairs(knownRealmsMap) do table.insert(sortedRealms, rName) end
+    table.sort(sortedRealms)
+
+    for _, rName in ipairs(sortedRealms) do
+        info.text = rName
+        info.value = rName
+        info.arg1 = rName
+        info.checked = (currentValue == rName)
+        info.func = function(button)
+            local targetRealm = button.arg1
+            UIDropDownMenu_SetText(self, targetRealm)
+            self.selectedValue = targetRealm
+            if VirtualDialogFrame and VirtualDialogFrame.CustomRealmBox then
+                VirtualDialogFrame.CustomRealmBox:Hide()
+                VirtualDialogFrame.CustomRealmBox:SetText(targetRealm)
+            end
+        end
+        UIDropDownMenu_AddButton(info)
+    end
+end
+
+local function CreateVirtualBankerDialog()
+    if VirtualDialogFrame then return VirtualDialogFrame end
+
+    local f = CreateFrame("Frame", "AW_VirtualBankerDialog", UIParent, "BackdropTemplate")
+    f:SetSize(240, 310)
+    f:SetPoint("CENTER", UIParent, "CENTER", 0, 40)
+    f:SetFrameStrata("DIALOG")
+    f:EnableMouse(true)
+    f:SetMovable(true)
+    f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", f.StartMoving)
+    f:SetScript("OnDragStop", f.StopMovingOrSizing)
+
+    f:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true, tileSize = 32, edgeSize = 32,
+        insets = { left = 11, right = 12, top = 12, bottom = 11 }
+    })
+
+    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOP", f, "TOP", 0, -18)
+    title:SetText("Create Virtual Banker")
+
+    local nameLabel = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    nameLabel:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -45)
+    nameLabel:SetText("Character Name:")
+
+    local nameBox = CreateFrame("EditBox", "AW_VirtualNameInput", f, "InputBoxTemplate")
+    nameBox:SetSize(190, 20)
+    nameBox:SetPoint("TOPLEFT", nameLabel, "BOTTOMLEFT", 4, -4)
+    nameBox:SetAutoFocus(false)
+    f.NameBox = nameBox
+
+    local realmLabel = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    realmLabel:SetPoint("TOPLEFT", nameBox, "BOTTOMLEFT", -4, -10)
+    realmLabel:SetText("Target Realm Context:")
+
+    local realmMenu = CreateFrame("Frame", "AW_VirtualRealmDropdown", f, "UIDropDownMenuTemplate")
+    realmMenu:SetPoint("TOPLEFT", realmLabel, "BOTTOMLEFT", -15, -4)
+    UIDropDownMenu_SetWidth(realmMenu, 165)
+    f.RealmMenu = realmMenu
+
+    local customRealmBox = CreateFrame("EditBox", "AW_VirtualCustomRealmInput", f, "InputBoxTemplate")
+    customRealmBox:SetSize(190, 20)
+    customRealmBox:SetPoint("TOPLEFT", realmMenu, "BOTTOMLEFT", 19, -4)
+    customRealmBox:SetAutoFocus(false)
+    customRealmBox:Hide()
+    f.CustomRealmBox = customRealmBox
+
+    local classLabel = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    classLabel:SetPoint("TOPLEFT", customRealmBox, "BOTTOMLEFT", -4, -10)
+    classLabel:SetText("Character Class Identity:")
+
+    local classMenu = CreateFrame("Frame", "AW_VirtualClassDropdown", f, "UIDropDownMenuTemplate")
+    classMenu:SetPoint("TOPLEFT", classLabel, "BOTTOMLEFT", -15, -4)
+    UIDropDownMenu_SetWidth(classMenu, 165)
+    f.ClassMenu = classMenu
+
+    local factionLabel = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    factionLabel:SetPoint("TOPLEFT", classMenu, "BOTTOMLEFT", 15, -10)
+    factionLabel:SetText("Faction Alignment:")
+
+    local factionMenu = CreateFrame("Frame", "AW_VirtualFactionDropdown", f, "UIDropDownMenuTemplate")
+    factionMenu:SetPoint("TOPLEFT", factionLabel, "BOTTOMLEFT", -15, -4)
+    UIDropDownMenu_SetWidth(factionMenu, 165)
+    f.FactionMenu = factionMenu
+
+    local saveBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    saveBtn:SetSize(85, 22)
+    saveBtn:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 25, 20)
+    saveBtn:SetText("OK") 
+    saveBtn:SetScript("OnClick", function()
+        local nameText = nameBox:GetText()
+        local selectedClass = classMenu.selectedValue
+        local selectedFaction = factionMenu.selectedValue
+        local realmText = customRealmBox:IsShown() and customRealmBox:GetText() or UIDropDownMenu_GetText(realmMenu)
+
+        if nameText and nameText ~= "" and realmText and realmText ~= "" and selectedClass and selectedFaction then
+            nameText = string.gsub(nameText, "%s+", "")
+            if string.trim then realmText = string.trim(realmText)
+            else realmText = string.gsub(realmText, "^%s*(.-)%s*$", "%1") end
+            
+            -- THE PROPER CASE AUTO-FORMATTER: Converts "eGoN" to "Egon" safely
+            if string.len(nameText) > 0 then
+                nameText = string.upper(string.sub(nameText, 1, 1)) .. string.lower(string.sub(nameText, 2))
+            end
+
+            local testKey = nameText .. " - " .. realmText
+            local testKeyLower = string.lower(testKey)
+            
+            -- CRUCIAL v0.4.1 PEDANTIC ACCIDENT GUARD: Case-insensitive sweep of BOTH virtual and real scanned account logs
+            if AlternateWorldDB and not f.isEditingActiveMode then
+                for dbKey, dbData in pairs(AlternateWorldDB) do
+                    if dbKey ~= "Settings" and dbData and string.lower(dbKey) == testKeyLower then
+                        UIErrorsFrame:AddMessage("|cFFFF0000Error: " .. nameText .. "-" .. realmText .. " already exists!|r")
+                        PlaySound(SOUNDKIT.IG_QUEST_FAILED)
+                        return
+                    end
+                end
+            end
+
+            if f.isEditingActiveMode and f.originalKeyCache and f.originalKeyCache ~= testKey then
+                AlternateWorldBankersEngine.DeleteVirtualBanker(f.originalKeyCache)
+            end
+
+            AlternateWorldBankersEngine.AddVirtualBanker(nameText, selectedClass, selectedFaction, realmText)
+            AlternateWorldBankersView.RefreshVirtualList()
+            f:Hide()
+        else
+            UIErrorsFrame:AddMessage("Missing Fields! Complete all specifications.", 1, 0, 0, 1)
+        end
+    end)
+
+    local cancelBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    cancelBtn:SetSize(85, 22)
+    cancelBtn:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -25, 20)
+    cancelBtn:SetText("Cancel")
+    cancelBtn:SetScript("OnClick", function() f:Hide() end)
+
+    VirtualDialogFrame = f
+    return f
+end
+
+-- StaticPopup for deletion confirmation stays untouched
+StaticPopupDialogs["AW_CONFIRM_DELETE_VIRTUAL"] = {
+    text = "Are you sure you want to delete the virtual banker %s?",
+    button1 = "Yes, Delete",
+    button2 = "Cancel",
+    OnAccept = function(self, data)
+        if data then
+            AlternateWorldBankersEngine.DeleteVirtualBanker(data)
+            AlternateWorldBankersView.RefreshVirtualList()
+            UIErrorsFrame:AddMessage("Virtual Banker deleted successfully.", 1, 1, 0, 1)
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+}
+
+function AlternateWorldBankersView.RefreshVirtualList()
+    local panel = _G["AWBankersPanelGlobal"]
+    if not panel or not AlternateWorldDB then return end
+    
+    local scrollFrame = _G["AW_BankersScrollFrameInstance"]
+    local scrollContent = scrollFrame and scrollFrame:GetScrollChild()
+    if not scrollContent then return end
+
+    if not scrollContent.VirtualHeaderLabel then
+        scrollContent.VirtualHeaderLabel = scrollContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        scrollContent.VirtualHeaderLabel:SetText("|cFF888888Cross-Account Virtual Managers|r")
+
+        local addBtn = CreateFrame("Button", "AW_AddVirtualBankerBtn", scrollContent, "UIPanelButtonTemplate")
+        addBtn:SetSize(60, 18)
+        addBtn:SetText("+ Add")
+        addBtn:SetScript("OnClick", function()
+            local dlg = CreateVirtualBankerDialog()
+            dlg.isEditingActiveMode = false 
+            dlg.originalKeyCache = nil -- Flushes caches
+            dlg.NameBox:SetText("")
+            dlg.CustomRealmBox:SetText("")
+            dlg.CustomRealmBox:Hide()
+            
+            local activeRealm = panel.activeContextRealmCache or GetRealmName()
+            UIDropDownMenu_SetText(dlg.RealmMenu, activeRealm)
+            dlg.RealmMenu.selectedValue = activeRealm
+            dlg.CustomRealmBox:SetText(activeRealm)
+            
+            UIDropDownMenu_SetText(dlg.ClassMenu, "Select Class...")
+            dlg.ClassMenu.selectedValue = nil
+            UIDropDownMenu_SetText(dlg.FactionMenu, "Select Faction...")
+            dlg.FactionMenu.selectedValue = nil
+            
+            UIDropDownMenu_Initialize(dlg.RealmMenu, InitializeRealmDropdown)
+            UIDropDownMenu_Initialize(dlg.ClassMenu, InitializeClassDropdown)
+            UIDropDownMenu_Initialize(dlg.FactionMenu, InitializeFactionDropdown)
+            
+            dlg:Show()
+            dlg.NameBox:SetFocus()
+        end)
+        scrollContent.AddVirtualBtn = addBtn
+    end
+
+    local staticCategoriesCount = 13
+    local lastStaticRow = _G["AW_BankerRowLineInstance" .. staticCategoriesCount]
+    
+    if lastStaticRow then
+        scrollContent.VirtualHeaderLabel:SetPoint("TOPLEFT", lastStaticRow, "BOTTOMLEFT", 15, -30)
+        scrollContent.AddVirtualBtn:SetPoint("LEFT", scrollContent.VirtualHeaderLabel, "RIGHT", 15, 0)
+    else
+        scrollContent.VirtualHeaderLabel:SetPoint("TOPLEFT", scrollContent, "TOPLEFT", 15, -450)
+        scrollContent.AddVirtualBtn:SetPoint("LEFT", scrollContent.VirtualHeaderLabel, "RIGHT", 15, 0)
+    end
+
+    for _, btn in ipairs(AW_VirtualButtonsPool) do btn:Hide() end
+
+    local sortedVirtuals = {}
+    for key, data in pairs(AlternateWorldDB) do
+        if key ~= "Settings" and data and data.isVirtual then
+            table.insert(sortedVirtuals, key)
+        end
+    end
+    table.sort(sortedVirtuals)
+
+    local currentYPositionMarker = -25
+
+    for count, vKey in ipairs(sortedVirtuals) do
+        local data = AlternateWorldDB[vKey]
+        local btn = AW_VirtualButtonsPool[count]
+        
+        if not btn then
+            btn = CreateFrame("Frame", "AW_VirtualManagerLineItem" .. count, scrollContent)
+            btn:SetSize(scrollContent:GetWidth() - 20, 22)
+            
+            btn.Text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            btn.Text:SetPoint("LEFT", btn, "LEFT", 10, 0)
+            btn.Text:SetJustifyH("LEFT")
+            
+            btn.Edit = CreateFrame("Button", nil, btn, "UIPanelButtonTemplate")
+            btn.Edit:SetSize(45, 16)
+            btn.Edit:SetPoint("LEFT", btn, "LEFT", 180, 0)
+            btn.Edit:SetText("Edit")
+            
+            btn.Del = CreateFrame("Button", nil, btn, "UIPanelButtonTemplate")
+            btn.Del:SetSize(50, 16)
+            btn.Del:SetPoint("LEFT", btn.Edit, "RIGHT", 6, 0)
+            btn.Del:SetText("Delete") 
+            
+            AW_VirtualButtonsPool[count] = btn
+        end
+
+        if count == 1 then
+            btn:SetPoint("TOPLEFT", scrollContent.VirtualHeaderLabel, "BOTTOMLEFT", 10, -10)
+        else
+            btn:SetPoint("TOPLEFT", AW_VirtualButtonsPool[count - 1], "BOTTOMLEFT", 0, -6)
+        end
+
+        local nameColorHex = "|cFFFFFFFF"
+        if data.classToken and RAID_CLASS_COLORS[data.classToken] then
+            local c = RAID_CLASS_COLORS[data.classToken]
+            nameColorHex = string.format("|cff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
+        end
+        
+        local sLabel = data.realm and (" - |cFF888888" .. data.realm .. "|r") or ""
+        btn.Text:SetText(nameColorHex .. data.name .. "|r" .. sLabel)
+        
+        btn.Edit:SetScript("OnClick", function()
+            local dlg = CreateVirtualBankerDialog()
+            dlg.isEditingActiveMode = true 
+            dlg.originalKeyCache = vKey -- FIXED v0.4.2 CACHE CACHE: Caches the original key context for clean rename swappings
+            dlg.NameBox:SetText(data.name or "")
+            dlg.CustomRealmBox:SetText(data.realm or "")
+            
+            local knownRealmsMap = {}
+            for k, d in pairs(AlternateWorldDB) do
+                if k ~= "Settings" and d and d.realm then knownRealmsMap[d.realm] = true end
+            end
+            
+            if knownRealmsMap[data.realm] then
+                UIDropDownMenu_SetText(dlg.RealmMenu, data.realm)
+                dlg.RealmMenu.selectedValue = data.realm
+                dlg.CustomRealmBox:Hide()
+            else
+                UIDropDownMenu_SetText(dlg.RealmMenu, "(Custom Realm...)")
+                dlg.RealmMenu.selectedValue = "custom"
+                dlg.CustomRealmBox:Show()
+            end
+            
+            local color = RAID_CLASS_COLORS[data.classToken or "WARRIOR"]
+            local cHex = string.format("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
+            local cText = cHex .. string.sub(data.classToken, 1, 1) .. string.lower(string.sub(data.classToken, 2)) .. "|r"
+            UIDropDownMenu_SetText(dlg.ClassMenu, cText)
+            dlg.ClassMenu.selectedValue = data.classToken
+            
+            local fText = data.faction == "Horde" and "|cFFFF0000Horde|r" or "|cFF0070DDAlliance|r"
+            UIDropDownMenu_SetText(dlg.FactionMenu, fText)
+            dlg.FactionMenu.selectedValue = data.faction
+            
+            UIDropDownMenu_Initialize(dlg.RealmMenu, InitializeRealmDropdown)
+            UIDropDownMenu_Initialize(dlg.ClassMenu, InitializeClassDropdown)
+            UIDropDownMenu_Initialize(dlg.FactionMenu, InitializeFactionDropdown)
+            
+            dlg:Show()
+            dlg.NameBox:SetFocus()
+            dlg.NameBox:HighlightText()
+        end)
+        
+        btn.Del:SetScript("OnClick", function()
+            StaticPopup_Show("AW_CONFIRM_DELETE_VIRTUAL", data.name, nil, vKey)
+        end)
+        
+        btn:Show()
+        currentYPositionMarker = currentYPositionMarker - 28
+    end
+
+    local baseCategoriesHeight = (13 * 34) + 40
+    local totalRequiredHeight = baseCategoriesHeight + math.abs(currentYPositionMarker) + 40
+    scrollContent:SetHeight(totalRequiredHeight)
+end
+
+local originalShowData = AlternateWorldBankersView.ShowData
+function AlternateWorldBankersView.ShowData(selectedCharacterKey)
+    originalShowData(selectedCharacterKey)
+    AlternateWorldBankersView.RefreshVirtualList()
 end
 
 -- End of [alternatebankersui.lua]
