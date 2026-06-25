@@ -1,14 +1,11 @@
 -- ============================================================================
--- Alternate World - Bankers View UI Module Panel (v0.3.0 - REBALANCED)
+-- Alternate World - Bankers User Interface Layout Module (v0.4.0 - FIXED)
 -- ============================================================================
 
 AlternateWorldBankersView = {}
 
-local BankersPanel = nil
-local BankersScrollContent = nil
 local AW_BankerRowsPool = {}
-local CurrentContextRealm = nil
-local ROW_HEIGHT = 44
+local ROW_HEIGHT = 32
 
 local BANKER_CATEGORIES = {
     { id = "Tailoring", name = "Tailoring", icon = "interface\\icons\\trade_tailoring" },
@@ -26,129 +23,123 @@ local BANKER_CATEGORIES = {
     { id = "Lockboxes", name = "Lockboxes", icon = "interface\\icons\\inv_box_03" }
 }
 
-function AlternateWorldBankersView.CreatePanel(parentWindow)
-    if BankersPanel then return BankersPanel end
-    if AlternateWorldBankersEngine and AlternateWorldBankersEngine.InitializeCorePanel then
-        BankersPanel, BankersScrollContent = AlternateWorldBankersEngine.InitializeCorePanel(parentWindow)
-    end
-    return BankersPanel
-end
-
-local function InitializeFactionDropdown(self, targetFaction, dropdownMenuFrame, categoryID, textFrame)
-    if not AlternateWorldDB or not CurrentContextRealm or not AlternateWorldBankersEngine then return end
-    local sortedKeys = AlternateWorldBankersEngine.GetSortedFactionKeys(targetFaction)
+local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMenuFrame)
+    if not AlternateWorldDB or not AlternateWorldBankersEngine then return end
+    
+    local currentRealm = GetRealmName()
+    local sortedAlts = AlternateWorldBankersEngine.GetSortedFactionKeys(faction)
 
     local info = UIDropDownMenu_CreateInfo()
-    info.text = "|cFF888888(None)|r"
+    info.text = "|cFF888888(None assigned)|r"
     info.value = "none"
-    info.checked = (not AlternateWorldDB.Settings.Bankers[CurrentContextRealm] or not AlternateWorldDB.Settings.Bankers[CurrentContextRealm][targetFaction] or AlternateWorldDB.Settings.Bankers[CurrentContextRealm][targetFaction][categoryID] == nil)
+    
+    local activeBanker = AlternateWorldBankersEngine.GetCategoryBanker(currentRealm, faction, categoryID)
+    info.checked = (activeBanker == nil)
     info.func = function()
-        AlternateWorldDB.Settings.Bankers[CurrentContextRealm][targetFaction][categoryID] = nil
-        UIDropDownMenu_SetText(dropdownMenuFrame, "|cFF888888(None)|r")
-        if textFrame then textFrame:SetText("") end
+        AlternateWorldBankersEngine.SetCategoryBanker(currentRealm, faction, categoryID, nil)
+        UIDropDownMenu_SetText(dropdownMenuFrame, "|cFF888888(None assigned)|r")
     end
-    UIDropDownMenu_AddButton(info, 1)
+    UIDropDownMenu_AddButton(info)
 
-    for _, key in ipairs(sortedKeys) do
-        local data = AlternateWorldDB[key]
-        local formattedString = AlternateWorldBankersEngine.CleanClassColoredName(data)
-
-        info.text = formattedString
-        info.value = key
-        info.checked = (AlternateWorldDB.Settings.Bankers[CurrentContextRealm][targetFaction][categoryID] == key)
-        info.func = function()
-            AlternateWorldDB.Settings.Bankers[CurrentContextRealm][targetFaction][categoryID] = key
-            UIDropDownMenu_SetText(dropdownMenuFrame, formattedString)
-            if textFrame and AlternateWorldCharacterEngine then
-                local freeBags = AlternateWorldCharacterEngine.GetFreeBagSlotsCount(data)
-                local freeBank = AlternateWorldCharacterEngine.GetFreeBankSlotsCount(data)
-                textFrame:SetText(string.format("Free: |cFFFFFFFF%d|r Bag / |cFFFFFFFF%d|r Bank", freeBags, freeBank))
+    for _, altKey in ipairs(sortedAlts) do
+        local altData = AlternateWorldDB[altKey]
+        if altData then
+            info.text = AlternateWorldBankersEngine.CleanClassColoredName(altData)
+            info.value = altKey
+            info.arg1 = altKey -- FIXED v0.4.0 DROPDOWN CLOSURE: Binds the explicit character key to the button argument
+            info.checked = (activeBanker == altKey)
+            info.func = function(button)
+                -- Safely extracts the true bound key value instead of referencing the loop's end variable state
+                local targetKey = button.arg1
+                AlternateWorldBankersEngine.SetCategoryBanker(currentRealm, faction, categoryID, targetKey)
+                UIDropDownMenu_SetText(dropdownMenuFrame, button:GetText())
             end
+            UIDropDownMenu_AddButton(info)
         end
-        UIDropDownMenu_AddButton(info, 1)
-    end
-end
-
-local function SetupMenuSelectionDisplay(targetFaction, dropdownMenuFrame, categoryID, textFrame)
-    if not AlternateWorldDB or not AlternateWorldBankersEngine then return end
-    local assignedKey = AlternateWorldDB.Settings.Bankers[CurrentContextRealm][targetFaction][categoryID]
-    if assignedKey and AlternateWorldDB[assignedKey] then
-        local data = AlternateWorldDB[assignedKey]
-        UIDropDownMenu_SetText(dropdownMenuFrame, AlternateWorldBankersEngine.CleanClassColoredName(data))
-        if textFrame and AlternateWorldCharacterEngine then
-            local freeBags = AlternateWorldCharacterEngine.GetFreeBagSlotsCount(data)
-            local freeBank = AlternateWorldCharacterEngine.GetFreeBankSlotsCount(data)
-            textFrame:SetText(string.format("Free: |cFFFFFFFF%d|r Bag / |cFFFFFFFF%d|r Bank", freeBags, freeBank))
-        end
-    else
-        UIDropDownMenu_SetText(dropdownMenuFrame, "|cFF888888(None)|r")
-        if textFrame then textFrame:SetText("") end
     end
 end
 
 function AlternateWorldBankersView.ShowData(selectedCharacterKey)
-    if not BankersPanel or not BankersScrollContent or not AlternateWorldDB or not selectedCharacterKey then return end
-    BankersPanel:Show()
+    local parentWindow = AlternateWorldMainContentWindow
+    if not parentWindow or not AlternateWorldBankersEngine then return end
 
-    local activeCharData = AlternateWorldDB[selectedCharacterKey]
-    if not activeCharData then return end
+    -- Trækker sikkert rammerne ud fra din core datamotor
+    local panel, scrollContent = AlternateWorldBankersEngine.InitializeCorePanel(parentWindow)
+    if not panel or not scrollContent then return end
+    panel:Show()
 
-    CurrentContextRealm = activeCharData.realm or GetRealmName()
+    local currentRealm = GetRealmName()
+    for _, line in ipairs(AW_BankerRowsPool) do line:Hide() end
 
-    if not AlternateWorldDB.Settings then AlternateWorldDB.Settings = {} end
-    if not AlternateWorldDB.Settings.Bankers then AlternateWorldDB.Settings.Bankers = {} end
-    if not AlternateWorldDB.Settings.Bankers[CurrentContextRealm] then AlternateWorldDB.Settings.Bankers[CurrentContextRealm] = {} end
-    if not AlternateWorldDB.Settings.Bankers[CurrentContextRealm]["Alliance"] then AlternateWorldDB.Settings.Bankers[CurrentContextRealm]["Alliance"] = {} end
-    if not AlternateWorldDB.Settings.Bankers[CurrentContextRealm]["Horde"] then AlternateWorldDB.Settings.Bankers[CurrentContextRealm]["Horde"] = {} end
-
-    for _, row in ipairs(AW_BankerRowsPool) do row:Hide() end
-
-    local currentYOffset, count = -5, 0
-    for i, cat in ipairs(BANKER_CATEGORIES) do
-        count = count + 1
+    local currentYOffset = -5
+    for count, cat in ipairs(BANKER_CATEGORIES) do
         local row = AW_BankerRowsPool[count]
         if not row then
-            row = CreateFrame("Frame", "AW_BankerRowInstance" .. count, BankersScrollContent)
-            row:SetSize(BankersScrollContent:GetWidth(), ROW_HEIGHT)
+            row = CreateFrame("Frame", "AW_BankerRowLineInstance" .. count, scrollContent)
+            row:SetSize(scrollContent:GetWidth(), ROW_HEIGHT)
+
             row.Icon = row:CreateTexture(nil, "OVERLAY")
-            row.Icon:SetSize(28, 28)
-            row.Icon:SetPoint("LEFT", row, "LEFT", 20, 4)
+            row.Icon:SetSize(20, 20)
+            row.Icon:SetPoint("LEFT", row, "LEFT", 15, 0)
+
             row.Label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            row.Label:SetPoint("LEFT", row.Icon, "RIGHT", 8, 4)
-            row.Label:SetSize(110, ROW_HEIGHT)
+            row.Label:SetPoint("LEFT", row.Icon, "RIGHT", 10, 0)
             row.Label:SetJustifyH("LEFT")
-            row.AllyMenu = CreateFrame("Frame", "AW_AllyBankDropdown" .. count, row, "UIDropDownMenuTemplate")
-            row.AllyMenu:SetPoint("LEFT", row, "LEFT", 138, 2)
-            UIDropDownMenu_SetWidth(row.AllyMenu, 100)
-            row.AllySlotsText = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-            row.AllySlotsText:SetPoint("TOPLEFT", row.AllyMenu, "BOTTOMLEFT", 20, 4)
-            row.AllySlotsText:SetJustifyH("LEFT")
-            row.HordeMenu = CreateFrame("Frame", "AW_HordeBankDropdown" .. count, row, "UIDropDownMenuTemplate")
-            row.HordeMenu:SetPoint("LEFT", row, "LEFT", 283, 2)
-            UIDropDownMenu_SetWidth(row.HordeMenu, 100)
-            row.HordeSlotsText = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-            row.HordeSlotsText:SetPoint("TOPLEFT", row.HordeMenu, "BOTTOMLEFT", 20, 4)
-            row.HordeSlotsText:SetJustifyH("LEFT")
+
+            row.AllyMenu = CreateFrame("Frame", "AW_BankerAllyDropdown" .. count, row, "UIDropDownMenuTemplate")
+            row.AllyMenu:SetPoint("LEFT", row, "LEFT", 145, -2)
+            UIDropDownMenu_SetWidth(row.AllyMenu, 110)
+
+            row.HordeMenu = CreateFrame("Frame", "AW_BankerHordeDropdown" .. count, row, "UIDropDownMenuTemplate")
+            row.HordeMenu:SetPoint("LEFT", row.AllyMenu, "RIGHT", -15, 0)
+            UIDropDownMenu_SetWidth(row.HordeMenu, 110)
+
             AW_BankerRowsPool[count] = row
         end
-        if count == 1 then row:SetPoint("TOPLEFT", BankersScrollContent, "TOPLEFT", 0, -5)
-        else row:SetPoint("TOPLEFT", AW_BankerRowsPool[count - 1], "BOTTOMLEFT", 0, -4) end
+
+        if count == 1 then row:SetPoint("TOPLEFT", scrollContent, "TOPLEFT", 0, -5)
+        else row:SetPoint("TOPLEFT", AW_BankerRowsPool[count - 1], "BOTTOMLEFT", 0, -2) end
 
         row.Icon:SetTexture(cat.icon)
         row.Label:SetText("|cFFFFFFFF" .. cat.name .. "|r")
 
-        UIDropDownMenu_Initialize(row.AllyMenu, function(self) InitializeFactionDropdown(self, "Alliance", row.AllyMenu, cat.id, row.AllySlotsText) end)
-        SetupMenuSelectionDisplay("Alliance", row.AllyMenu, cat.id, row.AllySlotsText)
-        UIDropDownMenu_Initialize(row.HordeMenu, function(self) InitializeFactionDropdown(self, "Horde", row.HordeMenu, cat.id, row.HordeSlotsText) end)
-        SetupMenuSelectionDisplay("Horde", row.HordeMenu, cat.id, row.HordeSlotsText)
+        -- Alliance dropdown rendering via cluster-engine data
+        local allyAssignedKey = AlternateWorldBankersEngine.GetCategoryBanker(currentRealm, "Alliance", cat.id)
+        if allyAssignedKey and AlternateWorldDB[allyAssignedKey] then
+            UIDropDownMenu_SetText(row.AllyMenu, AlternateWorldBankersEngine.CleanClassColoredName(AlternateWorldDB[allyAssignedKey]))
+        else
+            UIDropDownMenu_SetText(row.AllyMenu, "|cFF888888(None assigned)|r")
+        end
+        UIDropDownMenu_Initialize(row.AllyMenu, function(self) InitializeCategoryDropdown(self, "Alliance", cat.id, row.AllyMenu) end)
+
+        -- Horde dropdown rendering via cluster-engine data
+        local hordeAssignedKey = AlternateWorldBankersEngine.GetCategoryBanker(currentRealm, "Horde", cat.id)
+        if hordeAssignedKey and AlternateWorldDB[hordeAssignedKey] then
+            UIDropDownMenu_SetText(row.HordeMenu, AlternateWorldBankersEngine.CleanClassColoredName(AlternateWorldDB[hordeAssignedKey]))
+        else
+            UIDropDownMenu_SetText(row.HordeMenu, "|cFF888888(None assigned)|r")
+        end
+        UIDropDownMenu_Initialize(row.HordeMenu, function(self) InitializeCategoryDropdown(self, "Horde", cat.id, row.HordeMenu) end)
 
         row:Show()
-        currentYOffset = currentYOffset - ROW_HEIGHT - 4
+        currentYOffset = currentYOffset - ROW_HEIGHT - 2
     end
-    BankersScrollContent:SetHeight(math.abs(currentYOffset) + ROW_HEIGHT)
+    scrollContent:SetHeight(math.abs(currentYOffset) + ROW_HEIGHT)
 end
 
-function AlternateWorldBankersView.HidePanel() if BankersPanel then BankersPanel:Hide() end end
-function AlternateWorldBankersView.IsShown() return BankersPanel and BankersPanel:IsShown() end
+function AlternateWorldBankersView.HidePanel()
+    if AlternateWorldBankersEngine then
+        local panel = AlternateWorldBankersEngine.InitializeCorePanel(AlternateWorldMainContentWindow)
+        if panel then panel:Hide() end
+    end
+end
+
+function AlternateWorldBankersView.IsShown()
+    if AlternateWorldBankersEngine then
+        local panel = AlternateWorldBankersEngine.InitializeCorePanel(AlternateWorldMainContentWindow)
+        return panel and panel:IsShown()
+    end
+    return false
+end
 
 -- End of [alternatebankersui.lua]

@@ -12,6 +12,17 @@ local HordeHeaderLabel = nil
 local BankersScrollFrame = nil
 local BankersScrollContent = nil
 
+-- NEW v0.4.0 CLUSTER ROUTER: Determines whether to map data to a specific realm or a global cluster bucket
+local function GetBankerRealmContext(realmName)
+    if AlternateWorldDB and AlternateWorldDB.Settings and AlternateWorldDB.Settings.Clusters then
+        local assignedCluster = AlternateWorldDB.Settings.Clusters[realmName]
+        if assignedCluster then
+            return assignedCluster -- Returns "cluster_1", "cluster_2", etc.
+        end
+    end
+    return realmName -- Fallback to legacy single realm mapping if unassigned
+end
+
 function AlternateWorldBankersEngine.CleanClassColoredName(data)
     if not data or not data.name then return "Unknown" end
     local classColorHex = "|cFFFFFFFF"
@@ -26,9 +37,21 @@ end
 function AlternateWorldBankersEngine.GetSortedFactionKeys(targetFaction)
     local sortedKeys = {}
     if not AlternateWorldDB then return sortedKeys end
+    
+    -- FIXED v0.4.0 SCOPE FILTER: Resolve the active live player's cluster/realm family node first
+    local currentRealm = GetRealmName()
+    local liveContext = GetBankerRealmContext(currentRealm)
+
     for key, altData in pairs(AlternateWorldDB) do
         if key ~= "Settings" and altData and altData.name and altData.faction == targetFaction then
-            table.insert(sortedKeys, key)
+            -- Determine the scanned alt's cluster/realm context mapping safely
+            local altRealm = altData.realm or "Unknown"
+            local altContext = GetBankerRealmContext(altRealm)
+            
+            -- CLUSTER MATCH GUARD: Only populate the alt if it shares the exact same cluster family or identical unassigned realm
+            if liveContext == altContext then
+                table.insert(sortedKeys, key)
+            end
         end
     end
     table.sort(sortedKeys)
@@ -68,6 +91,37 @@ function AlternateWorldBankersEngine.InitializeCorePanel(parentWindow)
     BankersScrollFrame:SetScrollChild(BankersScrollContent)
 
     return BankersPanel, BankersScrollContent
+end
+
+function AlternateWorldBankersEngine.SetCategoryBanker(realmName, faction, categoryID, characterKey)
+    if not AlternateWorldDB then return end
+    if not AlternateWorldDB.Settings then AlternateWorldDB.Settings = {} end
+    if not AlternateWorldDB.Settings.Bankers then AlternateWorldDB.Settings.Bankers = {} end
+
+    -- FIXED v0.4.0: Context shifts instantly to cluster key if the realm belongs to a family
+    local contextKey = GetBankerRealmContext(realmName)
+
+    if not AlternateWorldDB.Settings.Bankers[contextKey] then 
+        AlternateWorldDB.Settings.Bankers[contextKey] = {} 
+    end
+    if not AlternateWorldDB.Settings.Bankers[contextKey][faction] then 
+        AlternateWorldDB.Settings.Bankers[contextKey][faction] = {} 
+    end
+
+    AlternateWorldDB.Settings.Bankers[contextKey][faction][categoryID] = characterKey
+end
+
+function AlternateWorldBankersEngine.GetCategoryBanker(realmName, faction, categoryID)
+    if not AlternateWorldDB or not AlternateWorldDB.Settings or not AlternateWorldDB.Settings.Bankers then 
+        return nil 
+    end
+
+    -- FIXED v0.4.0: Sweeps the global cluster bucket dynamically for sibling realms synergy
+    local contextKey = GetBankerRealmContext(realmName)
+
+    local realmData = AlternateWorldDB.Settings.Bankers[contextKey]
+    local factionData = realmData and realmData[faction]
+    return factionData and factionData[categoryID] or nil
 end
 
 -- End of [alternatebankers.lua]

@@ -80,9 +80,7 @@ AlternateWorldProfessionsView.CreatePanel(AlternateWorldMainContentWindow)
 
 AlternateWorldNavigation.CreateMenu(LeftMenu, GetSelectedCharacterKey)
 AlternateWorldRestedXPView.CreatePanel(AlternateWorldMainContentWindow)
-AlternateWorldBankersView.CreatePanel(AlternateWorldMainContentWindow)
-AlternateWorldClustersView.CreatePanel(AlternateWorldMainContentWindow) -- NEW v0.4.0: Attaches the Server Clusters canvas layout
-
+AlternateWorldBankersEngine.InitializeCorePanel(AlternateWorldMainContentWindow)
 
 local function InitializeDropdown(self, level)
     if not AlternateWorldDB then return end

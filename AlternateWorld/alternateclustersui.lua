@@ -87,10 +87,16 @@ local function InitializeRealmDropdown(self, realmName, dropdownMenuFrame, iconT
 end
 
 function AlternateWorldClustersView.ShowData()
+    -- FIXED v0.4.0 INITIATOR: Forces creation dynamic allocation if the frame was not booted on startup
+    if not ClustersPanel then
+        AlternateWorldClustersView.CreatePanel(AlternateWorldMainContentWindow)
+    end
     if not ClustersPanel then return end
+    
     ClustersPanel:Show()
     AlternateWorldClustersView.RefreshClusterView()
 end
+
 
 function AlternateWorldClustersView.RefreshClusterView()
     if not ClustersPanel or not AlternateWorldDB or not AlternateWorldClusterConstants then return end
