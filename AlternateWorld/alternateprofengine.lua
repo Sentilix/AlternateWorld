@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - Profession Sorter Engine (v0.2.0 - RAW INJECTION)
+-- Alternate World - Profession Sorter Engine (v0.4.0 - NESTED FIXED)
 -- ============================================================================
 
 AlternateWorldProfEngine = {}
@@ -17,15 +17,81 @@ local ICONS = {
 
 function AlternateWorldProfEngine.GetProfessionIconTexture(p) return ICONS[string.lower(p or "")] or "interface\\icons\\inv_misc_questionmark" end
 
-function AlternateWorldProfEngine.GetSortedScannedProfessions()
-    if not AlternateWorldDB then return {} end
-    local s, list = {}, {}
-    for _, c in pairs(AlternateWorldDB) do
-        if c.professions then for p in pairs(c.professions) do if type(p) == "string" then s[p] = true end end end
+local function GetBankerRealmContext(realmName)
+    if AlternateWorldDB and AlternateWorldDB.Settings and AlternateWorldDB.Settings.Clusters then
+        local assignedCluster = AlternateWorldDB.Settings.Clusters[realmName]
+        if assignedCluster then return assignedCluster end
     end
-    for n in pairs(s) do table.insert(list, n) end
-    table.sort(list)
-    return list
+    return realmName
+end
+
+-- FIXED v0.4.0 DUAL ENGINE: Dynamically splits logic depending on dropdown menu sweeps or specific recipe rows lookups
+function AlternateWorldProfEngine.GetSortedScannedProfessions(recipeID, contextRealm)
+    if not AlternateWorldDB then return {} end
+    
+    -- POLICY BRANCH A: Called by dropdown menu to scan all account wide distinct professions
+    if not recipeID then
+        local profSet = {}
+        for key, charData in pairs(AlternateWorldDB) do
+            if key ~= "Settings" and charData.professions then
+                for profName in pairs(charData.professions) do
+                    profSet[profName] = true
+                end
+            end
+        end
+        local sortedList = {}
+        for name in pairs(profSet) do table.insert(sortedList, name) end
+        table.sort(sortedList)
+        return sortedList
+    end
+
+    -- POLICY BRANCH B: Called by recipe grid to locate specific learned item crafters
+    local matchingCrafters = {}
+    local mustIsolate = AlternateWorldDB.Settings and AlternateWorldDB.Settings.IsolateSingleRealmsProf
+    local liveContext = GetBankerRealmContext(contextRealm or GetRealmName())
+    local myName = UnitName("player")
+
+    for key, altData in pairs(AlternateWorldDB) do
+        if key ~= "Settings" and altData and altData.name and altData.professions then
+            local altRealm = altData.realm or "Unknown"
+            local altContext = GetBankerRealmContext(altRealm)
+            local isSelf = (altData.name == myName and altRealm == contextRealm)
+
+            local sharedScope = false
+            local assignedCluster = AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[contextRealm]
+            
+            if assignedCluster then
+                sharedScope = (altContext == liveContext)
+            elseif mustIsolate then
+                sharedScope = (altRealm == contextRealm)
+            else
+                sharedScope = true
+            end
+
+            if sharedScope then
+                for profName, profData in pairs(altData.professions) do
+                    if profData.recipes and profData.recipes[recipeID] then
+                        table.insert(matchingCrafters, {
+                            key = key,
+                            name = altData.name,
+                            realm = altRealm,
+                            faction = altData.faction or "Alliance",
+                            classToken = altData.classToken or "WARRIOR",
+                            isSelf = isSelf
+                        })
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    table.sort(matchingCrafters, function(a, b)
+        if a.faction ~= b.faction then return a.faction == "Alliance" end
+        return a.name < b.name
+    end)
+
+    return matchingCrafters
 end
 
 function AlternateWorldProfEngine.GetRecipeColorAndWeight(n)
@@ -51,7 +117,6 @@ function AlternateWorldProfEngine.CompileSortedRecipes(prof, filter)
     local cmap, list, gList = {}, {}, {}
     if not AlternateWorldDB or not prof then return list, cmap end
     
-    -- Force lower-case check, and fallback to string extraction if it's a table
     local pLower = "alchemy"
     if type(prof) == "string" then pLower = string.lower(prof)
     elseif type(prof) == "table" and prof[1] then pLower = string.lower(prof[1]) end
@@ -70,13 +135,15 @@ function AlternateWorldProfEngine.CompileSortedRecipes(prof, filter)
                     if pData.recipes then
                         for recipeName, isLearned in pairs(pData.recipes) do
                             if type(recipeName) == "string" then
-                                -- FIXED: Completely bypassed filter strings to eliminate text blocks drops
-                                if not cmap[recipeName] then
-                                    cmap[recipeName] = {}
-                                    local h, w = AlternateWorldProfEngine.GetRecipeColorAndWeight(recipeName)
-                                    table.insert(list, { name = recipeName, weight = w, color = h })
+                                -- FIXED v0.4.0 SEARCH FILTER: Restores active text string pattern matching queries
+                                if not filter or string.find(string.lower(recipeName), filter) then
+                                    if not cmap[recipeName] then
+                                        cmap[recipeName] = {}
+                                        local h, w = AlternateWorldProfEngine.GetRecipeColorAndWeight(recipeName)
+                                        table.insert(list, { name = recipeName, weight = w, color = h })
+                                    end
+                                    table.insert(cmap[recipeName], { name = c.name or "Alt", displayName = dName, isGathering = false })
                                 end
-                                table.insert(cmap[recipeName], { name = c.name or "Alt", displayName = dName, isGathering = false })
                             end
                         end
                     end

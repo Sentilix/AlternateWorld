@@ -67,9 +67,6 @@
     <Content Include="alternateprofengine.lua">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="alternateprofessiongrid.lua">
-      <SubType>Code</SubType>
-    </Content>
     <Content Include="alternateprofessions.lua">
       <SubType>Code</SubType>
     </Content>

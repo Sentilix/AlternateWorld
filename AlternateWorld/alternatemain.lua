@@ -1,12 +1,12 @@
 ﻿-- ============================================================================
--- Alternate World - Main User Interface & Layout Frame (v0.3.0 - MENU BG RESTORED)
+-- Alternate World - Main User Interface & Layout Frame
 -- ============================================================================
 
 AlternateWorldMainFrameEngine = {}
-
 local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.4.0"
+local addonAuthor = C_AddOns.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
+
 local AlternateWorldMainFrame = CreateFrame("Frame", "AlternateWorldMainFrame", UIParent, "BasicFrameTemplateWithInset")
--- FIXED GEOMETRY v0.4.0: Resized total frame bounding box to 650x510 (+50 on both axis)
 AlternateWorldMainFrame:SetSize(650, 510) 
 AlternateWorldMainFrame:SetPoint("CENTER", UIParent, "CENTER") 
 AlternateWorldMainFrame:SetFrameStrata("HIGH")
@@ -21,6 +21,14 @@ AlternateWorldMainFrame:SetScript("OnDragStop", AlternateWorldMainFrame.StopMovi
 AlternateWorldMainFrame:Hide()
 
 local selectedCharacterKey = nil
+
+function AlternateWorldMainFrameEngine.GetVersion()
+    return addonVersion
+end
+
+function AlternateWorldMainFrameEngine.GetAuthor()
+    return addonAuthor
+end
 
 local function GetSelectedCharacterKey() return selectedCharacterKey end
 function AlternateWorldMainFrameEngine.GetSelectedCharacterKey() return selectedCharacterKey end
@@ -45,7 +53,6 @@ end)
 
 local TOPBAR_HEIGHT = 40
 local TOTAL_WIDTH = AlternateWorldMainFrame:GetWidth() - 20 
--- FIXED RATIOS v0.4.0: Shifted sidebar scaling to 0.266 to widen the menu exactly by 50px without squishing the content canvas
 local MENU_WIDTH = TOTAL_WIDTH * 0.266
 local CONTENT_WIDTH = TOTAL_WIDTH - MENU_WIDTH
 local FRAME_HEIGHT = AlternateWorldMainFrame:GetHeight() - 35 - TOPBAR_HEIGHT 
@@ -62,11 +69,15 @@ local LeftMenu = CreateFrame("Frame", nil, AlternateWorldMainFrame)
 LeftMenu:SetSize(MENU_WIDTH, FRAME_HEIGHT)
 LeftMenu:SetPoint("TOPLEFT", AlternateWorldMainTopBar, "BOTTOMLEFT", 0, -5)
 
--- FIXED: Restored the classic atmospheric semitransparent background texture mapping layer
 local menuBg = LeftMenu:CreateTexture(nil, "BACKGROUND")
 menuBg:SetAllPoints(LeftMenu)
 menuBg:SetTexture("Interface\\TalentFrame\\PriestDiscipline-Topleft")
 menuBg:SetAlpha(0.6) 
+
+local MenuSignatureText = LeftMenu:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+MenuSignatureText:SetPoint("BOTTOM", LeftMenu, "BOTTOM", 0, 1)
+MenuSignatureText:SetScale(0.85)
+MenuSignatureText:SetText("v" .. AlternateWorldMainFrameEngine.GetVersion() .. " " .. AlternateWorldMainFrameEngine.GetAuthor())
 
 AlternateWorldMainContentWindow = CreateFrame("Frame", "AlternateWorldMainContentWindow", AlternateWorldMainFrame)
 AlternateWorldMainContentWindow:SetSize(CONTENT_WIDTH, FRAME_HEIGHT)
@@ -115,12 +126,6 @@ local function InitializeDropdown(self, level)
     end
 end
 
-
-
-function AlternateWorldMainFrameEngine.GetVersion()
-    return addonVersion;
-end
-
 function AlternateWorldMainFrameEngine.OnAddonLoaded()
     local myName = UnitName("player")
     if myName and AlternateWorldDB then
@@ -151,7 +156,6 @@ function AlternateWorldMainFrameEngine.OnAddonLoaded()
 
         if not AlternateWorldDB.Settings then AlternateWorldDB.Settings = {} end
 
-        -- NEW v0.4.0 BOOTSTRAP: Initializes the 5 hardcoded slot keys safely to prevent nil collapses
         if not AlternateWorldDB.Settings.Clusters then 
             AlternateWorldCategoryDB = AlternateWorldCategoryDB or {} -- Safe check
             AlternateWorldDB.Settings.Clusters = {} 

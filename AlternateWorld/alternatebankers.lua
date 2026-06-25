@@ -73,11 +73,9 @@ function AlternateWorldBankersEngine.InitializeCorePanel(parentWindow)
     SubTitleText:SetPoint("TOPLEFT", MainTitleText, "BOTTOMLEFT", 0, -2)
     SubTitleText:SetText("Assign designated warehouse managers scoped per Realm for both factions")
 
-    -- HEADERS REMOVED FROM HERE: Migrated to the UI module to satisfy strict loading anchor boundaries cleanly
-
     BankersScrollFrame = CreateFrame("ScrollFrame", "AW_BankersScrollFrameInstance", BankersPanel, "UIPanelScrollFrameTemplate")
     BankersScrollFrame:SetPoint("TOPLEFT", BankersPanel, "TOPLEFT", 0, -85)
-    BankersScrollFrame:SetPoint("BOTTOMRIGHT", BankersPanel, "BOTTOMRIGHT", -30, 45)
+    BankersScrollFrame:SetPoint("BOTTOMRIGHT", BankersPanel, "BOTTOMRIGHT", -30, 15)
 
     BankersScrollContent = CreateFrame("Frame", nil, BankersScrollFrame)
     BankersScrollContent:SetSize(BankersPanel:GetWidth() - 40, 1)

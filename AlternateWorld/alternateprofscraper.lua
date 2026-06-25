@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - Profession & Spellbook Scraper Module (v0.2.0)
+-- Alternate World - Profession & Spellbook Scraper Module (v0.4.0)
 -- ============================================================================
 
 AlternateWorldProfScraper = {}
@@ -37,12 +37,15 @@ function AlternateWorldProfScraper.GetUpdatedProfessions(oldProfessionsMap)
         end
     end
 
+    -- FIXED v0.4.0 CORE SCRACTER LINK: Inject recipes safely into the primary profiles recipes data container cache array
     local craftName, _, numCrafts = GetCraftDisplaySkillLine()
     if craftName and IsTrackingProfession(craftName) and numCrafts and numCrafts > 0 then
         if not currentMap[craftName] then currentMap[craftName] = { recipes = {} } end
         for i = 1, numCrafts do
             local recipeName, recipeType = GetCraftInfo(i)
-            if recipeName and recipeType ~= "header" then currentMap[craftName].recipes[recipeName] = true end
+            if recipeName and recipeType ~= "header" then 
+                currentMap[craftName].recipes[recipeName] = true 
+            end
         end
     end
 
@@ -52,7 +55,9 @@ function AlternateWorldProfScraper.GetUpdatedProfessions(oldProfessionsMap)
         if not currentMap[tradeName] then currentMap[tradeName] = { recipes = {} } end
         for i = 1, numTradeSkills do
             local recipeName, recipeType = GetTradeSkillInfo(i)
-            if recipeName and recipeType ~= "header" then currentMap[tradeName].recipes[recipeName] = true end
+            if recipeName and recipeType ~= "header" then 
+                currentMap[tradeName].recipes[recipeName] = true 
+            end
         end
     end
 
@@ -86,7 +91,6 @@ function AlternateWorldProfScraper.Initialize()
 
     ScraperFrame:SetScript("OnEvent", function(self, event, ...)
         if AlternateWorldDBEngine and AlternateWorldDBEngine.SaveCurrentCharacterData then
-            -- FIXED: Block database data corruption wipes from player world login/reload tick frames
             if event ~= "PLAYER_ENTERING_WORLD" then
                 AlternateWorldDBEngine.SaveCurrentCharacterData()
             end
