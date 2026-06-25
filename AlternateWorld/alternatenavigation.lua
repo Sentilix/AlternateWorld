@@ -14,7 +14,8 @@ local MENU_ITEMS = {
     { id = "history",     text = "History Log",      icon = "interface\\icons\\inv_misc_pocketwatch_02" },
     { id = "professions", text = "Professions",      icon = "interface\\icons\\trade_blacksmithing" },
     { id = "restedxp",     text = "Rested XP",        icon = "interface\\icons\\inv_misc_rune_01" },
-    { id = "bankers",      text = "Bankers",          icon = "interface\\icons\\inv_misc_coin_17" } -- FIXED: Formatted row 7 as Bankers with Gold Coin
+    { id = "bankers",      text = "Bankers",          icon = "interface\\icons\\inv_misc_coin_17" },
+    { id = "clusters",     text = "Clusters",         icon = "interface\\icons\\inv_ore_arcanite_01" } -- NEW v0.4.0: Rainbow Arcanite Gem
 }
 
 local PANELS_MAP = {
@@ -24,7 +25,8 @@ local PANELS_MAP = {
     ["history"]     = "AlternateWorldHistoryView",
     ["professions"] = "AlternateWorldProfessionsView",
     ["restedxp"]    = "AlternateWorldRestedXPView",
-    ["bankers"]     = "AlternateWorldBankersView" -- FIXED: Routes dynamically to our new Bankers module window
+    ["bankers"]     = "AlternateWorldBankersView",
+    ["clusters"]    = "AlternateWorldClustersView" -- NEW v0.4.0 Routes dynamically to our new Server Clusters panel
 }
 
 function AlternateWorldNavigation.HideAllPanels()

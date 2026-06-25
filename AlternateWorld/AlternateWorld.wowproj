@@ -28,6 +28,12 @@
     <Content Include="alternatecharacterui.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="alternateclusterconstants.lua">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="alternateclustersui.lua">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="alternatecomm.lua">
       <SubType>Code</SubType>
     </Content>

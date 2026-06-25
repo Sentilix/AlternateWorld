@@ -4,12 +4,13 @@
 
 AlternateWorldMainFrameEngine = {}
 
+local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.4.0"
 local AlternateWorldMainFrame = CreateFrame("Frame", "AlternateWorldMainFrame", UIParent, "BasicFrameTemplateWithInset")
-AlternateWorldMainFrame:SetSize(600, 460) 
+-- FIXED GEOMETRY v0.4.0: Resized total frame bounding box to 650x510 (+50 on both axis)
+AlternateWorldMainFrame:SetSize(650, 510) 
 AlternateWorldMainFrame:SetPoint("CENTER", UIParent, "CENTER") 
 AlternateWorldMainFrame:SetFrameStrata("HIGH")
 
-local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.3.0"
 AlternateWorldMainFrame.TitleText:SetText("Alternate World v" .. addonVersion)
 
 AlternateWorldMainFrame:SetMovable(true)
@@ -20,6 +21,7 @@ AlternateWorldMainFrame:SetScript("OnDragStop", AlternateWorldMainFrame.StopMovi
 AlternateWorldMainFrame:Hide()
 
 local selectedCharacterKey = nil
+
 local function GetSelectedCharacterKey() return selectedCharacterKey end
 function AlternateWorldMainFrameEngine.GetSelectedCharacterKey() return selectedCharacterKey end
 
@@ -43,8 +45,9 @@ end)
 
 local TOPBAR_HEIGHT = 40
 local TOTAL_WIDTH = AlternateWorldMainFrame:GetWidth() - 20 
-local MENU_WIDTH = TOTAL_WIDTH * 0.20
-local CONTENT_WIDTH = TOTAL_WIDTH * 0.80
+-- FIXED RATIOS v0.4.0: Shifted sidebar scaling to 0.266 to widen the menu exactly by 50px without squishing the content canvas
+local MENU_WIDTH = TOTAL_WIDTH * 0.266
+local CONTENT_WIDTH = TOTAL_WIDTH - MENU_WIDTH
 local FRAME_HEIGHT = AlternateWorldMainFrame:GetHeight() - 35 - TOPBAR_HEIGHT 
 
 AlternateWorldMainTopBar = CreateFrame("Frame", nil, AlternateWorldMainFrame)
@@ -78,11 +81,19 @@ AlternateWorldProfessionsView.CreatePanel(AlternateWorldMainContentWindow)
 AlternateWorldNavigation.CreateMenu(LeftMenu, GetSelectedCharacterKey)
 AlternateWorldRestedXPView.CreatePanel(AlternateWorldMainContentWindow)
 AlternateWorldBankersView.CreatePanel(AlternateWorldMainContentWindow)
+AlternateWorldClustersView.CreatePanel(AlternateWorldMainContentWindow) -- NEW v0.4.0: Attaches the Server Clusters canvas layout
+
 
 local function InitializeDropdown(self, level)
     if not AlternateWorldDB then return end
     local sortedKeys = {}
-    for key in pairs(AlternateWorldDB) do table.insert(sortedKeys, key) end
+    
+    -- THE BULLETPROOF SHIELD: Only extracts keys that actually represent characters, avoiding any settings leak permanently
+    for key, data in pairs(AlternateWorldDB) do 
+        if key ~= "Settings" and type(data) == "table" and data.classToken then
+            table.insert(sortedKeys, key) 
+        end
+    end
     table.sort(sortedKeys)
     
     local info = UIDropDownMenu_CreateInfo()
@@ -104,6 +115,12 @@ local function InitializeDropdown(self, level)
         info.checked = (selectedCharacterKey == key)
         UIDropDownMenu_AddButton(info, level)
     end
+end
+
+
+
+function AlternateWorldMainFrameEngine.GetVersion()
+    return addonVersion;
 end
 
 function AlternateWorldMainFrameEngine.OnAddonLoaded()
@@ -133,8 +150,27 @@ function AlternateWorldMainFrameEngine.OnAddonLoaded()
         
         UIDropDownMenu_SetText(AlternateWorldCharDropdown, myFactionIcon .. coloredName)
         if AlternateWorldComm and AlternateWorldComm.Initialize then AlternateWorldComm.Initialize() end
+
+        if not AlternateWorldDB.Settings then AlternateWorldDB.Settings = {} end
+
+        -- NEW v0.4.0 BOOTSTRAP: Initializes the 5 hardcoded slot keys safely to prevent nil collapses
+        if not AlternateWorldDB.Settings.Clusters then 
+            AlternateWorldCategoryDB = AlternateWorldCategoryDB or {} -- Safe check
+            AlternateWorldDB.Settings.Clusters = {} 
+        end
+
+        if not AlternateWorldDB.Settings.ClusterNames then
+            AlternateWorldDB.Settings.ClusterNames = {
+                ["cluster_1"] = "Cluster 1",
+                ["cluster_2"] = "Cluster 2",
+                ["cluster_3"] = "Cluster 3",
+                ["cluster_4"] = "Cluster 4",
+                ["cluster_5"] = "Cluster 5"
+            }
+        end
     end
 end
+
 
 function AlternateWorldMainFrameEngine.RefreshUI() AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey) end
 
