@@ -58,7 +58,6 @@ function AlternateWorldBankersEngine.GetSortedFactionKeys(targetFaction)
     return sortedKeys
 end
 
--- FIXED CENTRAL SETUP: Houses the clean core UI frame initialization matrix safely
 function AlternateWorldBankersEngine.InitializeCorePanel(parentWindow)
     if BankersPanel then return BankersPanel, BankersScrollContent end
 
@@ -74,21 +73,17 @@ function AlternateWorldBankersEngine.InitializeCorePanel(parentWindow)
     SubTitleText:SetPoint("TOPLEFT", MainTitleText, "BOTTOMLEFT", 0, -2)
     SubTitleText:SetText("Assign designated warehouse managers scoped per Realm for both factions")
 
-    AllyHeaderLabel = BankersPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    AllyHeaderLabel:SetPoint("TOPLEFT", BankersPanel, "TOPLEFT", 180, -65)
-    AllyHeaderLabel:SetText("|TInterface\\TargetingFrame\\UI-PVP-Alliance:12:12:0:0:64:64:0:38:0:38|t |cFF0070DDAlliance Bankers|r")
-
-    HordeHeaderLabel = BankersPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    HordeHeaderLabel:SetPoint("TOPLEFT", BankersPanel, "TOPLEFT", 325, -65)
-    HordeHeaderLabel:SetText("|TInterface\\TargetingFrame\\UI-PVP-Horde:12:12:0:0:64:64:0:38:0:38|t |cFFFF0000Horde Bankers|r")
+    -- HEADERS REMOVED FROM HERE: Migrated to the UI module to satisfy strict loading anchor boundaries cleanly
 
     BankersScrollFrame = CreateFrame("ScrollFrame", "AW_BankersScrollFrameInstance", BankersPanel, "UIPanelScrollFrameTemplate")
     BankersScrollFrame:SetPoint("TOPLEFT", BankersPanel, "TOPLEFT", 0, -85)
-    BankersScrollFrame:SetPoint("BOTTOMRIGHT", BankersPanel, "BOTTOMRIGHT", -30, 15)
+    BankersScrollFrame:SetPoint("BOTTOMRIGHT", BankersPanel, "BOTTOMRIGHT", -30, 45)
 
     BankersScrollContent = CreateFrame("Frame", nil, BankersScrollFrame)
     BankersScrollContent:SetSize(BankersPanel:GetWidth() - 40, 1)
     BankersScrollFrame:SetScrollChild(BankersScrollContent)
+
+    BankersPanel.MainTitleText = MainTitleText
 
     return BankersPanel, BankersScrollContent
 end

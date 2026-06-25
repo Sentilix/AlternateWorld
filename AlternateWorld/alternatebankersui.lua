@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - Bankers User Interface Layout Module (v0.4.0 - FIXED)
+-- Alternate World - Bankers User Interface Layout Module (v0.4.0)
 -- ============================================================================
 
 AlternateWorldBankersView = {}
@@ -23,20 +23,52 @@ local BANKER_CATEGORIES = {
     { id = "Lockboxes", name = "Lockboxes", icon = "interface\\icons\\inv_box_03" }
 }
 
-local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMenuFrame)
+local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMenuFrame, contextRealm)
     if not AlternateWorldDB or not AlternateWorldBankersEngine then return end
     
-    local currentRealm = GetRealmName()
-    local sortedAlts = AlternateWorldBankersEngine.GetSortedFactionKeys(faction)
+    local sortedAlts = {}
+    local mustIsolate = AlternateWorldDB.Settings and AlternateWorldDB.Settings.IsolateSingleRealms
+    local assignedCluster = AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[contextRealm]
+    
+    -- FIXED v0.4.0 SYSTEM POLICY: Strict hierarchical flow routing for dropdown populates
+    if assignedCluster then
+        -- Cluster Mode: Always strictly limited to the configured family
+        for key, altData in pairs(AlternateWorldDB) do
+            if key ~= "Settings" and altData and altData.name and altData.faction == faction then
+                local altRealm = altData.realm or "Unknown"
+                local altCluster = AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[altRealm]
+                if altCluster == assignedCluster then
+                    table.insert(sortedAlts, key)
+                end
+            end
+        end
+    elseif mustIsolate then
+        -- Single-Realm Isolation Mode: strictly limited to the current unassigned realm
+        for key, altData in pairs(AlternateWorldDB) do
+            if key ~= "Settings" and altData and altData.name and altData.faction == faction then
+                if (altData.realm or "Unknown") == contextRealm then
+                    table.insert(sortedAlts, key)
+                end
+            end
+        end
+    else
+        -- Unrestricted Legacy Mode: Opens the floodgates for ALL known characters on the account
+        for key, altData in pairs(AlternateWorldDB) do
+            if key ~= "Settings" and altData and altData.name and altData.faction == faction then
+                table.insert(sortedAlts, key)
+            end
+        end
+    end
+    table.sort(sortedAlts)
 
     local info = UIDropDownMenu_CreateInfo()
     info.text = "|cFF888888(None assigned)|r"
     info.value = "none"
     
-    local activeBanker = AlternateWorldBankersEngine.GetCategoryBanker(currentRealm, faction, categoryID)
+    local activeBanker = AlternateWorldBankersEngine.GetCategoryBanker(contextRealm, faction, categoryID)
     info.checked = (activeBanker == nil)
     info.func = function()
-        AlternateWorldBankersEngine.SetCategoryBanker(currentRealm, faction, categoryID, nil)
+        AlternateWorldBankersEngine.SetCategoryBanker(contextRealm, faction, categoryID, nil)
         UIDropDownMenu_SetText(dropdownMenuFrame, "|cFF888888(None assigned)|r")
     end
     UIDropDownMenu_AddButton(info)
@@ -46,12 +78,11 @@ local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMen
         if altData then
             info.text = AlternateWorldBankersEngine.CleanClassColoredName(altData)
             info.value = altKey
-            info.arg1 = altKey -- FIXED v0.4.0 DROPDOWN CLOSURE: Binds the explicit character key to the button argument
+            info.arg1 = altKey
             info.checked = (activeBanker == altKey)
             info.func = function(button)
-                -- Safely extracts the true bound key value instead of referencing the loop's end variable state
                 local targetKey = button.arg1
-                AlternateWorldBankersEngine.SetCategoryBanker(currentRealm, faction, categoryID, targetKey)
+                AlternateWorldBankersEngine.SetCategoryBanker(contextRealm, faction, categoryID, targetKey)
                 UIDropDownMenu_SetText(dropdownMenuFrame, button:GetText())
             end
             UIDropDownMenu_AddButton(info)
@@ -63,12 +94,85 @@ function AlternateWorldBankersView.ShowData(selectedCharacterKey)
     local parentWindow = AlternateWorldMainContentWindow
     if not parentWindow or not AlternateWorldBankersEngine then return end
 
-    -- Trækker sikkert rammerne ud fra din core datamotor
     local panel, scrollContent = AlternateWorldBankersEngine.InitializeCorePanel(parentWindow)
     if not panel or not scrollContent then return end
+
+    local contextRealm = selectedCharacterKey and string.match(selectedCharacterKey, "%s*-%s*(.+)") or GetRealmName()
+    panel.activeContextRealmCache = contextRealm
+
+    local mustIsolate = AlternateWorldDB.Settings and AlternateWorldDB.Settings.IsolateSingleRealms
+    local assignedCluster = AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[contextRealm]
+
+    -- 1. Create Checkbox first to establish the anchor root safely
+    local IsolateCB = _G["AW_BankersIsolateCheckbox"]
+    if not IsolateCB then
+        IsolateCB = CreateFrame("CheckButton", "AW_BankersIsolateCheckbox", panel, "InterfaceOptionsCheckButtonTemplate")
+        IsolateCB:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, -53)
+        _G[IsolateCB:GetName() .. "Text"]:SetText("Restrict bankers to local realm or cluster")
+        
+        IsolateCB:SetScript("OnClick", function(self)
+            if AlternateWorldDB and AlternateWorldDB.Settings then
+                AlternateWorldDB.Settings.IsolateSingleRealms = self:GetChecked() and true or false
+                AlternateWorldBankersView.RefreshActiveDropdowns(panel.activeContextRealmCache)
+            end
+        end)
+
+        IsolateCB:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+            GameTooltip:ClearLines()
+            GameTooltip:AddLine("|cFFFFFFFFRestrict Banker Dropdowns|r")
+            GameTooltip:AddLine("|cFFFFD100When enabled, lists are strictly limited to characters from your current realm, or siblings inside your custom cluster.|r", 1, 1, 1, true)
+            GameTooltip:AddLine("|cFF888888Disable this to keep legacy behavior and view all characters across your entire account.|r", 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        IsolateCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+
+    -- 2. FIXED ANCHOR LOGIC: Instantiate or fetch Faction strings attached safely directly below the checkbox frame object
+    local AllyHeaderLabel = panel.AllyHeaderLabel
+    local HordeHeaderLabel = panel.HordeHeaderLabel
+    if not AllyHeaderLabel then
+        AllyHeaderLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        AllyHeaderLabel:SetPoint("TOPLEFT", IsolateCB, "BOTTOMLEFT", 160, -12) -- Anchors flawlessly 12px below checkbox
+        AllyHeaderLabel:SetText("|TInterface\\TargetingFrame\\UI-PVP-Alliance:12:12:0:0:64:64:0:38:0:38|t |cFF0070DDAlliance Bankers|r")
+        panel.AllyHeaderLabel = AllyHeaderLabel
+
+        HordeHeaderLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        HordeHeaderLabel:SetPoint("TOPLEFT", AllyHeaderLabel, "TOPRIGHT", 25, 0) -- Anchors directly to the right of alliance string
+        HordeHeaderLabel:SetText("|TInterface\\TargetingFrame\\UI-PVP-Horde:12:12:0:0:64:64:0:38:0:38|t |cFFFF0000Horde Bankers|r")
+        panel.HordeHeaderLabel = HordeHeaderLabel
+    end
+
+    -- 3. Title Engine
+    local MainTitleText = _G["AWBankersPanelGlobal"] and _G["AWBankersPanelGlobal"].MainTitleText or panel.MainTitleText
+    if MainTitleText then
+        if assignedCluster then
+            local customClusterName = AlternateWorldDB.Settings.ClusterNames and AlternateWorldDB.Settings.ClusterNames[assignedCluster] or "Cluster"
+            MainTitleText:SetText(string.format("|cFFFFFFFFBankers on %s|r", customClusterName))
+        elseif not mustIsolate then
+            MainTitleText:SetText("|cFFFFFFFFBank Managers|r")
+        else
+            MainTitleText:SetText(string.format("|cFFFFFFFFBankers on %s|r", contextRealm))
+        end
+    end
+    
+    if assignedCluster then
+        IsolateCB:SetChecked(true)
+        IsolateCB:Disable()
+        _G[IsolateCB:GetName() .. "Text"]:SetTextColor(0.5, 0.5, 0.5)
+    else
+        IsolateCB:SetChecked(mustIsolate)
+        IsolateCB:Enable()
+        _G[IsolateCB:GetName() .. "Text"]:SetTextColor(1.0, 0.82, 0)
+    end
+
     panel:Show()
 
-    local currentRealm = GetRealmName()
+    local scrollFrame = _G["AW_BankersScrollFrameInstance"]
+    if scrollFrame then
+        scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -105)
+    end
+
     for _, line in ipairs(AW_BankerRowsPool) do line:Hide() end
 
     local currentYOffset = -5
@@ -103,28 +207,54 @@ function AlternateWorldBankersView.ShowData(selectedCharacterKey)
         row.Icon:SetTexture(cat.icon)
         row.Label:SetText("|cFFFFFFFF" .. cat.name .. "|r")
 
-        -- Alliance dropdown rendering via cluster-engine data
-        local allyAssignedKey = AlternateWorldBankersEngine.GetCategoryBanker(currentRealm, "Alliance", cat.id)
+        local allyAssignedKey = AlternateWorldBankersEngine.GetCategoryBanker(contextRealm, "Alliance", cat.id)
         if allyAssignedKey and AlternateWorldDB[allyAssignedKey] then
             UIDropDownMenu_SetText(row.AllyMenu, AlternateWorldBankersEngine.CleanClassColoredName(AlternateWorldDB[allyAssignedKey]))
         else
             UIDropDownMenu_SetText(row.AllyMenu, "|cFF888888(None assigned)|r")
         end
-        UIDropDownMenu_Initialize(row.AllyMenu, function(self) InitializeCategoryDropdown(self, "Alliance", cat.id, row.AllyMenu) end)
+        UIDropDownMenu_Initialize(row.AllyMenu, function(self) InitializeCategoryDropdown(self, "Alliance", cat.id, row.AllyMenu, contextRealm) end)
 
-        -- Horde dropdown rendering via cluster-engine data
-        local hordeAssignedKey = AlternateWorldBankersEngine.GetCategoryBanker(currentRealm, "Horde", cat.id)
+        local hordeAssignedKey = AlternateWorldBankersEngine.GetCategoryBanker(contextRealm, "Horde", cat.id)
         if hordeAssignedKey and AlternateWorldDB[hordeAssignedKey] then
             UIDropDownMenu_SetText(row.HordeMenu, AlternateWorldBankersEngine.CleanClassColoredName(AlternateWorldDB[hordeAssignedKey]))
         else
             UIDropDownMenu_SetText(row.HordeMenu, "|cFF888888(None assigned)|r")
         end
-        UIDropDownMenu_Initialize(row.HordeMenu, function(self) InitializeCategoryDropdown(self, "Horde", cat.id, row.HordeMenu) end)
+        UIDropDownMenu_Initialize(row.HordeMenu, function(self) InitializeCategoryDropdown(self, "Horde", cat.id, row.HordeMenu, contextRealm) end)
 
         row:Show()
         currentYOffset = currentYOffset - ROW_HEIGHT - 2
     end
     scrollContent:SetHeight(math.abs(currentYOffset) + ROW_HEIGHT)
+end
+
+function AlternateWorldBankersView.RefreshActiveDropdowns(contextRealm)
+    local panel = _G["AWBankersPanelGlobal"]
+    if not panel then return end
+    
+    local mustIsolate = AlternateWorldDB.Settings and AlternateWorldDB.Settings.IsolateSingleRealms
+    local assignedCluster = AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[contextRealm]
+    local MainTitleText = panel.MainTitleText
+    
+    if MainTitleText then
+        if assignedCluster then
+            local customClusterName = AlternateWorldDB.Settings.ClusterNames and AlternateWorldDB.Settings.ClusterNames[assignedCluster] or "Cluster"
+            MainTitleText:SetText(string.format("|cFFFFFFFFBankers on %s|r", customClusterName))
+        elseif not mustIsolate then
+            MainTitleText:SetText("|cFFFFFFFFBank Managers|r")
+        else
+            MainTitleText:SetText(string.format("|cFFFFFFFFBankers on %s|r", contextRealm))
+        end
+    end
+
+    for count, cat in ipairs(BANKER_CATEGORIES) do
+        local row = AW_BankerRowsPool[count]
+        if row then
+            UIDropDownMenu_Initialize(row.AllyMenu, function(self) InitializeCategoryDropdown(self, "Alliance", cat.id, row.AllyMenu, contextRealm) end)
+            UIDropDownMenu_Initialize(row.HordeMenu, function(self) InitializeCategoryDropdown(self, "Horde", cat.id, row.HordeMenu, contextRealm) end)
+        end
+    end
 end
 
 function AlternateWorldBankersView.HidePanel()

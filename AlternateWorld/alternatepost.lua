@@ -1,47 +1,62 @@
 -- ============================================================================
--- Alternate World - Automated Mail Clerk Logistics Module (v0.3.0 - SUCCESS)
+-- Alternate World - Automated Mail Clerk Logistics Module (v0.4.0 - CLUSTERED)
 -- ============================================================================
 
 local MailClerkFrame = CreateFrame("Frame")
--- FIXED: Enforced the exact verified native vanilla Era event token captured by the tracer
 MailClerkFrame:RegisterEvent("MAIL_SEND_INFO_UPDATE")
+
+-- Internal shortcut to map realms families dynamically
+local function GetPostRealmContext(realmName)
+    if AlternateWorldDB and AlternateWorldDB.Settings and AlternateWorldDB.Settings.Clusters then
+        local assignedCluster = AlternateWorldDB.Settings.Clusters[realmName]
+        if assignedCluster then return assignedCluster end
+    end
+    return realmName
+end
 
 MailClerkFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "MAIL_SEND_INFO_UPDATE" and AlternateWorldDB and AlternateWorldCategoryDB then
-        -- Safety Lock: Only autofill if the recipient name box is completely empty
         local currentRecipient = SendMailNameEditBox:GetText() or ""
         if string.gsub(currentRecipient, "%s+", "") ~= "" then return end
 
         local currentRealm = GetRealmName()
         local currentFaction = UnitFactionGroup("player") or "Alliance"
+        local livePostContext = GetPostRealmContext(currentRealm)
 
-        -- Sweep all 12 attachments lines dynamically to support any slot configuration placement
         for slotIndex = 1, 12 do
-            local itemName, itemID, _, _, _, _, itemType, itemSubtype = GetSendMailItem(slotIndex)
+            local itemLink = GetSendMailItemLink(slotIndex)
             
-            if itemID then
-                local categoryID = AlternateWorldCategoryDB.GetItemCategory(itemID, itemType, itemSubtype)
+            if itemLink then
+                local itemID = string.match(itemLink, "item:(%d+)")
                 
-                if categoryID and AlternateWorldDB.Settings and AlternateWorldDB.Settings.Bankers then
-                    local realmData = AlternateWorldDB.Settings.Bankers[currentRealm]
-                    local factionData = realmData and realmData[currentFaction]
-                    local assignedBankerKey = factionData and factionData[categoryID]
+                if itemID then
+                    local itemName, _, _, _, _, _, itemType, itemSubtype = GetSendMailItem(slotIndex)
+                    local categoryID = AlternateWorldCategoryDB.GetItemCategory(itemID, itemType, itemSubtype)
+                    
+                    if categoryID and AlternateWorldDB.Settings and AlternateWorldDB.Settings.Bankers then
+                        -- Query the global cluster bucket or single realm matrix folder safely
+                        local realmData = AlternateWorldDB.Settings.Bankers[livePostContext]
+                        local factionData = realmData and realmData[currentFaction]
+                        local assignedBankerKey = factionData and factionData[categoryID]
 
-                    if assignedBankerKey then
-                        local namePart, realmPart = string.match(assignedBankerKey, "([^%-]+)%s*-%s*(.+)")
-                        if namePart and realmPart then
-                            namePart = string.gsub(namePart, "%s+", "")
-                            realmPart = string.gsub(realmPart, "%s+", "")
-                            
-                            local currentCleanRealm = string.gsub(currentRealm, "%s+", "")
-                            
-                            if string.lower(realmPart) ~= string.lower(currentCleanRealm) then
-                                SendMailNameEditBox:SetText(namePart .. "-" .. realmPart)
-                            else
-                                SendMailNameEditBox:SetText(namePart)
+                        if assignedBankerKey then
+                            local namePart, realmPart = string.match(assignedBankerKey, "([^%-]+)%s*-%s*(.+)")
+                            if namePart and realmPart then
+                                namePart = string.gsub(namePart, "%s+", "")
+                                realmPart = string.gsub(realmPart, "%s+", "")
+                                
+                                local cleanCurrentRealm = string.gsub(currentRealm, "%s+", "")
+                                local cleanDestRealm = string.gsub(realmPart, "%s+", "")
+                                
+                                -- FIXED v0.4.0 POST ENGINE: Appends cross-realm -Server suffixes automatically if inside cluster family
+                                if string.lower(cleanDestRealm) ~= string.lower(cleanCurrentRealm) then
+                                    SendMailNameEditBox:SetText(namePart .. "-" .. realmPart)
+                                else
+                                    SendMailNameEditBox:SetText(namePart)
+                                end
+                                PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+                                return 
                             end
-                            PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
-                            return -- SUCCESS BREAK: Stop sweeping further attachment slots instantly
                         end
                     end
                 end

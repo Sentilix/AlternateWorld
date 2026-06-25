@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - Server Clusters Layout UI Panel Module (v0.4.0 - FIXED)
+-- Alternate World - Server Clusters Layout UI Panel Module (v0.4.0 - FINAL)
 -- ============================================================================
 
 AlternateWorldClustersView = {}
@@ -83,20 +83,17 @@ local function InitializeRealmDropdown(self, realmName, dropdownMenuFrame, iconT
             AlternateWorldClustersView.RefreshClusterView()
         end
         UIDropDownMenu_AddButton(info, 1)
-    end -- FIXED: Enforced the missing loop delimiter end here safely
+    end
 end
 
 function AlternateWorldClustersView.ShowData()
-    -- FIXED v0.4.0 INITIATOR: Forces creation dynamic allocation if the frame was not booted on startup
     if not ClustersPanel then
         AlternateWorldClustersView.CreatePanel(AlternateWorldMainContentWindow)
     end
     if not ClustersPanel then return end
-    
     ClustersPanel:Show()
     AlternateWorldClustersView.RefreshClusterView()
 end
-
 
 function AlternateWorldClustersView.RefreshClusterView()
     if not ClustersPanel or not AlternateWorldDB or not AlternateWorldClusterConstants then return end
@@ -183,11 +180,6 @@ function AlternateWorldClustersView.RefreshClusterView()
             sumBtn.Text = sumBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
             sumBtn.Text:SetAllPoints(sumBtn)
             sumBtn.Text:SetJustifyH("LEFT")
-
-            sumBtn:SetScript("OnClick", function()
-                local popup = StaticPopup_Show("AW_RENAME_CLUSTER_PROMPT", customName)
-                if popup then popup.data = clusterKey end
-            end)
 
             sumBtn:SetScript("OnClick", function()
                 local currentSavedName = AlternateWorldDB.Settings.ClusterNames[clusterKey] or customName
