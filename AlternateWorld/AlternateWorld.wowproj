@@ -79,6 +79,9 @@
     <Content Include="alternatescraper.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="alternatevirtualbankerui.lua">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="AlternateWorld.toc">
       <SubType>TableOfContents</SubType>
     </Content>

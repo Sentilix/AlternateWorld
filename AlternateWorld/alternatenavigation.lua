@@ -15,7 +15,8 @@ local MENU_ITEMS = {
     { id = "professions", text = "Professions",      icon = "interface\\icons\\trade_blacksmithing" },
     { id = "restedxp",     text = "Rested XP",        icon = "interface\\icons\\inv_misc_rune_01" },
     { id = "bankers",      text = "Bankers",          icon = "interface\\icons\\inv_misc_coin_17" },
-    { id = "clusters",     text = "Clusters",         icon = "interface\\icons\\inv_ore_arcanite_01" } -- NEW v0.4.0: Rainbow Arcanite Gem
+    { id = "virtualbankers", text = "Virtual Bankers", icon = "interface\\icons\\spell_nature_reincarnation" },
+    { id = "clusters",     text = "Clusters",         icon = "interface\\icons\\inv_ore_arcanite_01" } 
 }
 
 local PANELS_MAP = {
@@ -26,7 +27,8 @@ local PANELS_MAP = {
     ["professions"] = "AlternateWorldProfessionsView",
     ["restedxp"]    = "AlternateWorldRestedXPView",
     ["bankers"]     = "AlternateWorldBankersView",
-    ["clusters"]    = "AlternateWorldClustersView" -- NEW v0.4.0 Routes dynamically to our new Server Clusters panel
+    ["virtualbankers"] = "AlternateWorldVirtualBankersView",
+    ["clusters"]    = "AlternateWorldClustersView" 
 }
 
 function AlternateWorldNavigation.HideAllPanels()

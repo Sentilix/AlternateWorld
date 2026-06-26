@@ -349,7 +349,7 @@ local function InitializeRealmDropdown(self)
     end
 end
 
-local function CreateVirtualBankerDialog()
+function AlternateWorldBankersView.CreateVirtualBankerDialog()
     if VirtualDialogFrame then return VirtualDialogFrame end
 
     local f = CreateFrame("Frame", "AW_VirtualBankerDialog", UIParent, "BackdropTemplate")
@@ -468,6 +468,9 @@ local function CreateVirtualBankerDialog()
     cancelBtn:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -25, 20)
     cancelBtn:SetText("Cancel")
     cancelBtn:SetScript("OnClick", function() f:Hide() end)
+
+    -- FIXED v0.5.0 INITIAL DORMANT STATE: Hard-forces the frame to hide instantly upon initialization loading loops
+    f:Hide()
 
     VirtualDialogFrame = f
     return f
@@ -642,11 +645,10 @@ function AlternateWorldBankersView.RefreshVirtualList()
     scrollContent:SetHeight(totalRequiredHeight)
 end
 
+-- FIXED v0.5.0 UI PURGE: Disconnects the virtual panel list renderer from the standard Bankers scroll content view matrix
 local originalShowData = AlternateWorldBankersView.ShowData
 function AlternateWorldBankersView.ShowData(selectedCharacterKey)
     originalShowData(selectedCharacterKey)
-    AlternateWorldBankersView.RefreshVirtualList()
 end
-
 
 -- End of [alternatebankersui.lua]

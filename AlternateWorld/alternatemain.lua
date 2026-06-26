@@ -7,7 +7,7 @@ local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "
 local addonAuthor = C_AddOns.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
 
 local AlternateWorldMainFrame = CreateFrame("Frame", "AlternateWorldMainFrame", UIParent, "BasicFrameTemplateWithInset")
-AlternateWorldMainFrame:SetSize(650, 510) 
+AlternateWorldMainFrame:SetSize(650, 560) 
 AlternateWorldMainFrame:SetPoint("CENTER", UIParent, "CENTER") 
 AlternateWorldMainFrame:SetFrameStrata("HIGH")
 
