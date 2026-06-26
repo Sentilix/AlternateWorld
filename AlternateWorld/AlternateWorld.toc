@@ -32,6 +32,7 @@ alternatepost.lua
 alternatemain.lua
 
 
+## TODO: Opdater dokumentation på VB siden!!
 ## TODO: copy/paste karakterer (real til virtual)
 ## TODO: Tilføj minimap menu
 ## TODO: Tilføj mulighed for Titan Panel setup
