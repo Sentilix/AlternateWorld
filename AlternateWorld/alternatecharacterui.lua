@@ -54,16 +54,12 @@ function AlternateWorldCharacterView.CreatePanel(parentWindow)
     ElementsRegistry.InfoTextLeft:SetPoint("TOPLEFT", ElementsRegistry.DefaultPortrait2D, "BOTTOMLEFT", 0, -32)
     ElementsRegistry.InfoTextLeft:SetJustifyH("LEFT")
 
-    AccountTotalsHeadingText = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    AccountTotalsHeadingText:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 20, -255)
-    AccountTotalsHeadingText:SetText("|cFFFFFFFFAccount Totals Overview|r")
-
     ElementsRegistry.AccountTotalsLeft = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    ElementsRegistry.AccountTotalsLeft:SetPoint("TOPLEFT", AccountTotalsHeadingText, "BOTTOMLEFT", 0, -10)
+    ElementsRegistry.AccountTotalsLeft:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 20, -255)
     ElementsRegistry.AccountTotalsLeft:SetJustifyH("LEFT")
 
     ElementsRegistry.AccountTotalsRight = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    ElementsRegistry.AccountTotalsRight:SetPoint("TOPLEFT", AccountTotalsHeadingText, "BOTTOMLEFT", 220, -10)
+    ElementsRegistry.AccountTotalsRight:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 220, -255)
     ElementsRegistry.AccountTotalsRight:SetJustifyH("LEFT")
 
     ElementsRegistry.DeleteCharButton = CreateFrame("Button", "AW_DeleteCharacterProfileButton", CharacterPanel, "UIPanelButtonTemplate")

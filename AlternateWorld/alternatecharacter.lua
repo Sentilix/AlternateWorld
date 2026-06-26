@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - Character Profile Data Engine (v0.3.0 - GLOBAL REALMS)
+-- Alternate World - Character Profile Data Engine (v0.4.1 - PART 1 TOP)
 -- ============================================================================
 
 AlternateWorldCharacterEngine = {}
@@ -15,16 +15,60 @@ function AlternateWorldCharacterEngine.CalculateAccountTotals()
     local totals = { allyGold = 0, hordeGold = 0, allyChars = 0, hordeChars = 0, ally60s = 0, horde60s = 0 }
     if not AlternateWorldDB then return totals end
     
-    -- FIXED: Bypassed the realm restriction constraint to calculate a true account-wide ledger
-    for _, loopChar in pairs(AlternateWorldDB) do
-        if loopChar.faction == "Alliance" then
-            totals.allyGold = totals.allyGold + (loopChar.money or 0)
-            totals.allyChars = totals.allyChars + 1
-            if loopChar.level == 60 then totals.ally60s = totals.ally60s + 1 end
-        elseif loopChar.faction == "Horde" then
-            totals.hordeGold = totals.hordeGold + (loopChar.money or 0)
-            totals.hordeChars = totals.hordeChars + 1
-            if loopChar.level == 60 then totals.horde60s = totals.horde60s + 1 end
+    for key, loopChar in pairs(AlternateWorldDB) do
+        if key ~= "Settings" and loopChar and not loopChar.isVirtual then
+            if loopChar.faction == "Alliance" then
+                totals.allyGold = totals.allyGold + (loopChar.money or 0)
+                totals.allyChars = totals.allyChars + 1
+                if loopChar.level == 60 then totals.ally60s = totals.ally60s + 1 end
+            elseif loopChar.faction == "Horde" then
+                totals.hordeGold = totals.hordeGold + (loopChar.money or 0)
+                totals.hordeChars = totals.hordeChars + 1
+                if loopChar.level == 60 then totals.horde60s = totals.horde60s + 1 end
+            end
+        end
+    end
+    return totals
+end
+
+-- NEW v0.4.1 ENGINE: Dynamically aggregates ledger totals scoped specifically per active Realm or Cluster family including lvl 60s
+function AlternateWorldCharacterEngine.CalculateRealmOrClusterTotals(contextRealm)
+    local totals = { allyGold = 0, hordeGold = 0, allyChars = 0, hordeChars = 0, ally60s = 0, horde60s = 0, isCluster = false, title = "Realm Overview" }
+    if not AlternateWorldDB or not contextRealm then return totals end
+
+    -- Resolve active cluster mappings contexts safely
+    local assignedCluster = AlternateWorldDB.Settings and AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[contextRealm]
+    if assignedCluster then
+        totals.isCluster = true
+        local customName = AlternateWorldDB.Settings.ClusterNames and AlternateWorldDB.Settings.ClusterNames[assignedCluster] or "Cluster"
+        totals.title = customName .. " Overview"
+    else
+        totals.title = contextRealm .. " Overview"
+    end
+
+    -- Helper to check server group match boundaries cleanly
+    local function IsInActiveScope(charRealm)
+        if assignedCluster then
+            local altCluster = AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[charRealm]
+            return (altCluster == assignedCluster)
+        end
+        return (charRealm == contextRealm)
+    end
+
+    -- Trawl and compile local financial data nodes (ignoring ghost dual-box characters)
+    for key, loopChar in pairs(AlternateWorldDB) do
+        if key ~= "Settings" and loopChar and loopChar.realm and not loopChar.isVirtual then
+            if IsInActiveScope(loopChar.realm) then
+                if loopChar.faction == "Alliance" then
+                    totals.allyGold = totals.allyGold + (loopChar.money or 0)
+                    totals.allyChars = totals.allyChars + 1
+                    if loopChar.level == 60 then totals.ally60s = totals.ally60s + 1 end -- FIXED v0.4.1: Tracks Alliance 60s inside scope
+                elseif loopChar.faction == "Horde" then
+                    totals.hordeGold = totals.hordeGold + (loopChar.money or 0)
+                    totals.hordeChars = totals.hordeChars + 1
+                    if loopChar.level == 60 then totals.horde60s = totals.horde60s + 1 end -- FIXED v0.4.1: Tracks Horde 60s inside scope
+                end
+            end
         end
     end
     return totals
@@ -84,11 +128,31 @@ function AlternateWorldCharacterEngine.ProcessShowData(selectedCharacterKey, ele
         elements.InfoTextLeft:SetText(string.format("Gold: %s\n\nItem Level: |cFFFFFFFF%.1f|r  |cFF888888(Max: %.1f)|r\n\nZone: |cFFFFFFFF%s|r", formattedMoney, currentIlvl, maxIlvl, data.zone or "Unknown"))
     end
 
-    -- FIXED: Removed the realm filter reference parameter from the master calculation call
+    -- FETCH v0.4.1 ECONOMIC TIERS: Resolves local scope summaries vs broad account-wide ledgers
+    local targetRealm = data.realm or GetRealmName()
+    local r = AlternateWorldCharacterEngine.CalculateRealmOrClusterTotals(targetRealm)
     local t = AlternateWorldCharacterEngine.CalculateAccountTotals()
+    
     if elements.AccountTotalsLeft and elements.AccountTotalsRight then
-        elements.AccountTotalsLeft:SetText(string.format("Gold, Alliance: %s\nGold, Horde: %s\nGold, Total: %s", AlternateWorldCharacterEngine.FormatMoneyString(t.allyGold), AlternateWorldCharacterEngine.FormatMoneyString(t.hordeGold), AlternateWorldCharacterEngine.FormatMoneyString(t.allyGold + t.hordeGold)))
-        elements.AccountTotalsRight:SetText(string.format("Chars, Alliance: |cFFFFFFFF%d|r  |cFF888888(lvl 60: %d)|r\nChars, Horde: |cFFFFFFFF%d|r  |cFF888888(lvl 60: %d)|r\nChars, Total: |cFFFFFFFF%d|r  |cFF888888(lvl 60: %d)|r", t.allyChars, t.ally60s, t.hordeChars, t.horde60s, t.allyChars + t.hordeChars, t.ally60s + t.horde60s))
+        -- TYPOGRAPHY: Stripped yellow brackets and enforced clean white headers verbatim
+        local leftText = string.format(
+            "|cFFFFFFFF%s|r\nGold, Alliance: %s\nGold, Horde: %s\nGold, Total: %s\n\n" ..
+            "|cFFFFFFFFAccount Overview|r\nGold, Alliance: %s\nGold, Horde: %s\nGold, Total: %s",
+            r.title,
+            AlternateWorldCharacterEngine.FormatMoneyString(r.allyGold), AlternateWorldCharacterEngine.FormatMoneyString(r.hordeGold), AlternateWorldCharacterEngine.FormatMoneyString(r.allyGold + r.hordeGold),
+            AlternateWorldCharacterEngine.FormatMoneyString(t.allyGold), AlternateWorldCharacterEngine.FormatMoneyString(t.hordeGold), AlternateWorldCharacterEngine.FormatMoneyString(t.allyGold + t.hordeGold)
+        )
+
+        -- FIXED v0.4.1 SYMMETRY: Added (lvl 60: X) trackers to the cluster/realm rows to match account layout perfectly
+        local rightText = string.format(
+            "\nChars, Alliance: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Horde: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Total: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\n\n" ..
+            "\nChars, Alliance: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Horde: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Total: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r",
+            r.allyChars, r.ally60s, r.hordeChars, r.horde60s, r.allyChars + r.hordeChars, r.ally60s + r.horde60s,
+            t.allyChars, t.ally60s, t.hordeChars, t.horde60s, t.allyChars + t.hordeChars, t.ally60s + t.horde60s
+        )
+
+        elements.AccountTotalsLeft:SetText(leftText)
+        elements.AccountTotalsRight:SetText(rightText)
     end
 
     if elements.DeleteCharButton then
@@ -137,20 +201,9 @@ end
 
 function AlternateWorldCharacterEngine.GetFreeBagSlotsCount(characterData)
     if not characterData or not characterData.bagItems then return 0 end
-    -- Classic Era start-backpack has 16 slots, plus we can count total scanned spaces
-    -- A bulletproof fallback is reading the database array lengths vs active slots
     local occupied = #characterData.bagItems
-    -- Temporary safe structural baseline calculation (expandable once bag limits are tracked)
-    local totalEstimatedSlots = 16 + (4 * 14) -- Baseline assuming 14-slot bags
+    local totalEstimatedSlots = 16 + (4 * 14) 
     local freeSlots = totalEstimatedSlots - occupied
-    return freeSlots > 0 and freeSlots or 0
-end
-
-function AlternateWorldCharacterEngine.GetFreeBankSlotsCount(characterData)
-    if not characterData or not characterData.bankItems then return 0 end
-    local occupied = #characterData.bankItems
-    local totalEstimatedBank = 24 + (6 * 14) -- Baseline vault configurations
-    local freeSlots = totalEstimatedBank - occupied
     return freeSlots > 0 and freeSlots or 0
 end
 
