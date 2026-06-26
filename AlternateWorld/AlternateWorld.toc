@@ -32,8 +32,7 @@ alternatepost.lua
 alternatemain.lua
 
 
-## TODO: Opdater dokumentation på VB siden!!
-## TODO: copy/paste karakterer (real til virtual)
+## Version 0.6.0:
 ## TODO: Tilføj minimap menu
 ## TODO: Tilføj mulighed for Titan Panel setup
 ## TODO: Opsætning i Blizzard's addon options

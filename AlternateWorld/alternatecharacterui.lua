@@ -74,7 +74,7 @@ function AlternateWorldCharacterView.CreatePanel(parentWindow)
         OnAccept = function(self, data)
             if AlternateWorldDB and data.targetKey then
                 AlternateWorldDB[data.targetKey] = nil
-                PlaySound(SOUNDKIT.IG_CHARACTER_INFO_CLOSE)
+                PlaySound(830)
                 if AlternateWorldMainFrameEngine and AlternateWorldMainFrameEngine.OnAddonLoaded then
                     AlternateWorldMainFrameEngine.OnAddonLoaded()
                 end

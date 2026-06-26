@@ -80,7 +80,7 @@ function AlternateWorldNavigation.CreateMenu(parentMenuFrame, GetSelectedCharact
         highlight:SetBlendMode("ADD")
 
         btn:SetScript("OnClick", function()
-            PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
+            PlaySound(841)
             AlternateWorldNavigation.HideAllPanels()
             local targetObj = _G[PANELS_MAP[item.id]]
             local activeKey = GetSelectedCharacterKeyFunc and GetSelectedCharacterKeyFunc()

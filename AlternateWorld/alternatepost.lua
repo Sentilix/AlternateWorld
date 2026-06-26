@@ -54,7 +54,7 @@ MailClerkFrame:SetScript("OnEvent", function(self, event, ...)
                                 else
                                     SendMailNameEditBox:SetText(namePart)
                                 end
-                                PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+                                PlaySound(856)
                                 return 
                             end
                         end

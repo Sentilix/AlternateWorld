@@ -187,7 +187,7 @@ function AlternateWorldRestedXPView.ShowData(selectedCharacterKey)
         end
 
         row.FavBtn:SetScript("OnClick", function()
-            PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+            PlaySound(856)
             if AlternateWorldDB[alt.key] then
                 AlternateWorldDB[alt.key].isFavourite = not AlternateWorldDB[alt.key].isFavourite
                 GameTooltip:Hide()
