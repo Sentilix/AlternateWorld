@@ -23,16 +23,24 @@ local function GetBankerRealmContext(realmName)
     return realmName -- Fallback to legacy single realm mapping if unassigned
 end
 
+-- FIXED v0.5.0 DROPDOWN TINT LAYER: Enforces death knight darkred for all virtuals dynamically during text renders
 function AlternateWorldBankersEngine.CleanClassColoredName(data)
     if not data or not data.name then return "Unknown" end
-    local classColorHex = "|cFFFFFFFF"
-    if data.classToken and RAID_CLASS_COLORS[data.classToken] then
+    
+    -- FIXED v0.5.0 VARIABLENAVN: Synchronized perfectly with the 'data' function argument parameter bounds
+    local colorHex = "|cFFFFFFFF"
+    if data.isVirtual or data.classToken == "BANKER" then
+        colorHex = "|cFFC41F3B" -- THE BRAND NEW EXCLUSIVE DEATH KNIGHT DROPDOWN TINT
+    elseif data.classToken and RAID_CLASS_COLORS[data.classToken] then
         local c = RAID_CLASS_COLORS[data.classToken]
-        classColorHex = string.format("|cff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
+        colorHex = string.format("|cff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
     end
+    
     local serverLabel = data.realm and data.realm ~= "Unknown" and (" -|cFF888888" .. string.sub(string.gsub(data.realm, "%s+", ""), 1, 3) .. "|r") or ""
-    return classColorHex .. data.name .. "|r" .. serverLabel
+    -- FIXED v0.5.0 RETURN: Returns colorHex correctly to apply the darkred tint onto the layout fields
+    return colorHex .. data.name .. "|r" .. serverLabel
 end
+
 
 function AlternateWorldBankersEngine.GetSortedFactionKeys(targetFaction)
     local sortedKeys = {}
@@ -117,17 +125,17 @@ function AlternateWorldBankersEngine.GetCategoryBanker(realmName, faction, categ
     return factionData and factionData[categoryID] or nil
 end
 
-function AlternateWorldBankersEngine.AddVirtualBanker(name, classToken, faction, realmName)
+-- FIXED v0.5.0 BANKER CLASS: Hardcodes classToken to "BANKER" to streamline creation and unlock silver identity
+function AlternateWorldBankersEngine.AddVirtualBanker(name, faction, realmName)
     if not AlternateWorldDB or not name or name == "" then return end
-    -- Create a unique global character profile key for the virtual unit
     local virtualKey = name .. " - " .. (realmName or GetRealmName())
     
     AlternateWorldDB[virtualKey] = {
         name = name,
         realm = realmName or GetRealmName(),
         faction = faction or "Alliance",
-        classToken = string.upper(classToken or "WARRIOR"),
-        isVirtual = true -- THE INTERNAL FILTER SHIELD: Hides him from main character view dropdowns
+        classToken = "BANKER", -- FIXED v0.5.0: Centralized fictive identity class token hook
+        isVirtual = true 
     }
     if AlternateWorldMainFrameEngine and AlternateWorldMainFrameEngine.RefreshUI then 
         AlternateWorldMainFrameEngine.RefreshUI() 

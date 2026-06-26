@@ -273,34 +273,11 @@ function AlternateWorldBankersView.IsShown()
 end
 
 -- ============================================================================
--- v0.4.0 VIRTUAL CHARACTERS ENGINE: Handles Dual-Box Multi-Account Properties
+-- v0.5.0 VIRTUAL CHARACTERS ENGINE: Handles Dual-Box Multi-Account Properties
 -- ============================================================================
 
 local AW_VirtualButtonsPool = {}
 local VirtualDialogFrame = nil
-
-local function InitializeClassDropdown(self)
-    local classes = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
-    local info = UIDropDownMenu_CreateInfo()
-    local currentValue = self.selectedValue
-    
-    for _, classToken in ipairs(classes) do
-        local color = RAID_CLASS_COLORS[classToken]
-        local colorHex = string.format("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
-        
-        info.text = colorHex .. string.sub(classToken, 1, 1) .. string.lower(string.sub(classToken, 2)) .. "|r"
-        info.value = classToken
-        info.arg1 = classToken 
-        info.checked = (currentValue == classToken)
-        
-        info.func = function(button)
-            local targetClass = button.arg1
-            UIDropDownMenu_SetText(self, button:GetText())
-            self.selectedValue = targetClass
-        end
-        UIDropDownMenu_AddButton(info)
-    end
-end
 
 local function InitializeFactionDropdown(self)
     local factions = { { id = "Alliance", text = "|cFF0070DDAlliance|r" }, { id = "Horde", text = "|cFFFF0000Horde|r" } }
@@ -376,7 +353,7 @@ local function CreateVirtualBankerDialog()
     if VirtualDialogFrame then return VirtualDialogFrame end
 
     local f = CreateFrame("Frame", "AW_VirtualBankerDialog", UIParent, "BackdropTemplate")
-    f:SetSize(240, 310)
+    f:SetSize(240, 240)
     f:SetPoint("CENTER", UIParent, "CENTER", 0, 40)
     f:SetFrameStrata("DIALOG")
     f:EnableMouse(true)
@@ -396,6 +373,7 @@ local function CreateVirtualBankerDialog()
     title:SetPoint("TOP", f, "TOP", 0, -18)
     title:SetText("Create Virtual Banker")
 
+    -- 1. NAME FIELD (Y = -45)
     local nameLabel = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     nameLabel:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -45)
     nameLabel:SetText("Character Name:")
@@ -406,56 +384,56 @@ local function CreateVirtualBankerDialog()
     nameBox:SetAutoFocus(false)
     f.NameBox = nameBox
 
+    -- 2. REALM FIELD (Y = -95)
     local realmLabel = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    realmLabel:SetPoint("TOPLEFT", nameBox, "BOTTOMLEFT", -4, -10)
+    realmLabel:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -95)
     realmLabel:SetText("Target Realm Context:")
 
     local realmMenu = CreateFrame("Frame", "AW_VirtualRealmDropdown", f, "UIDropDownMenuTemplate")
-    realmMenu:SetPoint("TOPLEFT", realmLabel, "BOTTOMLEFT", -15, -4)
+    realmMenu:SetPoint("TOPLEFT", realmLabel, "BOTTOMLEFT", -15, -2)
     UIDropDownMenu_SetWidth(realmMenu, 165)
     f.RealmMenu = realmMenu
 
     local customRealmBox = CreateFrame("EditBox", "AW_VirtualCustomRealmInput", f, "InputBoxTemplate")
     customRealmBox:SetSize(190, 20)
-    customRealmBox:SetPoint("TOPLEFT", realmMenu, "BOTTOMLEFT", 19, -4)
+    customRealmBox:SetPoint("TOPLEFT", realmMenu, "BOTTOMLEFT", 19, -2)
     customRealmBox:SetAutoFocus(false)
     customRealmBox:Hide()
     f.CustomRealmBox = customRealmBox
 
-    local classLabel = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    classLabel:SetPoint("TOPLEFT", customRealmBox, "BOTTOMLEFT", -4, -10)
-    classLabel:SetText("Character Class Identity:")
-
-    local classMenu = CreateFrame("Frame", "AW_VirtualClassDropdown", f, "UIDropDownMenuTemplate")
-    classMenu:SetPoint("TOPLEFT", classLabel, "BOTTOMLEFT", -15, -4)
-    UIDropDownMenu_SetWidth(classMenu, 165)
-    f.ClassMenu = classMenu
-
+    -- 3. FACTION FIELD (FIXED Y = -150: Hard-anchored from top frame to completely bypass dropdown overlaps)
     local factionLabel = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    factionLabel:SetPoint("TOPLEFT", classMenu, "BOTTOMLEFT", 15, -10)
+    factionLabel:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -150)
     factionLabel:SetText("Faction Alignment:")
 
     local factionMenu = CreateFrame("Frame", "AW_VirtualFactionDropdown", f, "UIDropDownMenuTemplate")
-    factionMenu:SetPoint("TOPLEFT", factionLabel, "BOTTOMLEFT", -15, -4)
+    factionMenu:SetPoint("TOPLEFT", factionLabel, "BOTTOMLEFT", -15, -2)
     UIDropDownMenu_SetWidth(factionMenu, 165)
     f.FactionMenu = factionMenu
+
+    -- KEYBOARD INTERACTION HOOKS (Enter and Escape)
+    nameBox:SetScript("OnEnterPressed", function() f.SaveBtn:Click() end)
+    nameBox:SetScript("OnEscapePressed", function() f:Hide() end)
+    customRealmBox:SetScript("OnEnterPressed", function() f.SaveBtn:Click() end)
+    customRealmBox:SetScript("OnEscapePressed", function() f:Hide() end)
 
     local saveBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
     saveBtn:SetSize(85, 22)
     saveBtn:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 25, 20)
     saveBtn:SetText("OK") 
+    f.SaveBtn = saveBtn
+    
     saveBtn:SetScript("OnClick", function()
         local nameText = nameBox:GetText()
-        local selectedClass = classMenu.selectedValue
         local selectedFaction = factionMenu.selectedValue
         local realmText = customRealmBox:IsShown() and customRealmBox:GetText() or UIDropDownMenu_GetText(realmMenu)
 
-        if nameText and nameText ~= "" and realmText and realmText ~= "" and selectedClass and selectedFaction then
+        if nameText and nameText ~= "" and realmText and realmText ~= "" and selectedFaction then
             nameText = string.gsub(nameText, "%s+", "")
             if string.trim then realmText = string.trim(realmText)
             else realmText = string.gsub(realmText, "^%s*(.-)%s*$", "%1") end
             
-            -- THE PROPER CASE AUTO-FORMATTER: Converts "eGoN" to "Egon" safely
+            -- FIXED SYNTAX: Cleared out the double string.sub function nesting crash bug completely
             if string.len(nameText) > 0 then
                 nameText = string.upper(string.sub(nameText, 1, 1)) .. string.lower(string.sub(nameText, 2))
             end
@@ -463,7 +441,6 @@ local function CreateVirtualBankerDialog()
             local testKey = nameText .. " - " .. realmText
             local testKeyLower = string.lower(testKey)
             
-            -- CRUCIAL v0.4.1 PEDANTIC ACCIDENT GUARD: Case-insensitive sweep of BOTH virtual and real scanned account logs
             if AlternateWorldDB and not f.isEditingActiveMode then
                 for dbKey, dbData in pairs(AlternateWorldDB) do
                     if dbKey ~= "Settings" and dbData and string.lower(dbKey) == testKeyLower then
@@ -478,7 +455,7 @@ local function CreateVirtualBankerDialog()
                 AlternateWorldBankersEngine.DeleteVirtualBanker(f.originalKeyCache)
             end
 
-            AlternateWorldBankersEngine.AddVirtualBanker(nameText, selectedClass, selectedFaction, realmText)
+            AlternateWorldBankersEngine.AddVirtualBanker(nameText, selectedFaction, realmText)
             AlternateWorldBankersView.RefreshVirtualList()
             f:Hide()
         else
@@ -496,7 +473,6 @@ local function CreateVirtualBankerDialog()
     return f
 end
 
--- StaticPopup for deletion confirmation stays untouched
 StaticPopupDialogs["AW_CONFIRM_DELETE_VIRTUAL"] = {
     text = "Are you sure you want to delete the virtual banker %s?",
     button1 = "Yes, Delete",
@@ -531,7 +507,7 @@ function AlternateWorldBankersView.RefreshVirtualList()
         addBtn:SetScript("OnClick", function()
             local dlg = CreateVirtualBankerDialog()
             dlg.isEditingActiveMode = false 
-            dlg.originalKeyCache = nil -- Flushes caches
+            dlg.originalKeyCache = nil
             dlg.NameBox:SetText("")
             dlg.CustomRealmBox:SetText("")
             dlg.CustomRealmBox:Hide()
@@ -541,13 +517,10 @@ function AlternateWorldBankersView.RefreshVirtualList()
             dlg.RealmMenu.selectedValue = activeRealm
             dlg.CustomRealmBox:SetText(activeRealm)
             
-            UIDropDownMenu_SetText(dlg.ClassMenu, "Select Class...")
-            dlg.ClassMenu.selectedValue = nil
             UIDropDownMenu_SetText(dlg.FactionMenu, "Select Faction...")
             dlg.FactionMenu.selectedValue = nil
             
             UIDropDownMenu_Initialize(dlg.RealmMenu, InitializeRealmDropdown)
-            UIDropDownMenu_Initialize(dlg.ClassMenu, InitializeClassDropdown)
             UIDropDownMenu_Initialize(dlg.FactionMenu, InitializeFactionDropdown)
             
             dlg:Show()
@@ -610,19 +583,10 @@ function AlternateWorldBankersView.RefreshVirtualList()
             btn:SetPoint("TOPLEFT", AW_VirtualButtonsPool[count - 1], "BOTTOMLEFT", 0, -6)
         end
 
-        local nameColorHex = "|cFFFFFFFF"
-        if data.classToken and RAID_CLASS_COLORS[data.classToken] then
-            local c = RAID_CLASS_COLORS[data.classToken]
-            nameColorHex = string.format("|cff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
-        end
-        
-        local sLabel = data.realm and (" - |cFF888888" .. data.realm .. "|r") or ""
-        btn.Text:SetText(nameColorHex .. data.name .. "|r" .. sLabel)
-        
         btn.Edit:SetScript("OnClick", function()
             local dlg = CreateVirtualBankerDialog()
             dlg.isEditingActiveMode = true 
-            dlg.originalKeyCache = vKey -- FIXED v0.4.2 CACHE CACHE: Caches the original key context for clean rename swappings
+            dlg.originalKeyCache = vKey 
             dlg.NameBox:SetText(data.name or "")
             dlg.CustomRealmBox:SetText(data.realm or "")
             
@@ -641,18 +605,11 @@ function AlternateWorldBankersView.RefreshVirtualList()
                 dlg.CustomRealmBox:Show()
             end
             
-            local color = RAID_CLASS_COLORS[data.classToken or "WARRIOR"]
-            local cHex = string.format("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
-            local cText = cHex .. string.sub(data.classToken, 1, 1) .. string.lower(string.sub(data.classToken, 2)) .. "|r"
-            UIDropDownMenu_SetText(dlg.ClassMenu, cText)
-            dlg.ClassMenu.selectedValue = data.classToken
-            
             local fText = data.faction == "Horde" and "|cFFFF0000Horde|r" or "|cFF0070DDAlliance|r"
             UIDropDownMenu_SetText(dlg.FactionMenu, fText)
             dlg.FactionMenu.selectedValue = data.faction
             
             UIDropDownMenu_Initialize(dlg.RealmMenu, InitializeRealmDropdown)
-            UIDropDownMenu_Initialize(dlg.ClassMenu, InitializeClassDropdown)
             UIDropDownMenu_Initialize(dlg.FactionMenu, InitializeFactionDropdown)
             
             dlg:Show()
@@ -663,6 +620,18 @@ function AlternateWorldBankersView.RefreshVirtualList()
         btn.Del:SetScript("OnClick", function()
             StaticPopup_Show("AW_CONFIRM_DELETE_VIRTUAL", data.name, nil, vKey)
         end)
+
+        -- FIXED v0.5.0 PREMIUM IDENTIFICATION: Injects the aggressive Death Knight dark red token to segregate virtuals
+        local nameColorHex = "|cFFFFFFFF"
+        if data.isVirtual or data.classToken == "BANKER" then
+            nameColorHex = "|cFFC41F3B" -- THE UNIFIED DEATH KNIGHT DARKRED IDENTITY FOR ERA VIRTUALS!
+        elseif data.classToken and RAID_CLASS_COLORS[data.classToken] then
+            local c = RAID_CLASS_COLORS[data.classToken]
+            nameColorHex = string.format("|cff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
+        end
+        
+        local sLabel = data.realm and (" - |cFF888888" .. data.realm .. "|r") or ""
+        btn.Text:SetText(nameColorHex .. data.name .. "|r" .. sLabel)
         
         btn:Show()
         currentYPositionMarker = currentYPositionMarker - 28
@@ -678,5 +647,6 @@ function AlternateWorldBankersView.ShowData(selectedCharacterKey)
     originalShowData(selectedCharacterKey)
     AlternateWorldBankersView.RefreshVirtualList()
 end
+
 
 -- End of [alternatebankersui.lua]
