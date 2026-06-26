@@ -128,9 +128,9 @@ function AlternateWorldVirtualBankersView.CreatePanel(parentWindow)
     doc:SetText(docText)
     DocumentationLabel = doc
 
-    -- 4. THE LIVE FLEET MANAGER VIEWPORT
+    -- 4. THE LIVE FLEET MANAGER VIEWPORT (Enabled state scrolling grid frame matrix)
     VBScrollFrame = CreateFrame("ScrollFrame", "AW_VBScrollFrameInstance", VBPanel, "UIPanelScrollFrameTemplate")
-    VBScrollFrame:SetPoint("TOPLEFT", enableCB, "BOTTOMLEFT", 0, -40)
+    VBScrollFrame:SetPoint("TOPLEFT", enableCB, "BOTTOMLEFT", 0, -20)
     VBScrollFrame:SetPoint("BOTTOMRIGHT", VBPanel, "BOTTOMRIGHT", -30, 20)
     VBScrollFrame:Hide()
 
@@ -138,14 +138,15 @@ function AlternateWorldVirtualBankersView.CreatePanel(parentWindow)
     VBScrollContent:SetSize(434, 1)
     VBScrollFrame:SetScrollChild(VBScrollContent)
 
-    -- 5. THE DEDICATED INLINE +ADD ACTION TRIGGER BUTTON
+    -- 5. THE DEDICATED INLINE ACTION TRIGGER BUTTON
     local addBtn = CreateFrame("Button", "AW_VBFaneAddBtn", VBScrollContent, "UIPanelButtonTemplate")
-    addBtn:SetSize(70, 20)
+    -- FIXED v0.5.0 BUTTON DESIGN: Expanded width to 140px to fully house the new crisp title without clipping
+    addBtn:SetSize(140, 20)
     addBtn:SetPoint("TOPLEFT", VBScrollContent, "TOPLEFT", 10, -10)
-    addBtn:SetText("+ Add New")
+    addBtn:SetText("Add Virtual Banker")
     addBtn:SetScript("OnClick", function()
         if AlternateWorldBankersView and AlternateWorldBankersView.CreateVirtualBankerDialog then
-            local dlg = AlternateWorldBankersView.CreateVirtualBankerDialog()
+            local dlg = AlternateWorldBankersView.CreateVirtualBankerDialog("Add")
             dlg.isEditingActiveMode = false 
             dlg.originalKeyCache = nil
             dlg.NameBox:SetText("")
@@ -192,56 +193,115 @@ function AlternateWorldVirtualBankersView.RefreshList()
     if not VBScrollContent or not AlternateWorldDB then return end
     for _, btn in ipairs(AW_VBButtonsPool) do btn:Hide() end
 
-    local sortedVirtuals = {}
+    -- 1. EXTRACT AND GROUP VIRTUALS BY 3-TIER SCORING: REALM -> FACTION -> NAME
+    local rawList = {}
     for key, data in pairs(AlternateWorldDB) do
         if key ~= "Settings" and data and data.isVirtual then
-            table.insert(sortedVirtuals, key)
+            table.insert(rawList, data)
         end
     end
-    table.sort(sortedVirtuals)
+    
+    table.sort(rawList, function(a, b)
+        local aRealm = a.realm or ""
+        local bRealm = b.realm or ""
+        if aRealm ~= bRealm then
+            return aRealm < bRealm
+        end
+        
+        local aFaction = a.faction or ""
+        local bFaction = b.faction or ""
+        if aFaction ~= bFaction then
+            return aFaction < bFaction -- Alliance (A) breaks before Horde (H) alphabetically
+        end
+        
+        return (a.name or "") < (b.name or "")
+    end)
 
-    local currentYPositionMarker = -25
+    local currentYPositionMarker = -20
+    local lastSeenRealm = nil
+    local count = 0
 
-    for count, vKey in ipairs(sortedVirtuals) do
-        local data = AlternateWorldDB[vKey]
+    -- 2. VERTICAL GENERATION ENGINE WITH REALM HEADERS AND FACTION ICONS
+    for _, data in ipairs(rawList) do
+        local exactRealm = data.realm or "Unknown Realm"
+        local vKey = data.name .. " - " .. exactRealm
+
+        -- INJECT NEW REALM SECTION HEADER ONCE
+        if exactRealm ~= lastSeenRealm then
+            lastSeenRealm = exactRealm
+            count = count + 1
+            
+            local headerFrame = AW_VBButtonsPool[count]
+            if not headerFrame then
+                headerFrame = CreateFrame("Frame", "AW_VBFaneHeaderItem" .. count, VBScrollContent)
+                headerFrame:SetSize(VBScrollContent:GetWidth() - 20, 22)
+                headerFrame.Text = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+                headerFrame.Text:SetPoint("LEFT", headerFrame, "LEFT", 10, 0)
+                AW_VBButtonsPool[count] = headerFrame
+            end
+            
+            headerFrame.Text:SetText("|cFFFFFFFF" .. exactRealm .. "|r")
+            headerFrame.Edit, headerFrame.Del, headerFrame.Icon = nil, nil, nil -- Visual guards
+            
+            if count == 1 then
+                headerFrame:SetPoint("TOPLEFT", VBScrollContent.AddBtn, "BOTTOMLEFT", -10, -15)
+            else
+                headerFrame:SetPoint("TOPLEFT", AW_VBButtonsPool[count - 1], "BOTTOMLEFT", 0, -14)
+            end
+            headerFrame:Show()
+            currentYPositionMarker = currentYPositionMarker - 28
+        end
+
+        -- RENDER THE ACTUAL CHARACTER ROW LINE
+        count = count + 1
         local btn = AW_VBButtonsPool[count]
 
         if not btn then
             btn = CreateFrame("Frame", "AW_VBFaneLineItem" .. count, VBScrollContent)
-            btn:SetSize(VBScrollContent:GetWidth() - 20, 24)
+            btn:SetSize(VBScrollContent:GetWidth() - 20, 22)
+
+            -- NEW v0.5.0: Dedicated native faction texture frame object link
+            btn.Icon = btn:CreateTexture(nil, "OVERLAY")
+            btn.Icon:SetSize(16, 16)
+            btn.Icon:SetPoint("LEFT", btn, "LEFT", 15, 0) -- Beautiful inline row positioning
 
             btn.Text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            btn.Text:SetPoint("LEFT", btn, "LEFT", 15, 0)
+            btn.Text:SetPoint("LEFT", btn.Icon, "RIGHT", 8, 0) -- Safely offsets text right after the icon layout
             btn.Text:SetJustifyH("LEFT")
 
             btn.Edit = CreateFrame("Button", nil, btn, "UIPanelButtonTemplate")
-            btn.Edit:SetSize(45, 18)
-            btn.Edit:SetPoint("LEFT", btn, "LEFT", 220, 0)
+            btn.Edit:SetSize(45, 16)
+            btn.Edit:SetPoint("RIGHT", btn, "RIGHT", -65, 0)
             btn.Edit:SetText("Edit")
 
             btn.Del = CreateFrame("Button", nil, btn, "UIPanelButtonTemplate")
-            btn.Del:SetSize(55, 18)
+            btn.Del:SetSize(55, 16)
             btn.Del:SetPoint("LEFT", btn.Edit, "RIGHT", 6, 0)
             btn.Del:SetText("Delete")
 
             AW_VBButtonsPool[count] = btn
         end
 
-        if count == 1 then
-            btn:SetPoint("TOPLEFT", VBScrollContent.AddBtn, "BOTTOMLEFT", -10, -15)
+        btn:SetPoint("TOPLEFT", AW_VBButtonsPool[count - 1], "BOTTOMLEFT", 0, -3)
+
+        -- FIXED v0.5.0 NATIVE TEXTURES LOADING: Sets the premium texture files maps paths
+        if data.faction == "Horde" then
+            btn.Icon:SetTexture("Interface\\TargetingFrame\\UI-PVP-Horde")
+            btn.Icon:SetTexCoord(0.04, 0.64, 0.02, 0.62) -- Clean crop to remove outer frame borders
         else
-            btn:SetPoint("TOPLEFT", AW_VBButtonsPool[count - 1], "BOTTOMLEFT", 0, -6)
+            btn.Icon:SetTexture("Interface\\TargetingFrame\\UI-PVP-Alliance")
+            btn.Icon:SetTexCoord(0.04, 0.64, 0.02, 0.62)
         end
+        btn.Icon:Show()
 
-        local nameColorHex = "|cFFC41F3B" 
-        local sLabel = data.realm and (" - |cFF888888" .. data.realm .. "|r") or ""
-        local factionText = data.faction == "Horde" and " (|cFFFF0000Horde|r)" or " (|cFF0070DDAlliance|r)"
-        
-        btn.Text:SetText(nameColorHex .. data.name .. "|r" .. sLabel .. factionText)
+        -- FIXED v0.5.0 METRIC LINK: Enforces centralized constant typography parameters verbatim
+        local nameColorHex = AlternateWorldConstants.VIRTUAL_BANKER_COLOR_HEX
+        btn.Text:SetText(nameColorHex .. data.name .. "|r")
 
+        -- Connect edit and delete actions triggers
         btn.Edit:SetScript("OnClick", function()
             if AlternateWorldBankersView and AlternateWorldBankersView.CreateVirtualBankerDialog then
-                local dlg = AlternateWorldBankersView.CreateVirtualBankerDialog()
+                local dlg = AlternateWorldBankersView.CreateVirtualBankerDialog("Edit")
                 dlg.isEditingActiveMode = true 
                 dlg.originalKeyCache = vKey 
                 dlg.NameBox:SetText(data.name or "")
@@ -266,7 +326,6 @@ function AlternateWorldVirtualBankersView.RefreshList()
                 UIDropDownMenu_SetText(dlg.FactionMenu, fText)
                 dlg.FactionMenu.selectedValue = data.faction
                 
-                -- FIXED v0.5.0 INITIALIZATION HOOKS: Binds Edit triggers straight to internal functions safely
                 UIDropDownMenu_Initialize(dlg.RealmMenu, InitializeRealmDropdown)
                 UIDropDownMenu_Initialize(dlg.FactionMenu, InitializeFactionDropdown)
                 
@@ -281,7 +340,7 @@ function AlternateWorldVirtualBankersView.RefreshList()
         end)
 
         btn:Show()
-        currentYPositionMarker = currentYPositionMarker - 30
+        currentYPositionMarker = currentYPositionMarker - 25
     end
 
     VBScrollContent:SetHeight(math.abs(currentYPositionMarker) + 40)
@@ -292,7 +351,6 @@ function AlternateWorldVirtualBankersView.ShowData(selectedCharacterKey)
     if not VBPanel then return end
     VBIsViewActive = true
     VBPanel:Show()
-
     AlternateWorldVirtualBankersView.ToggleModeLayout()
 end
 

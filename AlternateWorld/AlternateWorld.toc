@@ -32,7 +32,7 @@ alternatepost.lua
 alternatemain.lua
 
 
-## TODO: virtualbankerui: brug realmname som overskrift
+## TODO: copy/paste karakterer (real til virtual)
 ## TODO: Tilføj minimap menu
 ## TODO: Tilføj mulighed for Titan Panel setup
 ## TODO: Opsætning i Blizzard's addon options

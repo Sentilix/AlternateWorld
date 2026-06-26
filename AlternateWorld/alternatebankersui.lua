@@ -349,8 +349,15 @@ local function InitializeRealmDropdown(self)
     end
 end
 
-function AlternateWorldBankersView.CreateVirtualBankerDialog()
-    if VirtualDialogFrame then return VirtualDialogFrame end
+-- FIXED v0.5.0 GLOBAL EXPORT: Enforces global registration so BOTH tabs can open this layout window instantly
+-- FIXED v0.5.0 DYNAMIC HEADLINES: Injects a mode token switch to toggle between Add and Edit title contexts seamlessly
+function AlternateWorldBankersView.CreateVirtualBankerDialog(mode)
+    if VirtualDialogFrame then 
+        -- If frame already exists, dynamically update the title string anyway before display
+        local displayTitle = (mode == "Edit") and "Edit Virtual Banker" or "Add Virtual Banker"
+        if VirtualDialogFrame.TitleText then VirtualDialogFrame.TitleText:SetText("|cFFFFFFFF" .. displayTitle .. "|r") end
+        return VirtualDialogFrame 
+    end
 
     local f = CreateFrame("Frame", "AW_VirtualBankerDialog", UIParent, "BackdropTemplate")
     f:SetSize(240, 240)
@@ -369,12 +376,21 @@ function AlternateWorldBankersView.CreateVirtualBankerDialog()
         insets = { left = 11, right = 12, top = 12, bottom = 11 }
     })
 
-    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOP", f, "TOP", 0, -18)
-    title:SetText("Create Virtual Banker")
+    local icon = f:CreateTexture(nil, "OVERLAY")
+    icon:SetSize(18, 18)
+    icon:SetPoint("TOPLEFT", f, "TOPLEFT", 22, -16)
+    icon:SetTexture(236424) 
+    f.TitleIcon = icon
 
-    -- 1. NAME FIELD (Y = -45)
-    local nameLabel = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    -- FIXED v0.5.0: Computes the dynamic string based on active call parameters mode state
+    local titleText = (mode == "Edit") and "Edit Virtual Banker" or "Add Virtual Banker"
+    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("LEFT", icon, "RIGHT", 6, 0)
+    title:SetText("|cFFFFFFFF" .. titleText .. "|r")
+    f.TitleText = title -- Cache reference for quick updates
+
+    -- 1. NAME FIELD: Swapped string font templates to GameFontNormalSmall for rich yellow layouts
+    local nameLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     nameLabel:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -45)
     nameLabel:SetText("Character Name:")
 
@@ -384,8 +400,8 @@ function AlternateWorldBankersView.CreateVirtualBankerDialog()
     nameBox:SetAutoFocus(false)
     f.NameBox = nameBox
 
-    -- 2. REALM FIELD (Y = -95)
-    local realmLabel = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    -- 2. REALM FIELD: Forced custom yellow layouts
+    local realmLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     realmLabel:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -95)
     realmLabel:SetText("Target Realm Context:")
 
@@ -401,8 +417,8 @@ function AlternateWorldBankersView.CreateVirtualBankerDialog()
     customRealmBox:Hide()
     f.CustomRealmBox = customRealmBox
 
-    -- 3. FACTION FIELD (FIXED Y = -150: Hard-anchored from top frame to completely bypass dropdown overlaps)
-    local factionLabel = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    -- 3. FACTION FIELD: Forced custom yellow layouts
+    local factionLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     factionLabel:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -150)
     factionLabel:SetText("Faction Alignment:")
 
@@ -411,7 +427,7 @@ function AlternateWorldBankersView.CreateVirtualBankerDialog()
     UIDropDownMenu_SetWidth(factionMenu, 165)
     f.FactionMenu = factionMenu
 
-    -- KEYBOARD INTERACTION HOOKS (Enter and Escape)
+    -- KEYBOARD INTERACTION HOOKS
     nameBox:SetScript("OnEnterPressed", function() f.SaveBtn:Click() end)
     nameBox:SetScript("OnEscapePressed", function() f:Hide() end)
     customRealmBox:SetScript("OnEnterPressed", function() f.SaveBtn:Click() end)
@@ -433,7 +449,6 @@ function AlternateWorldBankersView.CreateVirtualBankerDialog()
             if string.trim then realmText = string.trim(realmText)
             else realmText = string.gsub(realmText, "^%s*(.-)%s*$", "%1") end
             
-            -- FIXED SYNTAX: Cleared out the double string.sub function nesting crash bug completely
             if string.len(nameText) > 0 then
                 nameText = string.upper(string.sub(nameText, 1, 1)) .. string.lower(string.sub(nameText, 2))
             end
@@ -456,7 +471,14 @@ function AlternateWorldBankersView.CreateVirtualBankerDialog()
             end
 
             AlternateWorldBankersEngine.AddVirtualBanker(nameText, selectedFaction, realmText)
-            AlternateWorldBankersView.RefreshVirtualList()
+            
+            if AlternateWorldVirtualBankersView and AlternateWorldVirtualBankersView.RefreshList then
+                AlternateWorldVirtualBankersView.RefreshList()
+            end
+            if AlternateWorldBankersView and AlternateWorldBankersView.RefreshVirtualList then
+                AlternateWorldBankersView.RefreshVirtualList()
+            end
+            
             f:Hide()
         else
             UIErrorsFrame:AddMessage("Missing Fields! Complete all specifications.", 1, 0, 0, 1)
@@ -469,9 +491,7 @@ function AlternateWorldBankersView.CreateVirtualBankerDialog()
     cancelBtn:SetText("Cancel")
     cancelBtn:SetScript("OnClick", function() f:Hide() end)
 
-    -- FIXED v0.5.0 INITIAL DORMANT STATE: Hard-forces the frame to hide instantly upon initialization loading loops
     f:Hide()
-
     VirtualDialogFrame = f
     return f
 end

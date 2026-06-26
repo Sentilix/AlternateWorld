@@ -23,21 +23,20 @@ local function GetBankerRealmContext(realmName)
     return realmName -- Fallback to legacy single realm mapping if unassigned
 end
 
--- FIXED v0.5.0 DROPDOWN TINT LAYER: Enforces death knight darkred for all virtuals dynamically during text renders
 function AlternateWorldBankersEngine.CleanClassColoredName(data)
     if not data or not data.name then return "Unknown" end
     
-    -- FIXED v0.5.0 VARIABLENAVN: Synchronized perfectly with the 'data' function argument parameter bounds
     local colorHex = "|cFFFFFFFF"
     if data.isVirtual or data.classToken == "BANKER" then
-        colorHex = "|cFFC41F3B" -- THE BRAND NEW EXCLUSIVE DEATH KNIGHT DROPDOWN TINT
+        -- FIXED v0.5.0: Scrapes the global centralized constants vector smoothly
+        colorHex = AlternateWorldConstants.VIRTUAL_BANKER_COLOR_HEX
     elseif data.classToken and RAID_CLASS_COLORS[data.classToken] then
         local c = RAID_CLASS_COLORS[data.classToken]
         colorHex = string.format("|cff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
     end
     
     local serverLabel = data.realm and data.realm ~= "Unknown" and (" -|cFF888888" .. string.sub(string.gsub(data.realm, "%s+", ""), 1, 3) .. "|r") or ""
-    -- FIXED v0.5.0 RETURN: Returns colorHex correctly to apply the darkred tint onto the layout fields
+
     return colorHex .. data.name .. "|r" .. serverLabel
 end
 

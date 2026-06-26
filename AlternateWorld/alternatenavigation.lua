@@ -15,9 +15,10 @@ local MENU_ITEMS = {
     { id = "professions", text = "Professions",      icon = "interface\\icons\\trade_blacksmithing" },
     { id = "restedxp",     text = "Rested XP",        icon = "interface\\icons\\inv_misc_rune_01" },
     { id = "bankers",      text = "Bankers",          icon = "interface\\icons\\inv_misc_coin_17" },
-    { id = "virtualbankers", text = "Virtual Bankers", icon = "interface\\icons\\spell_nature_reincarnation" },
+    { id = "virtualbankers", text = "Virtual Bankers", icon = 236424 },
     { id = "clusters",     text = "Clusters",         icon = "interface\\icons\\inv_ore_arcanite_01" } 
 }
+
 
 local PANELS_MAP = {
     ["character"]   = "AlternateWorldCharacterView",

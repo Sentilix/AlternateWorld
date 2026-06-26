@@ -37,6 +37,9 @@ AlternateWorldConstants.RECIPE_FALLBACKS = {
     ["reagent"] = "interface\\icons\\inv_misc_dust_01"
 }
 
+-- FIXED v0.5.0 BRAND CONSTANTS: Centralized premium color tokens for all cross-account virtual entities
+AlternateWorldConstants.VIRTUAL_BANKER_COLOR_HEX = "|cFF00FF98" -- THE EXCLUSIVE JADE-GREEN SIGNATURE TINT
+
 function AlternateWorldConstants.GetSafeRecipeTexture(name, currentProf)
     if not name then return "interface\\icons\\inv_misc_questionmark" end
     local l = string.lower(name)
