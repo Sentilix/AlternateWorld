@@ -179,7 +179,6 @@ function AlternateWorldMainFrameEngine.RefreshUI() AlternateWorldNavigation.Refr
 -- v0.6.0 EXTERNAL INTEGRATION ENGINE: Global Dynamic Interface Router
 -- ============================================================================
 
--- FIXED v0.6.0 LOGICAL ROUTER: Forces absolute frame strata injection on boot execution to prevent graphics engine occlusion
 local function ToggleAddonInterface()
     local mainWin = _G["AlternateWorldMainContentWindow"]
     local vbView = _G["AlternateWorldVirtualBankersView"]
@@ -187,39 +186,92 @@ local function ToggleAddonInterface()
 
     local isAnyViewActive = false
     if vbView and vbView.IsShown and vbView.IsShown() then
-        print(1)
         isAnyViewActive = true
     elseif normalBankersView and normalBankersView.IsShown and normalBankersView.IsShown() then
-        print(2)
         isAnyViewActive = true
     end
 
     if isAnyViewActive then
-        print(3)
         if vbView and vbView.HidePanel then vbView.HidePanel() end
         if normalBankersView and normalBankersView.HidePanel then normalBankersView.HidePanel() end
         if mainWin then mainWin:Hide() end
     else
-        if mainWin then 
-            print(4)
-            -- FIXED v0.6.0 INTERFACE FORCE SHIELD: Pulls frame out of background rendering occlusions instantly
-            mainWin:SetAlpha(1) -- Enforces 100% full opacity bounds
-            mainWin:SetFrameStrata("DIALOG") -- Rips frame straight to the foreground overlay layer
-            mainWin:Show() 
-            
-            -- Route context visibility directly into your active view engine paths
-            if vbView and vbView.ShowData and _G["VBIsViewActive"] then
-                print(5)
-                vbView.ShowData()
-            elseif normalBankersView and normalBankersView.ShowData then
-                print(6)
-                normalBankersView.ShowData()
-            end
+        -- FIXED v0.6.0 SLASH COMMAND BYPASS: Triggers your stable verified command path to initialize panels safely
+        if SlashCmdList and SlashCmdList["ALTERNATEWORLD"] then
+            SlashCmdList["ALTERNATEWORLD"]("")
+        elseif SlashCmdList and SlashCmdList["AW"] then
+            SlashCmdList["AW"]("")
         end
     end
 end
 
--- Create an independent boot wrapper frame to bypass alphabetical addon loading limitations
+-- ============================================================================
+-- v0.6.0 MODULE A: Official WoW Interface Options Registration (Global Scope)
+-- ============================================================================
+-- FIXED v0.6.0 CLASSIC ERA INJECTION: Runs instantly at file load to beat the interface options frame build lock
+local configPanel = CreateFrame("Frame", "AW_BlizzardInterfaceOptionsCategoryPanel")
+configPanel.name = "Alternate World" 
+
+local title = configPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+title:SetPoint("TOPLEFT", configPanel, "TOPLEFT", 16, -16)
+title:SetText("|cFFFFFFFFAlternate World - Options Configuration|r")
+
+local desc = configPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -12)
+desc:SetSize(450, 40)
+desc:SetJustifyH("LEFT")
+desc:SetJustifyV("TOP")
+desc:SetText("Configuration options for multi-account rosters and logistics management paths will be deployed here dynamically in upcoming architecture iterations.")
+
+local openUiBtn = CreateFrame("Button", nil, configPanel, "UIPanelButtonTemplate")
+openUiBtn:SetSize(140, 24)
+openUiBtn:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -20)
+openUiBtn:SetText("Open Dashboard")
+
+openUiBtn:SetScript("OnClick", function()
+    -- Forces the modern Settings Panel window to shut down instantly
+    if _G["SettingsPanel"] and _G["SettingsPanel"].Close then
+        _G["SettingsPanel"]:Close()
+    elseif _G["InterfaceOptionsFrame"] and _G["HideUIPanel"] then
+        _G["HideUIPanel"](_G["InterfaceOptionsFrame"])
+    end
+    
+    -- FIXED v0.6.0 GAME MENU CLEANUP: Force dismiss the background escape menu frame instantly
+    if _G["GameMenuFrame"] and _G["GameMenuFrame"].Hide then
+        _G["GameMenuFrame"]:Hide()
+    end
+    
+    -- FIXED v0.6.0 TIMEOUT SHIELD: Delays execution by 0.1s to let the game client release macro locks after UI closure
+    if _G["C_Timer"] and _G["C_Timer"].After then
+        _G["C_Timer"].After(0.1, function()
+            if SlashCmdList and SlashCmdList["AW"] then 
+                SlashCmdList["AW"]("") 
+            elseif SlashCmdList and SlashCmdList["ALTERNATEWORLD"] then
+                KeepActive = true
+                SlashCmdList["ALTERNATEWORLD"]("")
+            end
+        end)
+    else
+        -- Instant fallback route if timer subsystems are unavailable
+        if SlashCmdList and SlashCmdList["AW"] then SlashCmdList["AW"]("") end
+    end
+end)
+
+-- FIXED v0.6.0 ENGINE BRIDGE: Enforces registration paths across both legacy and updated Classic Era settings frameworks
+if _G["Settings"] and _G["Settings"].RegisterCanvasLayoutCategory then
+    -- Modern Classic Era engine path (Client 1.15.x+)
+    local category = _G["Settings"].RegisterCanvasLayoutCategory(configPanel, configPanel.name)
+    if _G["Settings"].RegisterAddOnCategory then
+        _G["Settings"].RegisterAddOnCategory(category)
+    end
+elseif InterfaceOptions_AddCategory then
+    -- Legacy Classic Era fallback engine path
+    InterfaceOptions_AddCategory(configPanel)
+end
+
+-- ============================================================================
+-- v0.6.0 MODULE B: External Integration Engine (Time-Delayed LibDataBroker)
+-- ============================================================================
 local integrationBootstrapper = CreateFrame("Frame")
 integrationBootstrapper:RegisterEvent("PLAYER_LOGIN")
 
@@ -235,7 +287,7 @@ integrationBootstrapper:SetScript("OnEvent", function(self, event)
             local AW_DataObject = LDB:NewDataObject("AlternateWorld", {
                 type = "launcher",
                 text = "Alternate World",
-                icon = "Interface\\Icons\\inv_misc_head_human_02", 
+                icon = "Interface\\Icons\\inv_misc_head_human_02", -- Pure Signature Yellow Human Female
                 
                 OnTooltipShow = function(tooltip)
                     if tooltip and tooltip.AddLine then
@@ -245,15 +297,9 @@ integrationBootstrapper:SetScript("OnEvent", function(self, event)
                     end
                 end,
                 
-                -- FIXED v0.6.0 SLASH INJECTION: Bypasses uninitialized graphics frames by executing your stable core chat command handler
                 OnClick = function(arg1, arg2)
                     if arg1 == "LeftButton" or arg2 == "LeftButton" then
-                        -- Dynamically triggers your verified text command infrastructure safely across all platforms
-                        if SlashCmdList and SlashCmdList["ALTERNATEWORLD"] then
-                            SlashCmdList["ALTERNATEWORLD"]("")
-                        elseif SlashCmdList and SlashCmdList["AW"] then
-                            SlashCmdList["AW"]("")
-                        end
+                        ToggleAddonInterface()
                     end
                 end,
             })
