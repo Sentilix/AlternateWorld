@@ -48,3 +48,5 @@ Configure specific cross-realm boundaries within the configuration engine to man
 You can assign realms to one of five predefined clusters. They are by default named cluster 1 to 5, but you can rename a cluster by clicking its name.
 Setting up clusters will allow you to assign banker characters not only from your home realm, but also from the realms in that cluster—if any.
 
+If you do not want to define clusters but see all bankers regardless of realm, simply untick the "Restrict bankers to local realm or cluster" checkbox on the Bankers page.
+
