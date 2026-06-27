@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - Virtual Bankers Profile View UI Module (v0.5.0)
+-- Alternate World - Virtual Bankers Profile View UI Module (v0.5.1)
 -- ============================================================================
 
 AlternateWorldVirtualBankersView = {}
@@ -12,8 +12,11 @@ local VBIsViewActive = false
 
 local AW_VBRowsPool = {}
 local AW_VBHeadersPool = {}
-local AW_ExportCheckboxesPool = {}
-local AW_ExportHeadersPool = {}
+
+-- FIXED v0.5.1 GLOBAL REGISTRY: Locked safely into the global namespace to prevent nil scope bugs
+AlternateWorldVirtualBankersView.ExportCheckboxesPool = {}
+AlternateWorldVirtualBankersView.ExportHeadersPool = {}
+
 local AW_ExportDialogFrame = nil
 local AW_StringDialogFrame = nil
 local VirtualDialogFrame = nil
@@ -28,6 +31,7 @@ local function InitializeFactionDropdown(self)
         info.value = f.id
         info.arg1 = f.id
         info.checked = (currentValue == f.id)
+        
         info.func = function(button)
             local targetFaction = button.arg1
             UIDropDownMenu_SetText(self, button:GetText())
@@ -87,7 +91,6 @@ local function InitializeRealmDropdown(self)
     end
 end
 
--- FIXED v0.5.0 SCOPE UNLOCK: Born at the very top of the script to guarantee 100% error-free clicks instantly
 function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
     if VirtualDialogFrame then 
         local displayTitle = (mode == "Edit") and "Edit Virtual Banker" or "Add Virtual Banker"
@@ -104,6 +107,7 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
+
     f:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
@@ -252,8 +256,12 @@ function AlternateWorldVirtualBankersView.CreatePanel(parentWindow)
     -- 2. DYNAMIC CHECKBOX SETUP
     local enableCB = CreateFrame("CheckButton", "AW_VBEnableCheckbox", VBPanel, "InterfaceOptionsCheckButtonTemplate")
     enableCB:SetPoint("TOPLEFT", VBPanel, "TOPLEFT", 20, -35)
-    _G[enableCB:GetName() .. "Text"]:SetText("Enable Virtual Bankers setup")
-    _G[enableCB:GetName() .. "Text"]:SetTextColor(1.0, 0.82, 0)
+    
+    local cbText = _G[enableCB:GetName() .. "Text"]
+    if cbText then
+        cbText:SetText("Enable Virtual Bankers setup")
+        cbText:SetTextColor(1.0, 0.82, 0)
+    end
 
     enableCB:SetScript("OnClick", function(self)
         if not AlternateWorldDB.Settings then AlternateWorldDB.Settings = {} end
@@ -262,7 +270,7 @@ function AlternateWorldVirtualBankersView.CreatePanel(parentWindow)
     end)
     VBPanel.EnableCB = enableCB
 
-    -- 3. THE COMPACT DOCUMENTATION LAYOUT (FIXED v0.5.0: International 420px hierarchy sizing)
+    -- 3. THE COMPACT DOCUMENTATION LAYOUT (420px width limit)
     local doc = VBPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     doc:SetPoint("TOPLEFT", enableCB, "BOTTOMLEFT", 6, -20)
     doc:SetSize(420, 250)
@@ -297,7 +305,6 @@ function AlternateWorldVirtualBankersView.CreatePanel(parentWindow)
     addBtn:SetPoint("TOPLEFT", VBScrollContent, "TOPLEFT", 10, -10)
     addBtn:SetText("Add Virtual Banker")
     
-    -- FIXED v0.5.0 CALLS: Accesses the top scope function layout directly without initialization crashes
     addBtn:SetScript("OnClick", function()
         local dlg = AlternateWorldVirtualBankersView.CreateVirtualBankerDialog("Add")
         dlg.isEditingActiveMode = false 
@@ -383,7 +390,6 @@ function AlternateWorldVirtualBankersView.RefreshList()
         return (a.name or "") < (b.name or "")
     end)
 
-    -- FIXED v0.5.0 WIDTH MATRIX: Dynamically computes total width from the parent scroll frame clearance limits
     local frameWidth = VBScrollFrame:GetWidth() - 26
     VBScrollContent:SetWidth(frameWidth)
 
@@ -410,7 +416,6 @@ function AlternateWorldVirtualBankersView.RefreshList()
                 AW_VBHeadersPool[hCount] = headerFrame
             end
             
-            -- Enforce absolute synchronized horizontal width anchors
             headerFrame:SetSize(frameWidth, 22)
             headerFrame.Text:SetText("|cFFFFFFFF" .. exactRealm .. "|r")
             
@@ -450,11 +455,10 @@ function AlternateWorldVirtualBankersView.RefreshList()
             AW_VBRowsPool[rowCount] = btn
         end
 
-        -- FIXED v0.5.0 WIDTH MATRIX: Expands rows seamlessly to match the absolute screen layout bounds
         btn:SetSize(frameWidth, 22)
         
         btn.Edit:ClearAllPoints()
-        btn.Edit:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -95, -3) -- Locked exactly 30px left from scrollbar for total margin clearance
+        btn.Edit:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -95, -3)
         
         btn.Del:ClearAllPoints()
         btn.Del:SetPoint("LEFT", btn.Edit, "RIGHT", 6, 0)
@@ -520,23 +524,31 @@ function AlternateWorldVirtualBankersView.RefreshList()
 end
 
 -- ============================================================================
--- THE UNIVERSAL COPY/PASTE BOX & EXPORT CORE
+-- v0.5.1 EXPORT & IMPORT ENGINE: Universal Textbox & Data Validation Core
 -- ============================================================================
 
 function AlternateWorldVirtualBankersView.OpenCopyPasteBox(titleLabel, textContent, isExportMode)
     if AW_StringDialogFrame then AW_StringDialogFrame:Hide() end
 
-    local f = CreateFrame("Frame", "AW_StringBoxWindowInstance", UIParent, "BackdropTemplate")
+    local parentWin = UIParent
+    local f = CreateFrame("Frame", "AW_StringBoxWindowInstance", parentWin, "BackdropTemplate")
     f:SetSize(320, 180)
-    f:SetPoint("CENTER", UIParent, "CENTER", 0, 50)
+    f:SetPoint("CENTER", parentWin, "CENTER", 0, 50)
     f:SetFrameStrata("DIALOG")
     f:EnableMouse(true)
     f:SetMovable(true)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    
+    if not f.SolidBgTextureLayer then
+        f.SolidBgTextureLayer = f:CreateTexture(nil, "BACKGROUND")
+        f.SolidBgTextureLayer:SetPoint("TOPLEFT", f, "TOPLEFT", 11, -11)
+        f.SolidBgTextureLayer:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -11, 11)
+        f.SolidBgTextureLayer:SetColorTexture(0.06, 0.06, 0.06, 1)
+    end
+
     f:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
         tile = true, tileSize = 32, edgeSize = 32,
         insets = { left = 11, right = 12, top = 12, bottom = 11 }
@@ -705,17 +717,26 @@ function AlternateWorldVirtualBankersView.OpenExportSelectionWindow()
         return
     end
 
-    local f = CreateFrame("Frame", "AW_ExportSelectionWindowInstance", UIParent, "BackdropTemplate")
+    local parentWin = UIParent
+    local f = CreateFrame("Frame", "AW_ExportSelectionWindowInstance", parentWin, "BackdropTemplate")
     f:SetSize(260, 340)
-    f:SetPoint("CENTER", UIParent, "CENTER", 0, 40)
+    f:SetPoint("CENTER", parentWin, "CENTER", 0, 40)
     f:SetFrameStrata("DIALOG")
     f:EnableMouse(true)
     f:SetMovable(true)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    
+    -- FIXED v0.5.1 TRANSPARENCY: Injects a 100% solid dark slate background texture layer below borders
+    if not f.SolidBgTextureLayer then
+        f.SolidBgTextureLayer = f:CreateTexture(nil, "BACKGROUND")
+        f.SolidBgTextureLayer:SetPoint("TOPLEFT", f, "TOPLEFT", 11, -11)
+        f.SolidBgTextureLayer:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -11, 11)
+        f.SolidBgTextureLayer:SetColorTexture(0.06, 0.06, 0.06, 1)
+    end
+
     f:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
         tile = true, tileSize = 32, edgeSize = 32,
         insets = { left = 11, right = 12, top = 12, bottom = 11 }
@@ -742,8 +763,8 @@ function AlternateWorldVirtualBankersView.OpenExportSelectionWindow()
     scContent:SetSize(200, 1)
     scFrame:SetScrollChild(scContent)
 
-    for _, cb in pairs(ExportCheckboxesPool) do cb:Hide() end
-    for _, hd in pairs(ExportHeadersPool) do hd:Hide() end
+    for _, cb in pairs(AlternateWorldVirtualBankersView.ExportCheckboxesPool) do cb:Hide() end
+    for _, hd in pairs(AlternateWorldVirtualBankersView.ExportHeadersPool) do hd:Hide() end
 
     local currentY = -5
     local lastSeenRealm = nil
@@ -757,13 +778,13 @@ function AlternateWorldVirtualBankersView.OpenExportSelectionWindow()
             lastSeenRealm = exactRealm
             hCount = hCount + 1
             
-            local headerRow = ExportHeadersPool[hCount]
+            local headerRow = AlternateWorldVirtualBankersView.ExportHeadersPool[hCount]
             if not headerRow then
                 headerRow = CreateFrame("Frame", "AW_ExportHeaderDummy" .. hCount, scContent)
                 headerRow:SetSize(190, 20)
                 headerRow.TextHeader = headerRow:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
                 headerRow.TextHeader:SetPoint("LEFT", headerRow, "LEFT", 5, 0)
-                ExportHeadersPool[hCount] = headerRow
+                AlternateWorldVirtualBankersView.ExportHeadersPool[hCount] = headerRow
             end
             
             headerRow:SetParent(scContent)
@@ -775,7 +796,7 @@ function AlternateWorldVirtualBankersView.OpenExportSelectionWindow()
         end
 
         cbCount = cbCount + 1
-        local cb = ExportCheckboxesPool[cbCount]
+        local cb = AlternateWorldVirtualBankersView.ExportCheckboxesPool[cbCount]
         if not cb then
             cb = CreateFrame("CheckButton", "AW_ExportCBRow" .. cbCount, scContent, "InterfaceOptionsCheckButtonTemplate")
             cb:SetSize(20, 20)
@@ -789,7 +810,7 @@ function AlternateWorldVirtualBankersView.OpenExportSelectionWindow()
                 txt:ClearAllPoints()
                 txt:SetPoint("LEFT", cb.FactionIcon, "RIGHT", 6, 0)
             end
-            ExportCheckboxesPool[cbCount] = cb
+            AlternateWorldVirtualBankersView.ExportCheckboxesPool[cbCount] = cb
         end
 
         cb:SetParent(scContent)
@@ -827,7 +848,7 @@ function AlternateWorldVirtualBankersView.OpenExportSelectionWindow()
     okBtn:SetScript("OnClick", function()
         local compiledSegments = {}
         for i = 1, cbCount do
-            local cb = ExportCheckboxesPool[i]
+            local cb = AlternateWorldVirtualBankersView.ExportCheckboxesPool[i]
             if cb and cb:IsShown() and cb:GetChecked() and cb.charContextData then
                 local d = cb.charContextData
                 table.insert(compiledSegments, string.format("%s:%s:%s", d.name, d.realm, d.faction))
@@ -881,7 +902,14 @@ function AlternateWorldVirtualBankersView.ShowData(selectedCharacterKey)
     AlternateWorldVirtualBankersView.ToggleModeLayout()
 end
 
-function AlternateWorldVirtualBankersView.HidePanel() if VBPanel then VBPanel:Hide() VBIsViewActive = false end end
+function AlternateWorldVirtualBankersView.HidePanel() 
+    if VBPanel then VBPanel:Hide() end
+    VBIsViewActive = false 
+    if AW_ExportDialogFrame then AW_ExportDialogFrame:Hide() end
+    if AW_StringDialogFrame then AW_StringDialogFrame:Hide() end
+    if _G["AW_VirtualBankerDialog"] then _G["AW_VirtualBankerDialog"]:Hide() end
+end
+
 function AlternateWorldVirtualBankersView.IsShown() return VBPanel and VBPanel:IsShown() end
 
 -- End of [alternatevirtualbankerui.lua]
