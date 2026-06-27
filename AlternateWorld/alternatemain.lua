@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Alternate World - Main User Interface & Layout Frame
 -- ============================================================================
 
@@ -173,7 +173,102 @@ function AlternateWorldMainFrameEngine.OnAddonLoaded()
     end
 end
 
-
 function AlternateWorldMainFrameEngine.RefreshUI() AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey) end
+
+-- ============================================================================
+-- v0.6.0 EXTERNAL INTEGRATION ENGINE: Global Dynamic Interface Router
+-- ============================================================================
+
+-- FIXED v0.6.0 LOGICAL ROUTER: Forces absolute frame strata injection on boot execution to prevent graphics engine occlusion
+local function ToggleAddonInterface()
+    local mainWin = _G["AlternateWorldMainContentWindow"]
+    local vbView = _G["AlternateWorldVirtualBankersView"]
+    local normalBankersView = _G["AlternateWorldBankersView"]
+
+    local isAnyViewActive = false
+    if vbView and vbView.IsShown and vbView.IsShown() then
+        print(1)
+        isAnyViewActive = true
+    elseif normalBankersView and normalBankersView.IsShown and normalBankersView.IsShown() then
+        print(2)
+        isAnyViewActive = true
+    end
+
+    if isAnyViewActive then
+        print(3)
+        if vbView and vbView.HidePanel then vbView.HidePanel() end
+        if normalBankersView and normalBankersView.HidePanel then normalBankersView.HidePanel() end
+        if mainWin then mainWin:Hide() end
+    else
+        if mainWin then 
+            print(4)
+            -- FIXED v0.6.0 INTERFACE FORCE SHIELD: Pulls frame out of background rendering occlusions instantly
+            mainWin:SetAlpha(1) -- Enforces 100% full opacity bounds
+            mainWin:SetFrameStrata("DIALOG") -- Rips frame straight to the foreground overlay layer
+            mainWin:Show() 
+            
+            -- Route context visibility directly into your active view engine paths
+            if vbView and vbView.ShowData and _G["VBIsViewActive"] then
+                print(5)
+                vbView.ShowData()
+            elseif normalBankersView and normalBankersView.ShowData then
+                print(6)
+                normalBankersView.ShowData()
+            end
+        end
+    end
+end
+
+-- Create an independent boot wrapper frame to bypass alphabetical addon loading limitations
+local integrationBootstrapper = CreateFrame("Frame")
+integrationBootstrapper:RegisterEvent("PLAYER_LOGIN")
+
+integrationBootstrapper:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_LOGIN" then
+        self:UnregisterEvent("PLAYER_LOGIN")
+        
+        local LibStub = _G["LibStub"]
+        local LDB = LibStub and LibStub:GetLibrary("LibDataBroker-1.1", true)
+        local LDBIcon = LibStub and LibStub:GetLibrary("LibDBIcon-1.0", true)
+
+        if LDB then
+            local AW_DataObject = LDB:NewDataObject("AlternateWorld", {
+                type = "launcher",
+                text = "Alternate World",
+                icon = "Interface\\Icons\\inv_misc_head_human_02", 
+                
+                OnTooltipShow = function(tooltip)
+                    if tooltip and tooltip.AddLine then
+                        tooltip:AddLine("|cFFFFFFFFAlternate World|r")
+                        tooltip:AddLine("|cFF00FF00Left-Click:|r Toggle main dashboard view")
+                        tooltip:AddLine("|cFF888888Drag:|r Move minimap button context")
+                    end
+                end,
+                
+                -- FIXED v0.6.0 SLASH INJECTION: Bypasses uninitialized graphics frames by executing your stable core chat command handler
+                OnClick = function(arg1, arg2)
+                    if arg1 == "LeftButton" or arg2 == "LeftButton" then
+                        -- Dynamically triggers your verified text command infrastructure safely across all platforms
+                        if SlashCmdList and SlashCmdList["ALTERNATEWORLD"] then
+                            SlashCmdList["ALTERNATEWORLD"]("")
+                        elseif SlashCmdList and SlashCmdList["AW"] then
+                            SlashCmdList["AW"]("")
+                        end
+                    end
+                end,
+            })
+
+            if not AlternateWorldDB then AlternateWorldDB = {} end
+            if not AlternateWorldDB.Settings then AlternateWorldDB.Settings = {} end
+            if not AlternateWorldDB.Settings.MinimapButtonSpec then
+                AlternateWorldDB.Settings.MinimapButtonSpec = { hide = false }
+            end
+            
+            if LDBIcon then
+                LDBIcon:Register("AlternateWorld", AW_DataObject, AlternateWorldDB.Settings.MinimapButtonSpec)
+            end
+        end
+    end
+end)
 
 -- End of [alternatemain.lua]
