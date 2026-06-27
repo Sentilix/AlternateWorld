@@ -1,9 +1,9 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Alternate World - Main User Interface & Layout Frame
 -- ============================================================================
 
 AlternateWorldMainFrameEngine = {}
-local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.5.1"
+local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.0"
 local addonAuthor = C_AddOns.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
 
 local AlternateWorldMainFrame = CreateFrame("Frame", "AlternateWorldMainFrame", UIParent, "BasicFrameTemplateWithInset")

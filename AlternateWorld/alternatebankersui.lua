@@ -23,7 +23,7 @@ local BANKER_CATEGORIES = {
     { id = "Lockboxes", name = "Lockboxes", icon = "interface\\icons\\inv_box_03" }
 }
 
--- FIXED v0.5.1 CATEGORY DROPDOWN MATRIX: Hierarchical spacing by Realm -> Name with clean class-colored labels
+-- FIXED v0.6.0 CATEGORY DROPDOWN MATRIX: Hierarchical matrix inside dropdown, full context on the main button
 local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMenuFrame, contextRealm)
     if not AlternateWorldDB or not AlternateWorldBankersEngine then return end
     
@@ -33,7 +33,6 @@ local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMen
     
     -- 1. EXTRACT DATA STRICTLY FILTERED BY YOUR SYSTEM INTERACTION POLICIES
     if assignedCluster then
-        -- Cluster Mode: Always strictly limited to the configured family
         for key, altData in pairs(AlternateWorldDB) do
             if key ~= "Settings" and altData and altData.name and altData.faction == faction then
                 local altRealm = altData.realm or "Unknown"
@@ -44,7 +43,6 @@ local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMen
             end
         end
     elseif mustIsolate then
-        -- Single-Realm Isolation Mode: strictly limited to the current unassigned realm
         for key, altData in pairs(AlternateWorldDB) do
             if key ~= "Settings" and altData and altData.name and altData.faction == faction then
                 if (altData.realm or "Unknown") == contextRealm then
@@ -53,7 +51,6 @@ local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMen
             end
         end
     else
-        -- Unrestricted Mode: Opens the floodgates for ALL known characters on the account
         for key, altData in pairs(AlternateWorldDB) do
             if key ~= "Settings" and altData and altData.name and altData.faction == faction then
                 table.insert(rawAlts, altData)
@@ -93,7 +90,6 @@ local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMen
 
         -- GENERATE REALM HEADER ROW WITH INTERMITTENT BLANK SPACERS
         if exactRealm ~= lastSeenRealm then
-            -- FIXED v0.5.1 SPACER SHIELD: Inject an empty unclickable row ONLY if it's not the very first realm block
             if lastSeenRealm ~= nil then
                 info.text = " "
                 info.value = nil
@@ -106,7 +102,6 @@ local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMen
             
             lastSeenRealm = exactRealm
             
-            -- FIXED v0.5.1 GOLD TITLE: Enforces official gold text to maximize visibility against white priests
             info.text = "|cFFFFFFFF" .. exactRealm .. "|r"
             info.value = nil
             info.arg1 = nil
@@ -116,11 +111,10 @@ local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMen
             UIDropDownMenu_AddButton(info)
         end
 
-        -- GENERATE ACTUAL CHARACTER ROW WITH PURE CLEAN CLASS COLORING (NO SERVER SUFFIXES!)
+        -- GENERATE ACTUAL CHARACTER ROW WITH EXPLICIT HORIZONTAL TEXT INDENTATION
         local rawCharName = altData.name or "Unknown"
-        local classColorHex = "|cFFFFFFFF" -- Default to pure white if no token matches
+        local classColorHex = "|cFFFFFFFF"
         
-        -- FIXED v0.5.1 MONK RESTORATION: Prioritizes your centralized virtual monk hex token explicitly
         if altData.isVirtual then
             classColorHex = AlternateWorldConstants.VIRTUAL_BANKER_COLOR_HEX
         elseif altData.classToken and RAID_CLASS_COLORS[altData.classToken] then
@@ -128,10 +122,8 @@ local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMen
             classColorHex = string.format("|cff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
         end
         
-        -- Formulate the premium class-colored name string with your custom horizontal indentation spaces
-        local cleanColoredName = classColorHex .. rawCharName .. "|r"
-        info.text = "   " .. cleanColoredName
-        
+        -- Keeps the internal dropdown list rows clean and suffix-free under their headers
+        info.text = "   " .. classColorHex .. rawCharName .. "|r"
         info.value = altKey
         info.arg1 = altKey
         info.isTitle = false
@@ -143,8 +135,9 @@ local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMen
             local targetKey = button.arg1
             AlternateWorldBankersEngine.SetCategoryBanker(contextRealm, faction, categoryID, targetKey)
             
-            -- Ensures the active selected dropdown display label stays perfectly clean on the front panel
-            UIDropDownMenu_SetText(dropdownMenuFrame, cleanColoredName)
+            -- FIXED v0.6.0 DISPLAY SYMMETRY: Enforces the full engine routine to show server suffixes on the front button instantly
+            local fullColoredEngineName = AlternateWorldBankersEngine.CleanClassColoredName(altData)
+            UIDropDownMenu_SetText(dropdownMenuFrame, fullColoredEngineName)
         end
         
         UIDropDownMenu_AddButton(info)
