@@ -2,6 +2,8 @@
 
 Alternate World is an inventory tracking and mail automation addon for World of Warcraft Classic Era. It is explicitly designed for players managing large rosters of alternative characters (alts), including setups where characters are spread across multiple separate accounts.
 
+Simply type `/aw` to open the addon.
+
 ### Features at a Glance
 * **Character Data**: Real-time tracking of Rested XP, professions, money, bags, and bank contents.
 * **Lockouts & Progression**: Instant visibility of active raid IDs, lockouts, and attunement statuses.
