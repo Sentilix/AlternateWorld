@@ -664,6 +664,12 @@ function AlternateWorldVirtualBankersView.OpenCopyPasteBox(titleLabel, textConte
 
     AW_StringDialogFrame = f
     f:Show()
+    
+    -- FIXED v0.5.1 PARENT ONHIDE WATCHDOG: Closes this popup instantly when the main addon window is closed
+    local mainWin = _G["AlternateWorldMainContentWindow"]
+    if mainWin then
+        mainWin:HookScript("OnHide", function() f:Hide() end)
+    end
 end
 
 function AlternateWorldVirtualBankersView.OpenImportStringWindow()
@@ -865,13 +871,16 @@ function AlternateWorldVirtualBankersView.OpenExportSelectionWindow()
     end)
 
     local cancelBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    cancelBtn:SetSize(85, 22)
-    cancelBtn:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -25, 20)
-    cancelBtn:SetText("Cancel")
     cancelBtn:SetScript("OnClick", function() f:Hide() end)
 
     AW_ExportDialogFrame = f
     f:Show()
+    
+    -- FIXED v0.5.1 PARENT ONHIDE WATCHDOG: Closes this popup instantly when the main addon window is closed
+    local mainWin = _G["AlternateWorldMainContentWindow"]
+    if mainWin then
+        mainWin:HookScript("OnHide", function() f:Hide() end)
+    end
 end
 
 -- ============================================================================
@@ -902,11 +911,14 @@ function AlternateWorldVirtualBankersView.ShowData(selectedCharacterKey)
     AlternateWorldVirtualBankersView.ToggleModeLayout()
 end
 
+-- FIXED v0.5.1 GLOBAL DISMISS FRAMEWORK: Forces child elements to close down cleanly when the panel vanishes
 function AlternateWorldVirtualBankersView.HidePanel() 
     if VBPanel then VBPanel:Hide() end
     VBIsViewActive = false 
-    if AW_ExportDialogFrame then AW_ExportDialogFrame:Hide() end
-    if AW_StringDialogFrame then AW_StringDialogFrame:Hide() end
+    
+    -- FIXED v0.5.1: Resolves global variable mapping to ensure popups close instantly when addon is closed
+    if _G["AW_ExportSelectionWindowInstance"] then _G["AW_ExportSelectionWindowInstance"]:Hide() end
+    if _G["AW_StringBoxWindowInstance"] then _G["AW_StringBoxWindowInstance"]:Hide() end
     if _G["AW_VirtualBankerDialog"] then _G["AW_VirtualBankerDialog"]:Hide() end
 end
 
