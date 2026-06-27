@@ -98,9 +98,10 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
         return VirtualDialogFrame 
     end
 
-    local f = CreateFrame("Frame", "AW_VirtualBankerDialog", UIParent, "BackdropTemplate")
+    local parentWin = UIParent
+    local f = CreateFrame("Frame", "AW_VirtualBankerDialog", parentWin, "BackdropTemplate")
     f:SetSize(240, 240)
-    f:SetPoint("CENTER", UIParent, "CENTER", 0, 40)
+    f:SetPoint("CENTER", parentWin, "CENTER", 0, 40)
     f:SetFrameStrata("DIALOG")
     f:EnableMouse(true)
     f:SetMovable(true)
@@ -108,8 +109,15 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
 
+    -- FIXED v0.5.1 SOLID SHIELD: Spawns an independent solid frame layer behind to absorb 100% background transparency noise
+    if not f.SolidBgTextureLayer then
+        f.SolidBgTextureLayer = f:CreateTexture(nil, "BACKGROUND")
+        f.SolidBgTextureLayer:SetPoint("TOPLEFT", f, "TOPLEFT", 11, -11)
+        f.SolidBgTextureLayer:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -11, 11)
+        f.SolidBgTextureLayer:SetColorTexture(0.06, 0.06, 0.06, 1)
+    end
+
     f:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
         tile = true, tileSize = 32, edgeSize = 32,
         insets = { left = 11, right = 12, top = 12, bottom = 11 }
@@ -238,6 +246,13 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
 
     f:Hide()
     VirtualDialogFrame = f
+    
+    -- FIXED v0.5.1 PARENT ONHIDE WATCHDOG: Closes the Add/Edit frame instantly when the main addon window is closed
+    local mainWin = _G["AlternateWorldMainContentWindow"]
+    if mainWin then
+        mainWin:HookScript("OnHide", function() f:Hide() end)
+    end
+    
     return f
 end
 
