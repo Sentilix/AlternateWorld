@@ -11,14 +11,13 @@ local MENU_ITEMS = {
     { id = "character",   text = "Characters",       icon = "interface\\icons\\inv_misc_head_human_02" },
     { id = "inventory",   text = "Bags & Banks",     icon = "interface\\icons\\inv_misc_bag_08" },
     { id = "attunements", text = "Raids & Dungeons", icon = "interface\\icons\\inv_misc_head_dragon_01" },
+    { id = "restedxp",    text = "Rested XP",        icon = "interface\\icons\\inv_misc_rune_01" },
     { id = "history",     text = "History Log",      icon = "interface\\icons\\inv_misc_pocketwatch_02" },
     { id = "professions", text = "Professions",      icon = "interface\\icons\\trade_blacksmithing" },
-    { id = "restedxp",     text = "Rested XP",        icon = "interface\\icons\\inv_misc_rune_01" },
-    { id = "bankers",      text = "Bankers",          icon = "interface\\icons\\inv_misc_coin_17" },
+    { id = "bankers",     text = "Bankers",          icon = "interface\\icons\\inv_misc_coin_17" },
     { id = "virtualbankers", text = "Virtual Bankers", icon = 236424 },
-    { id = "clusters",     text = "Clusters",         icon = "interface\\icons\\inv_ore_arcanite_01" } 
+    { id = "clusters",    text = "Clusters",         icon = "interface\\icons\\inv_ore_arcanite_01" } 
 }
-
 
 local PANELS_MAP = {
     ["character"]   = "AlternateWorldCharacterView",
