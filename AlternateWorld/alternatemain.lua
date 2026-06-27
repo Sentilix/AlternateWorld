@@ -206,9 +206,9 @@ local function ToggleAddonInterface()
 end
 
 -- ============================================================================
--- v0.6.0 MODULE A: Official WoW Interface Options Registration (Global Scope)
+-- v0.6.0 MODULE A: Official WoW Interface Options & Configuration Panel
 -- ============================================================================
--- FIXED v0.6.0 CLASSIC ERA INJECTION: Runs instantly at file load to beat the interface options frame build lock
+-- FIXED v0.6.0 CONFIGURATION CORE: Obliterated the tainted button and established the options database grid
 local configPanel = CreateFrame("Frame", "AW_BlizzardInterfaceOptionsCategoryPanel")
 configPanel.name = "Alternate World" 
 
@@ -216,56 +216,59 @@ local title = configPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"
 title:SetPoint("TOPLEFT", configPanel, "TOPLEFT", 16, -16)
 title:SetText("|cFFFFFFFFAlternate World - Options Configuration|r")
 
-local desc = configPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -12)
-desc:SetSize(450, 40)
-desc:SetJustifyH("LEFT")
-desc:SetJustifyV("TOP")
-desc:SetText("Configuration options for multi-account rosters and logistics management paths will be deployed here dynamically in upcoming architecture iterations.")
+-- FIXED v0.6.0 DYNAMIC CHECKBOX: Spawns the premier settings checkbox (Default Enabled) aligned right under the title
+local minimapCB = CreateFrame("CheckButton", "AW_OptionsMinimapToggleCB", configPanel, "InterfaceOptionsCheckButtonTemplate")
+minimapCB:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -20)
+_G[minimapCB:GetName() .. "Text"]:SetText("Show Minimap Icon")
+_G[minimapCB:GetName() .. "Text"]:SetTextColor(1, 1, 1)
 
-local openUiBtn = CreateFrame("Button", nil, configPanel, "UIPanelButtonTemplate")
-openUiBtn:SetSize(140, 24)
-openUiBtn:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -20)
-openUiBtn:SetText("Open Dashboard")
-
-openUiBtn:SetScript("OnClick", function()
-    -- Forces the modern Settings Panel window to shut down instantly
-    if _G["SettingsPanel"] and _G["SettingsPanel"].Close then
-        _G["SettingsPanel"]:Close()
-    elseif _G["InterfaceOptionsFrame"] and _G["HideUIPanel"] then
-        _G["HideUIPanel"](_G["InterfaceOptionsFrame"])
-    end
-    
-    -- FIXED v0.6.0 GAME MENU CLEANUP: Force dismiss the background escape menu frame instantly
-    if _G["GameMenuFrame"] and _G["GameMenuFrame"].Hide then
-        _G["GameMenuFrame"]:Hide()
-    end
-    
-    -- FIXED v0.6.0 TIMEOUT SHIELD: Delays execution by 0.1s to let the game client release macro locks after UI closure
-    if _G["C_Timer"] and _G["C_Timer"].After then
-        _G["C_Timer"].After(0.1, function()
-            if SlashCmdList and SlashCmdList["AW"] then 
-                SlashCmdList["AW"]("") 
-            elseif SlashCmdList and SlashCmdList["ALTERNATEWORLD"] then
-                KeepActive = true
-                SlashCmdList["ALTERNATEWORLD"]("")
-            end
-        end)
+-- Internal runtime handler checking database configuration states to toggle layout markers
+local function RefreshOptionsCheckboxState()
+    if AlternateWorldDB and AlternateWorldDB.Settings and AlternateWorldDB.Settings.MinimapButtonSpec then
+        -- LibDBIcon uses .hide = true to hide, so we invert the boolean for the "Show" checkbox layout
+        local isHidden = AlternateWorldDB.Settings.MinimapButtonSpec.hide or false
+        minimapCB:SetChecked(not isHidden)
     else
-        -- Instant fallback route if timer subsystems are unavailable
-        if SlashCmdList and SlashCmdList["AW"] then SlashCmdList["AW"]("") end
+        -- Default Enabled policy if variables are uninitialized during initial initialization sequences
+        minimapCB:SetChecked(true)
+    end
+end
+
+-- Monitor frame loading triggers to safely synchronize interface checks with SavedVariables loading paths
+configPanel:SetScript("OnShow", function()
+    RefreshOptionsCheckboxState()
+end)
+
+minimapCB:SetScript("OnClick", function(self)
+    if not AlternateWorldDB then AlternateWorldDB = {} end
+    if not AlternateWorldDB.Settings then AlternateWorldDB.Settings = {} end
+    if not AlternateWorldDB.Settings.MinimapButtonSpec then
+        AlternateWorldDB.Settings.MinimapButtonSpec = { hide = false }
+    end
+
+    local isChecked = self:GetChecked()
+    
+    -- Invert value directly into LibDBIcon specifications registry parameters
+    AlternateWorldDB.Settings.MinimapButtonSpec.hide = not isChecked
+
+    -- Live-toggles the physical minimap graphic texture immediately without demanding a UI /reload sequence
+    local LDBIcon = LibStub and LibStub:GetLibrary("LibDBIcon-1.0", true)
+    if LDBIcon then
+        if isChecked then
+            LDBIcon:Show("AlternateWorld")
+        else
+            LDBIcon:Hide("AlternateWorld")
+        end
     end
 end)
 
--- FIXED v0.6.0 ENGINE BRIDGE: Enforces registration paths across both legacy and updated Classic Era settings frameworks
+-- Enforces registration paths across both legacy and updated Classic Era settings frameworks cleanly
 if _G["Settings"] and _G["Settings"].RegisterCanvasLayoutCategory then
-    -- Modern Classic Era engine path (Client 1.15.x+)
     local category = _G["Settings"].RegisterCanvasLayoutCategory(configPanel, configPanel.name)
     if _G["Settings"].RegisterAddOnCategory then
         _G["Settings"].RegisterAddOnCategory(category)
     end
 elseif InterfaceOptions_AddCategory then
-    -- Legacy Classic Era fallback engine path
     InterfaceOptions_AddCategory(configPanel)
 end
 
