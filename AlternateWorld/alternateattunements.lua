@@ -155,8 +155,6 @@ function AlternateWorldAttunementsView.CreatePanel(parentWindow)
 end
 
 function AlternateWorldAttunementsView.ShowData(selectedCharacterKey)
-    print(selectedCharacterKey or "nil");
-
     if not AttunementsPanel or not AlternateWorldDB or not selectedCharacterKey then return end
     local data = AlternateWorldDB[selectedCharacterKey]
     if not data then return end
