@@ -67,18 +67,23 @@ end
 function AlternateWorldScraper.ScanContainers(startBag, endBag)
     local itemsList = {}
     for bag = startBag, endBag do
-        local slots = C_Container.GetContainerNumSlots(bag) or 0
-        for slot = 1, slots do
-            local itemLink = C_Container.GetContainerItemLink(bag, slot)
-            if itemLink then
-                local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
-                local containerInfo = C_Container.GetContainerItemInfo(bag, slot)
-                if itemID and containerInfo then
-                    table.insert(itemsList, {
-                        id = itemID,
-                        count = containerInfo.stackCount or 1,
-                        icon = containerInfo.iconFileID
-                    })
+        -- FIXED v0.6.0 BANK ISOLATION: Explicitly skips active inventory bags (0-4) ONLY during a bank vault scan (-1 to 11)
+        local isContaminatedRow = (startBag == -1 and bag >= 0 and bag <= 4)
+        
+        if not isContaminatedRow then
+            local slots = C_Container.GetContainerNumSlots(bag) or 0
+            for slot = 1, slots do
+                local itemLink = C_Container.GetContainerItemLink(bag, slot)
+                if itemLink then
+                    local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
+                    local containerInfo = C_Container.GetContainerItemInfo(bag, slot)
+                    if itemID and containerInfo then
+                        table.insert(itemsList, {
+                            id = itemID,
+                            count = containerInfo.stackCount or 1,
+                            icon = containerInfo.iconFileID
+                        })
+                    end
                 end
             end
         end
