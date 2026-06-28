@@ -6,6 +6,11 @@ AlternateWorldMainFrameEngine = {}
 local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.0"
 local addonAuthor = C_AddOns.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
 
+-- FIXED v0.6.1 FLIGHT SHIELD: Hard-locked memory cache variables to survive Blizzard realm-name phase drops
+local cachedPlayerName = nil
+local cachedPlayerRealm = nil
+local cachedCharacterKey = nil
+
 local AlternateWorldMainFrame = CreateFrame("Frame", "AlternateWorldMainFrame", UIParent, "BasicFrameTemplateWithInset")
 AlternateWorldMainFrame:SetSize(650, 560) 
 AlternateWorldMainFrame:SetPoint("CENTER", UIParent, "CENTER") 
@@ -30,7 +35,21 @@ function AlternateWorldMainFrameEngine.GetAuthor()
     return addonAuthor
 end
 
-local function GetSelectedCharacterKey() return selectedCharacterKey end
+-- FIXED v0.6.1 ROUTING REPAIR: Always fallback onto the hard-locked boot cache if Blizzard drops realm strings during flight
+local function GetSelectedCharacterKey()
+    if cachedCharacterKey then
+        return cachedCharacterKey
+    end
+    
+    -- Emergency fallback if cache was uninitialized
+    local liveName = UnitName("player")
+    local liveRealm = GetRealmName()
+    if liveName and liveRealm and liveRealm ~= "" then
+        return liveName .. " - " .. liveRealm
+    end
+    return nil
+end
+
 function AlternateWorldMainFrameEngine.GetSelectedCharacterKey() return selectedCharacterKey end
 
 SLASH_ALTERNATEWORLD1 = "/aw"
@@ -281,6 +300,13 @@ integrationBootstrapper:RegisterEvent("PLAYER_LOGIN")
 integrationBootstrapper:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_LOGIN" then
         self:UnregisterEvent("PLAYER_LOGIN")
+            
+        -- FIXED v0.6.1 INSTANCE CAPTURE: Safely locks character identity strings before flight status alterations
+        cachedPlayerName = UnitName("player")
+        cachedPlayerRealm = GetRealmName()
+        if cachedPlayerName and cachedPlayerRealm then
+            cachedCharacterKey = cachedPlayerName .. " - " .. cachedPlayerRealm
+        end
         
         local LibStub = _G["LibStub"]
         local LDB = LibStub and LibStub:GetLibrary("LibDataBroker-1.1", true)
