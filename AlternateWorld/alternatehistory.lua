@@ -57,6 +57,9 @@ function AlternateWorldHistoryView.ShowData(selectedCharacterKey)
     else
         local totalHeight = 10
         local count = 0
+        -- FIXED v0.6.0 DYNAMIC WIDTH CALCULATION: Enforces standard safe margins clear of scrollbars
+        local targetWidth = ScrollContent:GetWidth() - 20
+        
         for i = #historyLog, 1, -1 do
             count = count + 1
             local entry = historyLog[i]
@@ -65,13 +68,19 @@ function AlternateWorldHistoryView.ShowData(selectedCharacterKey)
             if not fs then
                 fs = ScrollContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
                 fs:SetJustifyH("LEFT")
+                -- FIXED v0.6.0 LINEBREAK ENFORCEMENT: Locks the boundaries to wrap text strings cleanly
+                fs:SetWidth(targetWidth)
+                fs:SetWordWrap(true)
+                fs:SetNonSpaceWrap(true)
                 LogFontStrings[count] = fs
             end
+
+            -- Safely refresh the width matrix calculation dynamically in case UI scales are altered
+            fs:SetWidth(targetWidth)
 
             if not previousAnchor then fs:SetPoint("TOPLEFT", ScrollContent, "TOPLEFT", 10, -10)
             else fs:SetPoint("TOPLEFT", previousAnchor, "BOTTOMLEFT", 0, -8) end
 
-            -- FIXED UNPACKER: Detects if the database entry is a sub-table or raw text line string
             local finalTimestamp = "2026-01-01 00:00:00"
             local finalEventText = ""
             
@@ -82,7 +91,6 @@ function AlternateWorldHistoryView.ShowData(selectedCharacterKey)
                 finalEventText = tostring(entry)
             end
 
-            -- Format: [Timestamp] in White with seconds included, Event details in original layout colors
             fs:SetText("|cFFFFFFFF[" .. finalTimestamp .. "]|r  " .. finalEventText)
             fs:Show()
             
