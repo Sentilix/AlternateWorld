@@ -81,8 +81,17 @@ function AlternateWorldNavigation.CreateMenu(parentMenuFrame, GetSelectedCharact
         btn:SetScript("OnClick", function()
             PlaySound(841)
             AlternateWorldNavigation.HideAllPanels()
+            
             local targetObj = _G[PANELS_MAP[item.id]]
-            local activeKey = GetSelectedCharacterKeyFunc and GetSelectedCharacterKeyFunc()
+            
+            -- FIXED v0.6.1 PLATFORM SYNCHRONIZATION: Read directly from core runtime keys to prevent 0 gold / 0 ilvl data loss
+            local activeKey = _G["selectedCharacterKey"] or selectedCharacterKey or _G["AWCachedCharacterKey"] or AWCachedCharacterKey
+            
+            -- Tertiary safety layer if the global scope parameters are unassigned
+            if (not activeKey or activeKey == "") and GetSelectedCharacterKeyFunc then
+                activeKey = GetSelectedCharacterKeyFunc()
+            end
+            
             if targetObj and targetObj.ShowData and activeKey then
                 targetObj.ShowData(activeKey)
             end

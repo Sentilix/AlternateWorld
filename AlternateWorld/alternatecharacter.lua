@@ -16,7 +16,10 @@ function AlternateWorldCharacterEngine.CalculateAccountTotals()
     if not AlternateWorldDB then return totals end
     
     for key, loopChar in pairs(AlternateWorldDB) do
-        if key ~= "Settings" and loopChar and not loopChar.isVirtual then
+        -- FIXED v0.6.1 TOTAL ISOLATION SHIELD: Explicitly block technical configuration keys and cache strings from polluting stats calculations
+        local isTechnicalSystemKey = (key == "Settings" or key == "AWCachedCharacterKey" or key == "cachedCharacterKey")
+        
+        if not isTechnicalSystemKey and loopChar and type(loopChar) == "table" and not loopChar.isVirtual then
             if loopChar.faction == "Alliance" then
                 totals.allyGold = totals.allyGold + (loopChar.money or 0)
                 totals.allyChars = totals.allyChars + 1
@@ -28,6 +31,7 @@ function AlternateWorldCharacterEngine.CalculateAccountTotals()
             end
         end
     end
+
     return totals
 end
 

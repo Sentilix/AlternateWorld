@@ -149,8 +149,8 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     local currentBankData, currentBankTimestamp = {}, "Never"
     local existingHistory, existingProfessions = {}, {}
     local isCharacterFavorite = false
+    local cachedMoneyValue = 0 -- FIXED v0.6.1: Default to 0
     
-    -- FIXED v0.6.0 DATA PRESERVATION: Fallback directly onto the hard-locked login cache if event sweeps pass nil tables
     if existingCharData then
         oldMax = existingCharData.maxItemLevel or 0
         existingLockouts = existingCharData.activeRaidIDs
@@ -159,6 +159,8 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         existingHistory = existingCharData.historyLog or {}
         existingProfessions = existingCharData.professions or {}
         isCharacterFavorite = existingCharData.isFavourite or false
+        -- FIXED v0.6.1 GOLD RETENTION: Safely extract legacy money metrics before database override
+        cachedMoneyValue = existingCharData.money or 0
     elseif AlternateWorldDB and _G["AWCachedCharacterKey"] then
         local backupKey = _G["AWCachedCharacterKey"]
         if AlternateWorldDB[backupKey] then
@@ -170,6 +172,8 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
             existingHistory = backupData.historyLog or {}
             existingProfessions = backupData.professions or {}
             isCharacterFavorite = backupData.isFavourite or false
+            -- FIXED v0.6.1 GOLD RETENTION fallback: Extract legacy money metrics from global cache
+            cachedMoneyValue = backupData.money or 0
         end
     end
     
@@ -210,6 +214,9 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     local maxXP = UnitXPMax("player") or 1
     local restedXP = GetXPExhaustion() or 0
     local isCharacterResting = IsResting() or false
+    
+    -- FIXED v0.6.1 LIVE GOLD SCRAPER: Capture current player money wealth directly from the Blizzard API engine
+    local liveMoneyValue = GetMoney() or cachedMoneyValue or 0
 
     return {
         name = UnitName("player"),
@@ -230,21 +237,19 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         historyLog = existingHistory,
         professions = finalProfessions,
         activeRaidIDs = currentLockouts,
+        
+        -- FIXED v0.6.1 ITEM LEVEL SYMMETRY: Enforce dual naming structures to feed both data loader and UI fields cleanly
         maxItemLevel = newMax,
+        itemLevel = currentIlvl or newMax or 0, -- FIXED: Extra layout mapping node injected
+        
+        -- FIXED v0.6.1 GOLD TRANSACTION TRACKING: Inject your true character money directly into the database payload
+        money = liveMoneyValue,
         
         -- Attunement state registry logs
         attunements = {
-            MC = isMC,
-            BWL = isBWL,
-            Onyxia = isOny,
-            Naxxramas = isNaxx,
-            BRDKey = isBRD,
-            ScholoKey = isScholo,
-            StratKey = isStrat,
-            UBRSKey = isUBRS,
-            MaraKey = isMara,
-            GnomereganKey = isGnomeregan,
-            DMKey = isDM
+            MC = isMC, BWL = isBWL, Onyxia = isOny, Naxxramas = isNaxx,
+            BRDKey = isBRD, ScholoKey = isScholo, StratKey = isStrat,
+            UBRSKey = isUBRS, MaraKey = isMara, GnomereganKey = isGnomeregan, DMKey = isDM
         },
         
         -- Rested XP calculations parameters
@@ -253,7 +258,7 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         restedXP = restedXP,
         isResting = isCharacterResting,
         
-        -- FIXED v0.6.0 DATA PROTECTION: Visual favorite state survives all automatic ticks
+        -- FIXED v0.6.1 DATA PROTECTION: Visual favorite state survives all automatic ticks
         isFavourite = isCharacterFavorite,
     }
 end
