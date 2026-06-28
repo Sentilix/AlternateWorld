@@ -13,8 +13,8 @@ set DEST=%TEMP%\%ADDONNAME%
 
 call :subCreateTempDir
 
-mkdir "%DEST%\images"
-copy %ADDONNAME%\images\* "%DEST%\images\"
+xcopy %ADDONNAME%\images\* "%DEST%\images\" /S
+xcopy "%ADDONNAME%\libs" "%DEST%\libs\" /S
 
 copy %ADDONNAME%\*.md "%DEST%\"
 copy %ADDONNAME%\*.lua "%DEST%\"

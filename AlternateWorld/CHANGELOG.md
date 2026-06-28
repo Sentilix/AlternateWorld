@@ -1,60 +1,88 @@
 # Alternate World - Changelog
 
+## [v0.6.0] - 2026-06-28
+## Added
+* **Minimap Icon**: Yellow Human Female icon added to border (draggable).
+* **Titan Panel**: Added LibDataBroker support for top bar tracking.
+* **Addon Options**: Created config page under Esc -> Options -> AddOns.
+
+## Changed
+* **Minimap Toggle**: Added "Show Minimap Icon" checkbox (updates live).
+* **Sidebar Sorting**: Reordered Rested XP, History Log, and Professions into a leveling block.
+
+## Fixed
+* **Bag & Bank Isolation**: Bag items leaked into Bank layout slots - fixed.
+* **Banker Suffix Dropdown**: Suffix (-Net, -Mir, -Fir) cleared upon dropdown click - fixed.
+* **Zone & Flight Wipe**: Character tabs blanked out during zone loads or flights - fixed via `AWCachedCharacterKey`.
+* **Favorite Star Reload**: Toggle state wiped on reload due to `isFavorite` spelling mismatch - fixed.
+* **History Linebreaks**: Long history logs extended horizontally past canvas margins - fixed via autowrap.
+* **Escape & Spell Errors**: Insecure UI close lines broke the Escape key target and caused BugSack errors - fixed.
+
+
 ## [v0.5.1] - 2026-06-27
 ### Added
-- Hierarchical text formatting matrix to category dropdowns on the main panel.
-- Three-space horizontal layout indentation for character row items in dropdown selections.
-- Intermittent white blank row separators between realm category lists to improve spacing contrast.
-- Solid background canvas textures (`WHITE8X` overlay buffers) on popup frames to block out underlying text bleed.
-- `OnHide` monitoring triggers on dynamic sub-panels to force absolute automatic closures.
+* **Dropdown Formatting**: Character rows indented with 3 spaces under server headers.
+* **Dropdown Spacers**: Added blank spacing rows between different realm lists.
+* **Popup Text Bleed**: Added solid background textures to block background text bleed.
+* **Auto-closure**: Added OnHide triggers to force sub-panels to close automatically.
+
 ### Changed
-- Converted all legacy `SOUNDKIT` global object paths to stable native numeric sound aliases (`830`, `841`, `856`, `846`).
-- Optimized `InitializeCategoryDropdown` routines to render large, clean white server headers.
+* **Soundkit IDs**: Converted legacy sound paths to native numeric IDs (830, 841, 856, 846).
+
 ### Fixed
-- Fixed local scope block crashes where table arrays returned `nil` states on dedicated single-realm setups.
-- Eliminated legacy server-string text extensions (e.g., `-mir`, `-net`) inside option rows.
-- Re-enforced proper class token overrides on Virtual profiles to prevent them from misrendering as white Priests.
+* **Single-realm Crash**: Fixed crashes where empty tables returned nil on single-realm setups.
+* **Row Server Strings**: Cleaned up server-string extensions (-mir, -net) inside rows.
+* **Virtual Class Colors**: Fixed virtual profiles misrendering as white Priests.
+
 
 ## [v0.5.0] - 2026-06-26
 ### Added
-- Created the dedicated Virtual Bankers layout manager system under an independent navigation tab.
-- Integrated cross-account Profile Exporter and Importer serialization text tools.
-- Deployed strict alphanumeric filter locks (Letters only for name strings; escaped hyphens and apostrophes for realms).
-- Re-anchored dynamic frame pools directly to absolute `TOPRIGHT` parent nodes to enforce clear scrollbar clearances.
+* **Virtual Bankers**: Added virtual bankers system under a new navigation tab.
+* **Profile Sync**: Added cross-account exporter and importer text tools.
+* **Input Filters**: Restricted names to letters only, with allowed hyphens/apostrophes for realms.
+* **Scrollbar Alignment**: Re-anchored frames to TOPRIGHT to clear scrollbar paths.
+
 ### Changed
-- Re-architected code structure by splitting core systems into 7 decoupled sequential boot modules.
-- Migrated Virtual Banker registration components fully out of the main `alternatebankersui.lua` workspace.
+* **Module Split**: Re-architected code from single files into 7 decoupled boot modules.
+
 ### Fixed
-- Pulverized object memory collision crashes by implementing distinct line and header memory pools (`AW_VBRowsPool`, `AW_VBHeadersPool`).
-- Closed critical injection vulnerability loopholes on the Edit window dialog system.
-- Corrected initialization execution paths by re-ordering internal `.toc` load assignments.
+* **Memory Collisions**: Fixed pool crashes by separating row and header pools.
+* **Edit Box Injection**: Closed critical input vulnerability loopholes on edit dialogs.
+* **TOC Loading**: Corrected initialization order by rewriting internal .toc load paths.
+
 
 ## [v0.4.2] - 2026-06-15
 ### Fixed
-- Resolved alignment shifts on main text labels within custom UI frames.
-- Repaired a font-rendering glitch affecting non-standard screen scales.
+* **Label Shifts**: Fixed alignment shifts on main text labels.
+* **Font Scaling**: Repaired font-rendering glitches on non-standard screen scales.
+
 
 ## [v0.4.1] - 2026-06-02
 ### Changed
-- Standardized localized naming metrics across global data array structures.
-- Fine-tuned texture coordinates for default character class icon borders.
+* **Naming Standardization**: Localized naming metrics standardized across global arrays.
+* **Class Icon Borders**: Fine-tuned texture coordinates for character class borders.
+
 
 ## [v0.4.0] - 2026-05-20
 ### Added
-- Implemented strict hierarchical flow routing for dropdown populates.
-- Enforced Single-Realm Isolation Mode rulesets to restrict floodgates to unassigned local realms.
+* **Dropdown Flow**: Implemented structural flow routing for dropdown populations.
+* **Realm Isolation**: Enforced Single-Realm Isolation rules to restrict views to local realms.
+
 
 ## [v0.3.0] - 2026-04-12
 ### Added
-- Deployed the Multi-Realm Cluster routing configuration interface parameters.
+* **Multi-Realm Clusters**: Added routing configurations for connected realm families.
+
 ### Changed
-- Optimized the core scanning engine to handle multiple connected realm families seamlessly.
+* **Scanner Optimization**: Optimized scanning engine to handle multiple connected servers.
+
 
 ## [v0.2.0] - Legacy Baseline
 ### Added
-- Implemented core character scan log mechanisms for local gold, level tracking, resting states, bags, and bank windows.
-- Created multi-tab selection layouts interface frameworks.
+* **Core Scanner**: Added tracking for local gold, level, resting state, bags, and bank windows.
+* **Multi-Tab Dashboard**: Created multi-tab selection interface frame layers.
+
 
 ## [v0.1.0] - Initial Prototype
 ### Added
-- Initial proof-of-concept logistics engine tracking local character data parameters.
+* **Proof of Concept**: Initial prototype engine tracking local character variables.
