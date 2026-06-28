@@ -234,9 +234,17 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         
         -- Attunement state registry logs
         attunements = {
-            mc = isMC, bwl = isBWL, ony = isOny, naxx = isNaxx,
-            brd = isBRD, scholo = isScholo, strat = isStrat,
-            gnomeregan = isGnomeregan, mara = isMara, dm = isDM, ubrs = isUBRS
+            MC = isMC,
+            BWL = isBWL,
+            Onyxia = isOny,
+            Naxxramas = isNaxx,
+            BRDKey = isBRD,
+            ScholoKey = isScholo,
+            StratKey = isStrat,
+            UBRSKey = isUBRS,
+            MaraKey = isMara,
+            GnomereganKey = isGnomeregan,
+            DMKey = isDM
         },
         
         -- Rested XP calculations parameters
