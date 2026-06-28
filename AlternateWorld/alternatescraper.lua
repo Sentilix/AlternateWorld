@@ -148,7 +148,9 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     local oldMax, existingLockouts = 0, nil
     local currentBankData, currentBankTimestamp = {}, "Never"
     local existingHistory, existingProfessions = {}, {}
+    local isCharacterFavorite = false
     
+    -- FIXED v0.6.0 DATA PRESERVATION: Fallback directly onto the hard-locked login cache if event sweeps pass nil tables
     if existingCharData then
         oldMax = existingCharData.maxItemLevel or 0
         existingLockouts = existingCharData.activeRaidIDs
@@ -156,7 +158,21 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         currentBankTimestamp = existingCharData.bankUpdated or "Never"
         existingHistory = existingCharData.historyLog or {}
         existingProfessions = existingCharData.professions or {}
+        isCharacterFavorite = existingCharData.isFavourite or false
+    elseif AlternateWorldDB and _G["AWCachedCharacterKey"] then
+        local backupKey = _G["AWCachedCharacterKey"]
+        if AlternateWorldDB[backupKey] then
+            local backupData = AlternateWorldDB[backupKey]
+            oldMax = backupData.maxItemLevel or 0
+            existingLockouts = backupData.activeRaidIDs
+            currentBankData = backupData.bankItems or {}
+            currentBankTimestamp = backupData.bankUpdated or "Never"
+            existingHistory = backupData.historyLog or {}
+            existingProfessions = backupData.professions or {}
+            isCharacterFavorite = backupData.isFavourite or false
+        end
     end
+    
     local newMax = math.max(oldMax, currentIlvl)
     
     local genderString = "Male"
@@ -190,7 +206,11 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         finalProfessions = AlternateWorldProfScraper.GetUpdatedProfessions(existingProfessions)
     end
 
-    -- FIXED REST CAPTURE ENGINE: Extracted live leveling experience pools and rest parameters safely
+    local currentXP = UnitXP("player") or 0
+    local maxXP = UnitXPMax("player") or 1
+    local restedXP = GetXPExhaustion() or 0
+    local isCharacterResting = IsResting() or false
+
     return {
         name = UnitName("player"),
         realm = GetRealmName(),
@@ -200,28 +220,33 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         classNameLocal = UnitClass("player") or "Unknown",
         faction = UnitFactionGroup("player") or "Alliance",
         gender = genderString,
-        zone = GetRealZoneText() or "Unknown",
-        money = GetMoney() or 0,
-        specText = pSpecName,
-        specIcon = pSpecIcon,
-        itemLevel = currentIlvl,
-        maxItemLevel = newMax,
-        bagsUpdated = currentTimestamp,
+        zone = GetRealZoneText() or "Unknown Zone",
+        
+        -- Nested structural arrays
         bagItems = currentBagData,
+        bagsUpdated = currentTimestamp,
         bankItems = currentBankData,
         bankUpdated = currentBankTimestamp,
-        activeRaidIDs = currentLockouts,
         historyLog = existingHistory,
         professions = finalProfessions,
-        currentXP = UnitXP("player") or 0,
-        maxXP = UnitXPMax("player") or 1,
-        restedXP = GetXPExhaustion() or 0,
-        isResting = IsResting() and true or false,
+        activeRaidIDs = currentLockouts,
+        maxItemLevel = newMax,
+        
+        -- Attunement state registry logs
         attunements = {
-            Onyxia = isOny, MC = isMC, BWL = isBWL, Naxxramas = isNaxx,
-            BRDKey = isBRD, ScholoKey = isScholo, StratKey = isStrat,
-            GnomereganKey = isGnomeregan, MaraKey = isMara, DMKey = isDM, UBRSKey = isUBRS
-        }
+            mc = isMC, bwl = isBWL, ony = isOny, naxx = isNaxx,
+            brd = isBRD, scholo = isScholo, strat = isStrat,
+            gnomeregan = isGnomeregan, mara = isMara, dm = isDM, ubrs = isUBRS
+        },
+        
+        -- Rested XP calculations parameters
+        currentXP = currentXP,
+        maxXP = maxXP,
+        restedXP = restedXP,
+        isResting = isCharacterResting,
+        
+        -- FIXED v0.6.0 DATA PROTECTION: Visual favorite state survives all automatic ticks
+        isFavourite = isCharacterFavorite,
     }
 end
 

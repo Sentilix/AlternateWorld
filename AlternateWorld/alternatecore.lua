@@ -85,9 +85,11 @@ function AlternateWorldCore.Initialize()
         end
 
         if event == "PLAYER_ENTERING_WORLD" then
-            -- FIXED: Removed the unreliable asynced RegisterPrefix call from here
-            if AlternateWorldDBEngine and AlternateWorldDBEngine.SaveCurrentCharacterData then
-                AlternateWorldDBEngine.SaveCurrentCharacterData()
+            local checkRealmOnLoad = GetRealmName()
+            if checkRealmOnLoad and checkRealmOnLoad ~= "" then
+                if AlternateWorldDBEngine and AlternateWorldDBEngine.SaveCurrentCharacterData then
+                    AlternateWorldDBEngine.SaveCurrentCharacterData()
+                end
             end
         end
 
@@ -176,8 +178,11 @@ function AlternateWorldCore.Initialize()
         end
 
         if isAddonFullyLoaded and event ~= "ADDON_LOADED" then
-            if AlternateWorldDBEngine and AlternateWorldDBEngine.SaveCurrentCharacterData then
-                AlternateWorldDBEngine.SaveCurrentCharacterData()
+            local currentLiveRealm = GetRealmName()
+            if currentLiveRealm and currentLiveRealm ~= "" then
+                if AlternateWorldDBEngine and AlternateWorldDBEngine.SaveCurrentCharacterData then
+                    AlternateWorldDBEngine.SaveCurrentCharacterData()
+                end
             end
         end
 

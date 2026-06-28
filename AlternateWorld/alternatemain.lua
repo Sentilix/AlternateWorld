@@ -6,10 +6,10 @@ AlternateWorldMainFrameEngine = {}
 local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.0"
 local addonAuthor = C_AddOns.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
 
--- FIXED v0.6.1 FLIGHT SHIELD: Hard-locked memory cache variables to survive Blizzard realm-name phase drops
+-- FIXED v0.6.0 FLIGHT SHIELD: Hard-locked memory cache variables to survive Blizzard realm-name phase drops
 local cachedPlayerName = nil
 local cachedPlayerRealm = nil
-local cachedCharacterKey = nil
+AWCachedCharacterKey = nil
 
 local AlternateWorldMainFrame = CreateFrame("Frame", "AlternateWorldMainFrame", UIParent, "BasicFrameTemplateWithInset")
 AlternateWorldMainFrame:SetSize(650, 560) 
@@ -35,10 +35,10 @@ function AlternateWorldMainFrameEngine.GetAuthor()
     return addonAuthor
 end
 
--- FIXED v0.6.1 ROUTING REPAIR: Always fallback onto the hard-locked boot cache if Blizzard drops realm strings during flight
+-- FIXED v0.6.0 ROUTING REPAIR: Always fallback onto the hard-locked boot cache if Blizzard drops realm strings during flight
 local function GetSelectedCharacterKey()
-    if cachedCharacterKey then
-        return cachedCharacterKey
+    if AWCachedCharacterKey then
+        return AWCachedCharacterKey
     end
     
     -- Emergency fallback if cache was uninitialized
@@ -192,7 +192,17 @@ function AlternateWorldMainFrameEngine.OnAddonLoaded()
     end
 end
 
-function AlternateWorldMainFrameEngine.RefreshUI() AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey) end
+-- FIXED v0.6.0 UI REFRESH SHIELD: Force the interface update loop to read directly from your global login cache to prevent visual blanking
+local activeKey = _G["AWCachedCharacterKey"] or AWCachedCharacterKey
+
+-- Fallback mechanism mapping if the global initialization spec bounds are unassigned
+if not activeKey then
+    local liveName = UnitName("player")
+    local liveRealm = GetRealmName()
+    if liveName and liveRealm and liveRealm ~= "" then
+        activeKey = liveName .. " - " .. liveRealm
+    end
+end
 
 -- ============================================================================
 -- v0.6.0 EXTERNAL INTEGRATION ENGINE: Global Dynamic Interface Router
@@ -305,7 +315,7 @@ integrationBootstrapper:SetScript("OnEvent", function(self, event)
         cachedPlayerName = UnitName("player")
         cachedPlayerRealm = GetRealmName()
         if cachedPlayerName and cachedPlayerRealm then
-            cachedCharacterKey = cachedPlayerName .. " - " .. cachedPlayerRealm
+            AWCachedCharacterKey = cachedPlayerName .. " - " .. cachedPlayerRealm
         end
         
         local LibStub = _G["LibStub"]
