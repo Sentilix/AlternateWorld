@@ -2,7 +2,7 @@
 ## Interface: 11508
 ## Notes: Alternate Character Information
 ## Author: Mimma @ EU-Pyrewood Village
-## Version: 0.6.0
+## Version: 0.6.1
 ## SavedVariables: AlternateWorldDB
 
 alternateconstants.lua
@@ -30,9 +30,3 @@ alternateclusterconstants.lua
 alternateclustersui.lua
 alternatepost.lua
 alternatemain.lua
-
-
-## Version 0.6.0:
-## TODO: Tilføj minimap menu
-## TODO: Tilføj mulighed for Titan Panel setup
-## TODO: Opsætning i Blizzard's addon options

@@ -1,9 +1,9 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Alternate World - Main User Interface & Layout Frame
 -- ============================================================================
 
 AlternateWorldMainFrameEngine = {}
-local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.0"
+local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.1"
 local addonAuthor = C_AddOns.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
 
 -- FIXED v0.6.0 FLIGHT SHIELD: Hard-locked memory cache variables to survive Blizzard realm-name phase drops
@@ -58,11 +58,17 @@ SlashCmdList["ALTERNATEWORLD"] = function()
     if AlternateWorldMainFrame:IsShown() then 
         AlternateWorldMainFrame:Hide() 
     else 
+        -- FIXED v0.6.1 LIVE SCAN TRIGGER: Forces an immediate database refresh upon window opening to populate all attunement nodes cleanly
+        if AlternateWorldDBEngine and AlternateWorldDBEngine.SaveCurrentCharacterData then
+            AlternateWorldDBEngine.SaveCurrentCharacterData()
+        end
+
         AlternateWorldNavigation.HideAllPanels()
         AlternateWorldMainFrame:Show()
         AlternateWorldCharacterView.ShowData(selectedCharacterKey)
     end
 end
+
 
 AlternateWorldMainFrame:SetScript("OnUpdate", function(self, elapsed)
     if AlternateWorldCore and AlternateWorldCore.IsFullyLoaded() and AlternateWorldAttunementsView and AlternateWorldAttunementsView.OnUpdateTick then
@@ -116,9 +122,9 @@ local function InitializeDropdown(self, level)
     if not AlternateWorldDB then return end
     local sortedKeys = {}
     
-    -- THE BULLETPROOF SHIELD: Only extracts keys that actually represent characters, avoiding any settings leak permanently
+    -- THE BULLETPROOF SHIELD: Only extracts keys that actually represent characters, explicitly blocking settings and virtual profiles
     for key, data in pairs(AlternateWorldDB) do 
-        if key ~= "Settings" and type(data) == "table" and data.classToken then
+        if key ~= "Settings" and type(data) == "table" and data.classToken and not data.isVirtual then
             table.insert(sortedKeys, key) 
         end
     end
@@ -302,7 +308,7 @@ elseif InterfaceOptions_AddCategory then
 end
 
 -- ============================================================================
--- v0.6.0 MODULE B: External Integration Engine (Time-Delayed LibDataBroker)
+-- v0.6.1 MODULE B: External Integration Engine (Time-Delayed LibDataBroker)
 -- ============================================================================
 local integrationBootstrapper = CreateFrame("Frame")
 integrationBootstrapper:RegisterEvent("PLAYER_LOGIN")
@@ -316,6 +322,15 @@ integrationBootstrapper:SetScript("OnEvent", function(self, event)
         cachedPlayerRealm = GetRealmName()
         if cachedPlayerName and cachedPlayerRealm then
             AWCachedCharacterKey = cachedPlayerName .. " - " .. cachedPlayerRealm
+        end
+        
+        -- FIXED v0.6.1 MASTER ONHIDE WATCHDOG: Syncs all inner layers perfectly when the frame window is closed via the red X
+        if AlternateWorldMainFrame and AlternateWorldMainFrame.HookScript then
+            AlternateWorldMainFrame:HookScript("OnHide", function()
+                if AlternateWorldNavigation and AlternateWorldNavigation.HideAllPanels then
+                    AlternateWorldNavigation.HideAllPanels()
+                end
+            end)
         end
         
         local LibStub = _G["LibStub"]
