@@ -18,19 +18,21 @@ local RAID_DATA = {
 }
 
 local DUNGEON_DATA = {
-    { key = "brd", name = "Blackrock Depths", icon = "Interface\\Icons\\INV_Misc_Key_03", reqText = "Shadowforge Key" },
+    { key = "brd", name = "Blackrock Depths", icon = "Interface\\Icons\\INV_Misc_Key_08", reqText = "Shadowforge Key" },
     { key = "scholo", name = "Scholomance", icon = "Interface\\Icons\\INV_Misc_Key_11", reqText = "The Skeleton Key" },
-    { key = "strat", name = "Stratholme", icon = "Interface\\Icons\\INV_Misc_Key_14", reqText = "Key to the City" },
+    { key = "strat", name = "Stratholme", icon = "Interface\\Icons\\INV_Misc_Key_13", reqText = "Key to the City" },
     { key = "ubrs", name = "UBRS (Upper Lair)", icon = "Interface\\Icons\\INV_Jewelry_Ring_01", reqText = "Seal of Ascension (Ring)" },
     { key = "mara", name = "Maraudon", icon = "Interface\\Icons\\INV_Staff_06", reqText = "Scepter of Celebras" },
     { key = "gnomer", name = "Gnomeregan", icon = "Interface\\Icons\\INV_Misc_Key_06", reqText = "Workshop Key" },
-    { key = "dm", name = "Dire Maul", icon = "Interface\\Icons\\INV_Misc_Key_10", reqText = "Crescent Key" }
+    { key = "dm", name = "Dire Maul", icon = "Interface\\Icons\\INV_Misc_Key_10", reqText = "Crescent Key" },
+    { key = "sm", name = "Scarlet Monastery", icon = "Interface\\Icons\\INV_Misc_Key_01", reqText = "The Scarlet Key" }
 }
 
 local DATA_KEY_MAP = {
     ["mc"] = "MC", ["bwl"] = "BWL", ["ony"] = "Onyxia", ["naxx"] = "Naxxramas",
     ["brd"] = "BRDKey", ["scholo"] = "ScholoKey", ["strat"] = "StratKey",
-    ["ubrs"] = "UBRSKey", ["mara"] = "MaraKey", ["gnomer"] = "GnomereganKey", ["dm"] = "DMKey"
+    ["ubrs"] = "UBRSKey", ["mara"] = "MaraKey", ["gnomer"] = "GnomereganKey", ["dm"] = "DMKey",
+    ["sm"] = "ScarletKey"
 }
 
 local function GetFormattedResetTime(expirationTimestamp)

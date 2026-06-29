@@ -91,7 +91,11 @@ function AlternateWorldScraper.ScanContainers(startBag, endBag)
     return itemsList
 end
 
+-- Global matrix buffer for instant keyring lookups during a single snapshot pass
+local localKeyringCache = {}
+
 local function HasItemEverywhere(targetID, cachedBankItems)
+    -- 1. Scan normal inventory bags (0 to 4)
     for bag = 0, 4 do
         local slots = C_Container.GetContainerNumSlots(bag) or 0
         for slot = 1, slots do
@@ -102,6 +106,13 @@ local function HasItemEverywhere(targetID, cachedBankItems)
             end
         end
     end
+    
+    -- 2. FIXED v0.6.1 INSTANT BUFFER LOOKUP: Check if the key already exists inside the memory cache
+    if localKeyringCache[targetID] then
+        return true
+	end
+    
+    -- 3. Scan bank fallback array cache
     if cachedBankItems then
         for _, itemData in ipairs(cachedBankItems) do
             if itemData.id == targetID then return true end
@@ -131,6 +142,23 @@ local function ScanRaidLockouts()
 end
 
 function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
+    local currentIlvl = 0
+
+    -- FIXED v0.6.1 SINGLE-PASS KEYRING SCANNER: Populates the lookup table once per snapshot to kill API storms permanently
+    localKeyringCache = {} -- Wipe memory buffer fresh
+    if KEYRING_CONTAINER then
+        local keyringSlots = C_Container.GetContainerNumSlots(KEYRING_CONTAINER) or 0
+        for slot = 1, keyringSlots do
+            local itemLink = C_Container.GetContainerItemLink(KEYRING_CONTAINER, slot)
+            if itemLink then
+                local id = tonumber(string.match(itemLink, "item:(%d+)"))
+                if id then
+                    localKeyringCache[id] = true
+                end
+            end
+        end
+    end
+
     local currentIlvl = 0
     pcall(function() currentIlvl = GetAverageItemLevel() end)
     
@@ -182,7 +210,28 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     local genderString = "Male"
     if UnitSex("player") == 3 then genderString = "Female" end
     
+    -- Scan normal bags (0 to 4)
     local currentBagData = AlternateWorldScraper.ScanContainers(0, 4)
+    
+    -- FIXED v0.6.1 API COMPATIBILITY: Query the keyring vault utilizing the dedicated Blizzard engine constant directly
+    if KEYRING_CONTAINER then
+        local keyringSlots = C_Container.GetContainerNumSlots(KEYRING_CONTAINER) or 0
+        for slot = 1, keyringSlots do
+            local itemLink = C_Container.GetContainerItemLink(KEYRING_CONTAINER, slot)
+            if itemLink then
+                local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
+                local containerInfo = C_Container.GetContainerItemInfo(KEYRING_CONTAINER, slot)
+                if itemID and containerInfo then
+                    table.insert(currentBagData, {
+                        id = itemID,
+                        count = containerInfo.stackCount or 1,
+                        icon = containerInfo.iconFileID
+                    })
+                end
+            end
+        end
+    end
+    
     local currentTimestamp = date("%Y-%m-%d %H:%M")
     
     local isMC = C_QuestLog.IsQuestFlaggedCompleted(7848) or false
@@ -193,10 +242,11 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     local isBRD = HasItemEverywhere(11000, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(4731) or false
     local isScholo = HasItemEverywhere(13704, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(5511) or false
     local isStrat = HasItemEverywhere(12382, currentBankData) or false
-    local isGnomeregan = HasItemEverywhere(6990, currentBankData) or false
+    local isGnomeregan = HasItemEverywhere(6893, currentBankData) or false 
     local isMara = HasItemEverywhere(12219, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(5144) or false
     local isDM = HasItemEverywhere(18250, currentBankData) or false
     local isUBRS = HasItemEverywhere(12344, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(4742) or C_QuestLog.IsQuestFlaggedCompleted(4743) or false
+    local isSM = HasItemEverywhere(7146, currentBankData) or false
 
     local currentLockouts = ScanRaidLockouts()
     if GetNumSavedInstances() == 0 and existingLockouts then
@@ -249,7 +299,8 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         attunements = {
             MC = isMC, BWL = isBWL, Onyxia = isOny, Naxxramas = isNaxx,
             BRDKey = isBRD, ScholoKey = isScholo, StratKey = isStrat,
-            UBRSKey = isUBRS, MaraKey = isMara, GnomereganKey = isGnomeregan, DMKey = isDM
+            UBRSKey = isUBRS, MaraKey = isMara, GnomereganKey = isGnomeregan,
+			DMKey = isDM, ScarletKey = isSM
         },
         
         -- Rested XP calculations parameters
