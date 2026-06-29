@@ -1,5 +1,22 @@
 # Alternate World - Changelog
 
+## [v0.6.1] - 2026-06-29
+### Added
+* **Scarlet Monastery**: Added Scarlet Monastery tracking with proper icon and name to the dungeon grid.
+
+### Changed
+* **Crafter Wordwrap**: Increased right layout margin layout boundary to 80px to clear the professions scrollbar clearance.
+* **Keyring Scanning**: Re-engineered item loops to scan the Era keyring container once per snapshot pass via an initialization cache to prevent event-storm overhead.
+
+### Fixed
+* **Virtual Dropdown Isolation**: (Bug): Virtual profiles leaked into the main character selection dropdown - fixed by adding a contextual `allowVirtual` parameter.
+* **Red X Frame Sync**: (Bug): Closing the addon via the red close button caused double-click requirements and black display sheets upon next load - fixed via atomic `OnHide` watchdog frame sync hooks.
+* **Attunement Case-Sensitivity**: (Bug): Raid attunements went blank after a reload due to case-sensitive text key mismatches against `DATA_KEY_MAP` - fixed.
+* **Gold Scraper Eviction**: (Bug): Personal gold and item level wiped to 0 when switching tabs due to missing `money` parameters in the live snapshot returns - fixed via `GetMoney()` API integration.
+* **Gnomeregan Key ID**: (Bug): Workshop Key used an incorrect item ID - corrected to `6893` to match the true Era keyring registry.
+* **Dungeon Icon Texture**: (Bug): Key icons for Scarlet, BRD, and Stratholme misrendered - updated to their true classic artwork strings (`_01`, `_08`, `_13`).
+
+
 ## [v0.6.0] - 2026-06-28
 ## Added
 * **Minimap Icon**: Yellow Human Female icon added to border (draggable).
