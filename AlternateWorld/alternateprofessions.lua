@@ -175,7 +175,7 @@ function AlternateWorldProfessionsView.RefreshDisplay(mainSelectedCharacterKey)
                 
                 rowFrame.Col2 = CreateFrame("Frame", nil, rowFrame)
                 rowFrame.Col2:SetPoint("TOPLEFT", rowFrame.Icon, "BOTTOMRIGHT", 12, 10)
-                rowFrame.Col2:SetSize(AWProfScrollContent:GetWidth() - 50, 28) 
+                rowFrame.Col2:SetSize(AWProfScrollContent:GetWidth() - 80, 28) 
                 
                 rowFrame.Col2Text = rowFrame.Col2:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
                 rowFrame.Col2Text:SetAllPoints(rowFrame.Col2)
