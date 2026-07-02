@@ -7,15 +7,11 @@ AlternateWorldDBEngine = {}
 -- Main Constructor: Packages fully gathered data snapshots securely into account matrices
 function AlternateWorldDBEngine.SaveCurrentCharacterData()
     if not AlternateWorldDB then AlternateWorldDB = {} end
-    
-    local charName = UnitName("player")
-    local realmName = GetRealmName()
-    if not charName or not realmName then return end
-    
-    local myKey = charName .. " - " .. realmName
+        
+    local myKey = _G["AWCachedCharacterKey"];
     
     -- Safety hook: If the scraping module hasn't loaded yet, abort to prevent zero-overwrites
-    if not AlternateWorldScraper or not AlternateWorldScraper.GatherFullSnapshot then return end
+    if not myKey or not AlternateWorldScraper or not AlternateWorldScraper.GatherFullSnapshot then return end
     
     -- Request a fresh, comprehensive data pack directly from the scraper module
     local currentSnapshot = AlternateWorldScraper.GatherFullSnapshot(AlternateWorldDB[myKey])

@@ -3,10 +3,9 @@
 -- ============================================================================
 
 AlternateWorldMainFrameEngine = {}
-local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.2"
+local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.3"
 local addonAuthor = C_AddOns.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
 
--- FIXED v0.6.0 FLIGHT SHIELD: Hard-locked memory cache variables to survive Blizzard realm-name phase drops
 local cachedPlayerName = nil
 local cachedPlayerRealm = nil
 AWCachedCharacterKey = nil
@@ -25,8 +24,6 @@ AlternateWorldMainFrame:SetScript("OnDragStart", AlternateWorldMainFrame.StartMo
 AlternateWorldMainFrame:SetScript("OnDragStop", AlternateWorldMainFrame.StopMovingOrSizing)
 AlternateWorldMainFrame:Hide()
 
-local selectedCharacterKey = nil
-
 function AlternateWorldMainFrameEngine.GetVersion()
     return addonVersion
 end
@@ -35,7 +32,6 @@ function AlternateWorldMainFrameEngine.GetAuthor()
     return addonAuthor
 end
 
--- FIXED v0.6.0 ROUTING REPAIR: Always fallback onto the hard-locked boot cache if Blizzard drops realm strings during flight
 local function GetSelectedCharacterKey()
     if AWCachedCharacterKey then
         return AWCachedCharacterKey
@@ -45,12 +41,16 @@ local function GetSelectedCharacterKey()
     local liveName = UnitName("player")
     local liveRealm = GetRealmName()
     if liveName and liveRealm and liveRealm ~= "" then
-        return liveName .. " - " .. liveRealm
+        AWCachedCharacterKey = liveName .. " - " .. liveRealm;
+        return AWCachedCharacterKey;
     end
+
     return nil
 end
 
-function AlternateWorldMainFrameEngine.GetSelectedCharacterKey() return selectedCharacterKey end
+function AlternateWorldMainFrameEngine.GetSelectedCharacterKey()
+    return GetSelectedCharacterKey();
+end
 
 SLASH_ALTERNATEWORLD1 = "/aw"
 SLASH_ALTERNATEWORLD2 = "/alternateworld"
@@ -66,9 +66,9 @@ SlashCmdList["ALTERNATEWORLD"] = function()
             UIDropDownMenu_Initialize(AlternateWorldCharDropdown, AlternateWorldMainFrameEngine.InitializeDropdown)
             
             -- Render front-facing header string text safely after initialization is locked
-            local data = AlternateWorldDB and AlternateWorldDB[selectedCharacterKey]
+            local data = AlternateWorldDB and AlternateWorldDB[AWCachedCharacterKey]
             if data and AlternateWorldConfig and AlternateWorldConfig.GetClassColoredText then
-                local displayName = AlternateWorldConfig.GetClassColoredText(selectedCharacterKey, data.classToken) or "|cFFFFFFFF" .. (data.name or "Character") .. "|r"
+                local displayName = AlternateWorldConfig.GetClassColoredText(AWCachedCharacterKey, data.classToken) or "|cFFFFFFFF" .. (data.name or "Character") .. "|r"
                 local factionIconInline = ""
                 if data.faction == "Alliance" then factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
                 elseif data.faction == "Horde" then factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t " end
@@ -76,13 +76,13 @@ SlashCmdList["ALTERNATEWORLD"] = function()
             end
         end
 
-        AlternateWorldCharacterView.ShowData(selectedCharacterKey)
+        AlternateWorldCharacterView.ShowData(AWCachedCharacterKey)
     end
 end
 
 AlternateWorldMainFrame:SetScript("OnUpdate", function(self, elapsed)
     if AlternateWorldCore and AlternateWorldCore.IsFullyLoaded() and AlternateWorldAttunementsView and AlternateWorldAttunementsView.OnUpdateTick then
-        AlternateWorldAttunementsView.OnUpdateTick(selectedCharacterKey)
+        AlternateWorldAttunementsView.OnUpdateTick(AWCachedCharacterKey)
     end
 end)
 
@@ -133,7 +133,7 @@ function AlternateWorldMainFrameEngine.InitializeDropdown(self, level)
     if not AlternateWorldDB then return end
     
     level = level or 1
-    
+
     -- LEVEL 1: Dynamically scan and extract all unique realms active inside your database
     if level == 1 then
         local realmSet = {}
@@ -189,7 +189,7 @@ function AlternateWorldMainFrameEngine.InitializeDropdown(self, level)
             if not displayName or displayName == "" then
                 displayName = "|cFFFFFFFF" .. (data and data.name or "Character") .. "|r"
             end
-            
+    
             -- TECHNICAL TEXT PURIFICATION: Strip any realm naming suffixes from Level 2 to maximize text space layout parameters
             local cleanDisplayName = string.gsub(displayName, "%s*-%s*[^|]+", "")
             
@@ -207,45 +207,34 @@ function AlternateWorldMainFrameEngine.InitializeDropdown(self, level)
             
             -- Core function executor triggered instantly when a row item is clicked inside Level 2
             info.func = function(button, arg1)
-                selectedCharacterKey = arg1
+                AWCachedCharacterKey = arg1
                 
                 if AlternateWorldCharDropdown then
                     UIDropDownMenu_SetText(AlternateWorldCharDropdown, factionIconInline .. displayName)
                 end
                 
                 if AlternateWorldNavigation and AlternateWorldNavigation.RefreshActiveView then
-                    AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey)
+                    AlternateWorldNavigation.RefreshActiveView(AWCachedCharacterKey)
                 end
                 
                 CloseDropDownMenus() -- Terminate all active dropdown matrices cleanly upon choice confirmation
             end
             
-            info.checked = (selectedCharacterKey == key)
+            info.checked = (AWCachedCharacterKey == key)
             UIDropDownMenu_AddButton(info, level)
         end
     end
 end
 
 function AlternateWorldMainFrameEngine.OnAddonLoaded()
-    local myName = UnitName("player")
-    if myName and AlternateWorldDB then
-        local foundKey = nil
-        for dbKey in pairs(AlternateWorldDB) do
-            local cleanDbName = string.match(dbKey, "([^%-]+)") or dbKey
-            cleanDbName = string.gsub(cleanDbName, "%s+", "")
-            if string.lower(cleanDbName) == string.lower(myName) then
-                foundKey = dbKey
-                break
-            end
-        end
-        
-        selectedCharacterKey = foundKey or (myName .. " - " .. GetRealmName())
+    local myFullName = GetSelectedCharacterKey()
 
-        --UIDropDownMenu_Initialize(AlternateWorldCharDropdown, InitializeDropdown)
+    if myFullName and AlternateWorldDB then       
+        AWCachedCharacterKey = myFullName;
         
-        local currentData = AlternateWorldDB[selectedCharacterKey]
+        local currentData = AlternateWorldDB[AWCachedCharacterKey]
         local currentClassToken = currentData and currentData.classToken or select(2, UnitClass("player"))
-        local coloredName = AlternateWorldConfig.GetClassColoredText(selectedCharacterKey, currentClassToken)
+        local coloredName = AlternateWorldConfig.GetClassColoredText(AWCachedCharacterKey, currentClassToken)
         local myFaction = currentData and currentData.faction or UnitFactionGroup("player")
         
         local myFactionIcon = ""
@@ -274,17 +263,17 @@ function AlternateWorldMainFrameEngine.OnAddonLoaded()
     end
 end
 
--- FIXED v0.6.0 UI REFRESH SHIELD: Force the interface update loop to read directly from your global login cache to prevent visual blanking
-local activeKey = _G["AWCachedCharacterKey"] or AWCachedCharacterKey
+---- FIXED v0.6.0 UI REFRESH SHIELD: Force the interface update loop to read directly from your global login cache to prevent visual blanking
+--local activeKey = _G["AWCachedCharacterKey"] or AWCachedCharacterKey
 
 -- Fallback mechanism mapping if the global initialization spec bounds are unassigned
-if not activeKey then
-    local liveName = UnitName("player")
-    local liveRealm = GetRealmName()
-    if liveName and liveRealm and liveRealm ~= "" then
-        activeKey = liveName .. " - " .. liveRealm
-    end
-end
+--if not activeKey then
+--    local liveName = UnitName("player")
+--    local liveRealm = GetRealmName()
+--    if liveName and liveRealm and liveRealm ~= "" then
+--        activeKey = liveName .. " - " .. liveRealm
+--    end
+--end
 
 -- ============================================================================
 -- v0.6.0 EXTERNAL INTEGRATION ENGINE: Global Dynamic Interface Router
