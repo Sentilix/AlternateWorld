@@ -116,10 +116,12 @@ function AlternateWorldCharacterEngine.ProcessShowData(selectedCharacterKey, ele
         elements.DetailLine2:SetText((data.race or "Unknown") .. " " .. (data.gender or "Female") .. " " .. classColorHex .. (data.classNameLocal or "Character") .. "|r of the " .. factionColored .. "  |cFFFFFFFF(Level " .. (data.level or 60) .. ")|r")
     end
 
+    data.specIcon = data.specIcon or "Interface\\Icons\\INV_Misc_QuestionMark";
+
     if data.specIcon and elements.SpecIconTexture and elements.SpecTextString then
         elements.SpecIconTexture:SetTexture(data.specIcon)
         elements.SpecIconTexture:Show()
-        elements.SpecTextString:SetText(string.format("|cFFFFFFFF%s|r", data.specText or "Fury (0/51/0)"))
+        elements.SpecTextString:SetText(string.format("|cFFFFFFFF%s|r", data.specText or "Unknown"))
     elseif elements.SpecIconTexture and elements.SpecTextString then
         elements.SpecIconTexture:Hide()
         elements.SpecTextString:SetText("|cFF888888No Specialization Allocations|r")

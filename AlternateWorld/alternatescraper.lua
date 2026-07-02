@@ -200,7 +200,6 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
             existingHistory = backupData.historyLog or {}
             existingProfessions = backupData.professions or {}
             isCharacterFavorite = backupData.isFavourite or false
-            -- FIXED v0.6.1 GOLD RETENTION fallback: Extract legacy money metrics from global cache
             cachedMoneyValue = backupData.money or 0
         end
     end
@@ -279,6 +278,9 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         gender = genderString,
         zone = GetRealZoneText() or "Unknown Zone",
         
+        specText = pSpecName,
+        specIcon = pSpecIcon,
+
         -- Nested structural arrays
         bagItems = currentBagData,
         bagsUpdated = currentTimestamp,
