@@ -3,7 +3,7 @@
 -- ============================================================================
 
 AlternateWorldMainFrameEngine = {}
-local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.1"
+local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.2"
 local addonAuthor = C_AddOns.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
 
 -- FIXED v0.6.0 FLIGHT SHIELD: Hard-locked memory cache variables to survive Blizzard realm-name phase drops
@@ -58,17 +58,27 @@ SlashCmdList["ALTERNATEWORLD"] = function()
     if AlternateWorldMainFrame:IsShown() then 
         AlternateWorldMainFrame:Hide() 
     else 
-        -- FIXED v0.6.1 LIVE SCAN TRIGGER: Forces an immediate database refresh upon window opening to populate all attunement nodes cleanly
-        if AlternateWorldDBEngine and AlternateWorldDBEngine.SaveCurrentCharacterData then
-            AlternateWorldDBEngine.SaveCurrentCharacterData()
-        end
-
         AlternateWorldNavigation.HideAllPanels()
         AlternateWorldMainFrame:Show()
+        
+        -- FIXED v0.6.2 RUNTIME DROPDOWN INITIALIZATION: Safely bind the character dropdown list only when manually opening the UI
+        if AlternateWorldCharDropdown and InitializeDropdown then
+            UIDropDownMenu_Initialize(AlternateWorldCharDropdown, InitializeDropdown)
+            
+            -- Re-render the closed front-button string text securely live on screen
+            local data = AlternateWorldDB and AlternateWorldDB[selectedCharacterKey]
+            if data and AlternateWorldConfig and AlternateWorldConfig.GetClassColoredText then
+                local displayName = AlternateWorldConfig.GetClassColoredText(selectedCharacterKey, data.classToken) or "|cFFFFFFFF" .. (data.name or "Character") .. "|r"
+                local factionIconInline = ""
+                if data.faction == "Alliance" then factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
+                elseif data.faction == "Horde" then factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t " end
+                UIDropDownMenu_SetText(AlternateWorldCharDropdown, factionIconInline .. displayName)
+            end
+        end
+
         AlternateWorldCharacterView.ShowData(selectedCharacterKey)
     end
 end
-
 
 AlternateWorldMainFrame:SetScript("OnUpdate", function(self, elapsed)
     if AlternateWorldCore and AlternateWorldCore.IsFullyLoaded() and AlternateWorldAttunementsView and AlternateWorldAttunementsView.OnUpdateTick then
@@ -165,7 +175,8 @@ function AlternateWorldMainFrameEngine.OnAddonLoaded()
         end
         
         selectedCharacterKey = foundKey or (myName .. " - " .. GetRealmName())
-        UIDropDownMenu_Initialize(AlternateWorldCharDropdown, InitializeDropdown)
+
+        --UIDropDownMenu_Initialize(AlternateWorldCharDropdown, InitializeDropdown)
         
         local currentData = AlternateWorldDB[selectedCharacterKey]
         local currentClassToken = currentData and currentData.classToken or select(2, UnitClass("player"))
