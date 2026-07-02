@@ -243,7 +243,7 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     local isScholo = HasItemEverywhere(13704, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(5511) or false
     local isStrat = HasItemEverywhere(12382, currentBankData) or false
     local isGnomeregan = HasItemEverywhere(6893, currentBankData) or false 
-    local isMara = HasItemEverywhere(12219, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(5144) or false
+    local isMara = HasItemEverywhere(17191, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(7046) or false
     local isDM = HasItemEverywhere(18250, currentBankData) or false
     local isUBRS = HasItemEverywhere(12344, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(4742) or C_QuestLog.IsQuestFlaggedCompleted(4743) or false
     local isSM = HasItemEverywhere(7146, currentBankData) or false
