@@ -61,11 +61,11 @@ SlashCmdList["ALTERNATEWORLD"] = function()
         AlternateWorldNavigation.HideAllPanels()
         AlternateWorldMainFrame:Show()
         
-        -- FIXED v0.6.2 RUNTIME DROPDOWN INITIALIZATION: Safely bind the character dropdown list only when manually opening the UI
-        if AlternateWorldCharDropdown and InitializeDropdown then
-            UIDropDownMenu_Initialize(AlternateWorldCharDropdown, InitializeDropdown)
+        -- FIXED v0.6.2 DROPDOWN ACTIVATION HOOK: Core callback reference now safely targets the validated engine scope
+        if AlternateWorldCharDropdown and AlternateWorldMainFrameEngine.InitializeDropdown then
+            UIDropDownMenu_Initialize(AlternateWorldCharDropdown, AlternateWorldMainFrameEngine.InitializeDropdown)
             
-            -- Re-render the closed front-button string text securely live on screen
+            -- Render front-facing header string text safely after initialization is locked
             local data = AlternateWorldDB and AlternateWorldDB[selectedCharacterKey]
             if data and AlternateWorldConfig and AlternateWorldConfig.GetClassColoredText then
                 local displayName = AlternateWorldConfig.GetClassColoredText(selectedCharacterKey, data.classToken) or "|cFFFFFFFF" .. (data.name or "Character") .. "|r"
@@ -128,34 +128,51 @@ AlternateWorldNavigation.CreateMenu(LeftMenu, GetSelectedCharacterKey)
 AlternateWorldRestedXPView.CreatePanel(AlternateWorldMainContentWindow)
 AlternateWorldBankersEngine.InitializeCorePanel(AlternateWorldMainContentWindow)
 
-local function InitializeDropdown(self, level)
+-- FIXED v0.6.2 DROPDOWN SCOPE ROUTING: Bound to engine namespace to prevent line-order nil anomalies permanently
+function AlternateWorldMainFrameEngine.InitializeDropdown(self, level)
     if not AlternateWorldDB then return end
+
     local sortedKeys = {}
-    
-    -- THE BULLETPROOF SHIELD: Only extracts keys that actually represent characters, explicitly blocking settings and virtual profiles
     for key, data in pairs(AlternateWorldDB) do 
         if key ~= "Settings" and type(data) == "table" and data.classToken and not data.isVirtual then
             table.insert(sortedKeys, key) 
         end
     end
     table.sort(sortedKeys)
-    
-    local info = UIDropDownMenu_CreateInfo()
+       
     for _, key in ipairs(sortedKeys) do
         local data = AlternateWorldDB[key]
-        local displayName = AlternateWorldConfig.GetClassColoredText(key, data.classToken)
+        
+        local info = UIDropDownMenu_CreateInfo()
+        
+        local displayName = nil
+        if AlternateWorldConfig and AlternateWorldConfig.GetClassColoredText and data and data.classToken then
+            displayName = AlternateWorldConfig.GetClassColoredText(key, data.classToken)
+        end
+        if not displayName or displayName == "" then
+            displayName = "|cFFFFFFFF" .. (data and data.name or "Character") .. "|r"
+        end
+        
         local factionIconInline = ""
-        if data.faction == "Alliance" then factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
-        elseif data.faction == "Horde" then factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t " end
+        if data and data.faction == "Alliance" then factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
+        elseif data and data.faction == "Horde" then factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t " end
         
         info.text = factionIconInline .. displayName
         info.value = key
         info.arg1 = key
+        
         info.func = function(button, arg1)
             selectedCharacterKey = arg1
-            UIDropDownMenu_SetText(AlternateWorldCharDropdown, factionIconInline .. displayName)
-            AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey)
+            
+            if AlternateWorldCharDropdown then
+                UIDropDownMenu_SetText(AlternateWorldCharDropdown, factionIconInline .. displayName)
+            end
+            
+            if AlternateWorldNavigation and AlternateWorldNavigation.RefreshActiveView then
+                AlternateWorldNavigation.RefreshActiveView(selectedCharacterKey)
+            end
         end
+        
         info.checked = (selectedCharacterKey == key)
         UIDropDownMenu_AddButton(info, level)
     end
