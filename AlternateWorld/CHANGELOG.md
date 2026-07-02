@@ -1,5 +1,19 @@
 # Alternate World - Changelog
 
+## [v0.6.2] - 2026-07-02
+### Added
+* **Realm Sub-Menus**: Split dropdown into Level 1 (Realms) and Level 2 (Characters) to handle many characters in the listings.
+* **Maraudon Detection**: Re-implemented item tracking for Scepter (`17191`) and quest flag completion checking (`7046`).
+
+### Changed
+* **Dropdown Layout**: Stripped redundant realm suffixes (e.g. `-Firemaw`) from character rows to maximize text space.
+
+### Fixed
+* **LFG Background Taint**: Fixed `ADDON_ACTION_BLOCKED` errors during LFG queue by shifting dropdown init to runtime slash command.
+* **Dropdown Click Lock**: Fixed character selection freeze caused by line-order `nil` scope bugs - shifted to explicit engine namespace.
+* **Cross-Realm Identity Bleed**: Fixed duplicate-name highlight bugs across connected realms via `GetBankerRealmContext` validation.
+
+
 ## [v0.6.1] - 2026-06-29
 ### Added
 * **Scarlet Monastery**: Added Scarlet Monastery tracking with proper icon and name to the dungeon grid.
