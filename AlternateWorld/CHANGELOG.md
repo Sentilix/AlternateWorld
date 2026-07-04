@@ -1,5 +1,11 @@
 # Alternate World - Changelog
 
+## [v0.6.3] - 2026-07-04
+### Fixed
+* **Cross-Realm Loading Collision**: Fixed initialization loading failures for characters sharing identical names across different realms.
+* **Professions Page Void**: Fixed a critical database mapping bug that prevented professions and specialization data from loading onto the character view page.
+
+
 ## [v0.6.2] - 2026-07-02
 ### Added
 * **Realm Sub-Menus**: Split dropdown into Level 1 (Realms) and Level 2 (Characters) to handle many characters in the listings.
