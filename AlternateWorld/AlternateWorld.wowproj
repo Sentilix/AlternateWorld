@@ -88,6 +88,8 @@
     <Content Include="alternateinventory.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="CHANGELOG.md" />
+    <Content Include="README.md" />
   </ItemGroup>
   <Import Project="$(DevEnvDir)\Extensions\Tools\MSBuild\AddonStudio\Wow\3.0\WowAddonStudio.targets" />
   <!--
