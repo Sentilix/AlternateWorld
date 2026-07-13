@@ -2,7 +2,7 @@
 ## Interface: 11508, 11509
 ## Notes: Alternate Character Information
 ## Author: Mimma @ EU-Pyrewood Village
-## Version: 0.6.4
+## Version: 0.7.0
 ## SavedVariables: AlternateWorldDB
 
 alternateconstants.lua
