@@ -3,7 +3,7 @@
 -- ============================================================================
 
 AlternateWorldMainFrameEngine = {}
-local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.3"
+local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.4"
 local addonAuthor = C_AddOns.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
 
 local cachedPlayerName = nil
@@ -78,6 +78,35 @@ SlashCmdList["ALTERNATEWORLD"] = function()
 
         AlternateWorldCharacterView.ShowData(AWCachedCharacterKey)
     end
+end
+
+-- FIXED v0.6.4 SLASH COMMAND: Displays local version and broadcasts queries utilizing the unified constants matrix
+SLASH_ALTERNATEWORLDVERSION1 = "/awversion"
+SLASH_ALTERNATEWORLDVERSION2 = "/alternateworldversion"
+SlashCmdList["ALTERNATEWORLDVERSION"] = function()
+    local localVersion = C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "Unknown"
+    local myPlayerName = UnitName("player") or "Character"
+    
+    -- FIXED v0.6.4 LEAN PRINT: Stripped all text concatenation hooks to leverage the centralized wrapper natively
+    AddonPrint("Querying network for other active versions...")
+    AddonPrint(string.format("%s is using Alternate World v%s", myPlayerName, localVersion))
+    
+    local targetChannel = nil
+    if IsInRaid() then targetChannel = "RAID"
+    elseif IsInGroup() then targetChannel = "PARTY" end
+    
+    if targetChannel and AlternateWorldConstants and AlternateWorldConstants.ADDON_COMM_PREFIX then
+        pcall(function()
+            C_ChatInfo.SendAddonMessage(AlternateWorldConstants.ADDON_COMM_PREFIX, "VERSION_REQUEST", targetChannel)
+        end)
+    end
+end
+
+-- FIXED v0.6.4 NETWORK RECEIVER: Cleanly routes cross-client outputs straight into the unified printing hub
+function AlternateWorldMainFrameEngine.PrintVersionResult(senderName, versionString)
+    if not senderName or not versionString then return end
+    
+    AddonPrint(string.format("%s is using Alternate World v%s", tostring(senderName), tostring(versionString)))
 end
 
 AlternateWorldMainFrame:SetScript("OnUpdate", function(self, elapsed)
@@ -262,18 +291,6 @@ function AlternateWorldMainFrameEngine.OnAddonLoaded()
         end
     end
 end
-
----- FIXED v0.6.0 UI REFRESH SHIELD: Force the interface update loop to read directly from your global login cache to prevent visual blanking
---local activeKey = _G["AWCachedCharacterKey"] or AWCachedCharacterKey
-
--- Fallback mechanism mapping if the global initialization spec bounds are unassigned
---if not activeKey then
---    local liveName = UnitName("player")
---    local liveRealm = GetRealmName()
---    if liveName and liveRealm and liveRealm ~= "" then
---        activeKey = liveName .. " - " .. liveRealm
---    end
---end
 
 -- ============================================================================
 -- v0.6.0 EXTERNAL INTEGRATION ENGINE: Global Dynamic Interface Router

@@ -41,6 +41,10 @@ AlternateWorldConstants.RECIPE_FALLBACKS = {
 AlternateWorldConstants.VIRTUAL_BANKER_COLOR_HEX = "|cFF00FF98" -- THE EXCLUSIVE JADE-GREEN SIGNATURE TINT
 -- FIXED v0.5.0 BRAND CONSTANTS: New frame registration for the WeakAura export portal engine
 AlternateWorldConstants.EXPORT_DIALOG_ICON_ID = 236424 -- Reuses the premium green Thermaplugg sprite
+-- FIXED v0.6.4 NETWORK CONSTANT: Encapsulated addon prefix to ensure global data layout security across files
+AlternateWorldConstants.ADDON_COMM_PREFIX = "AltWorldVer"
+-- FIXED v0.6.4 CHAT LAYOUT CONSTANT: Centralized brand prefix string utilizing the official alliance blue hex color format
+AlternateWorldConstants.CHAT_PREFIX = "|cFF0070DD[Alternate World]|r"
 
 function AlternateWorldConstants.GetSafeRecipeTexture(name, currentProf)
     if not name then return "interface\\icons\\inv_misc_questionmark" end
@@ -58,6 +62,15 @@ function AlternateWorldConstants.GetSafeRecipeTexture(name, currentProf)
         elseif pLower == "first aid" then return "interface\\icons\\spell_holy_sealofsacrifice" end
     end
     return "interface\\icons\\inv_misc_gear_02"
+end
+
+
+-- FIXED v0.6.4 CENTRAL PRINT UTILITY: Globally accessible custom print wrapper that automatically prepends the centralized chat prefix
+function AddonPrint(...)
+    local prefix = AlternateWorldConstants and AlternateWorldConstants.CHAT_PREFIX or "|cFF0070DD[Alternate World]|r"
+    
+    -- Pass all incoming vararg parameters cleanly into the native print engine alongside the prefix
+    print(prefix, ...)
 end
 
 -- End of [alternateconstants.lua]

@@ -1,8 +1,8 @@
 ## Title: Alternate World
-## Interface: 11508
+## Interface: 11508, 11509
 ## Notes: Alternate Character Information
 ## Author: Mimma @ EU-Pyrewood Village
-## Version: 0.6.3
+## Version: 0.6.4
 ## SavedVariables: AlternateWorldDB
 
 alternateconstants.lua
