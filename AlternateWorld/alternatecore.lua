@@ -93,6 +93,42 @@ function AlternateWorldCore.Initialize()
             end
         end
 
+        -- FIXED v0.6.4 LIVE EQUIPMENT UPDATE: Triggers a dynamic trailing debounce to eliminate Blizzard model race-conditions during ItemRack gear storms
+        if event == "PLAYER_EQUIPMENT_CHANGED" then           
+            -- Core execution block handles the data snapshot instantly in the background database
+            if AlternateWorldDBEngine and AlternateWorldDBEngine.SaveCurrentCharacterData then
+                AlternateWorldDBEngine.SaveCurrentCharacterData()
+            end
+            
+            -- Secure the asynchronous timer frame object context safely
+            if not AW_GearRefreshFrame then
+                AW_GearRefreshFrame = CreateFrame("Frame")
+            end
+            
+            -- FIXED v0.6.4 DYNAMIC TRAILING DEBOUNCE: Reset the accumulator directly outside the closure to restart the timer upon every gear event
+            AW_GearElapsedDelay = 0
+            
+            -- Only bind the OnUpdate loop handler if it is not currently active in memory
+            if not AW_GearRefreshFrame:GetScript("OnUpdate") then
+                AW_GearRefreshFrame:SetScript("OnUpdate", function(self, elapsed)
+                    AW_GearElapsedDelay = AW_GearElapsedDelay + elapsed
+                    
+                    -- FIXED v0.6.4 DEBOUNCE THRESHOLD: Trigger exactly 0.2 seconds AFTER the absolute final equipment piece has settled
+                    if AW_GearElapsedDelay >= 0.2 then
+                        -- Target reached! Clear the frame update listener immediately to close the execution thread cleanly
+                        self:SetScript("OnUpdate", nil)
+                        
+                        -- Trigger the unified interface routing safely now that the Blizzard model textures are fully baked
+                        if AlternateWorldMainFrameEngine and AlternateWorldMainFrameEngine.RefreshUI then
+                            AlternateWorldMainFrameEngine.RefreshUI()
+                        elseif AlternateWorldNavigation and AlternateWorldNavigation.RefreshActiveView and AWCachedCharacterKey then
+                            AlternateWorldNavigation.RefreshActiveView(AWCachedCharacterKey)
+                        end
+                    end
+                end)
+            end
+        end
+
         if event == "PLAYER_LEVEL_UP" and arg1 then
             pendingLevelUpLog = tonumber(arg1) or 1
             local ch = ChatFrame_TimePlayedCode or RequestTimePlayed
