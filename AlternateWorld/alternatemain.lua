@@ -11,7 +11,7 @@ local cachedPlayerRealm = nil
 AWCachedCharacterKey = nil
 
 local AlternateWorldMainFrame = CreateFrame("Frame", "AlternateWorldMainFrame", UIParent, "BasicFrameTemplateWithInset")
-AlternateWorldMainFrame:SetSize(650, 560) 
+AlternateWorldMainFrame:SetSize(750, 560) 
 AlternateWorldMainFrame:SetPoint("CENTER", UIParent, "CENTER") 
 AlternateWorldMainFrame:SetFrameStrata("HIGH")
 
