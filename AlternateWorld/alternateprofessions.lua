@@ -183,7 +183,32 @@ function AlternateWorldProfessionsView.RefreshDisplay(mainSelectedCharacterKey)
                 rowFrame.Col2Text:SetJustifyV("TOP") 
                 rowFrame.Col2Text:SetWordWrap(true)
                 
+                -- FIXED v0.7.0 ICON-UNDERLAY TRIGGER: Instantiates a compact order link directly below the 32x32 recipe icon
+                rowFrame.OrderButton = CreateFrame("Button", "AW_ProfRowOrderBtn" .. count, rowFrame)
+                rowFrame.OrderButton:SetSize(36, 12) -- Ultra compact to fit exactly into the icon's vertical column alignment
+                
+                -- Anchor precisely centered directly under the Row's Icon texture frame skeleton
+                rowFrame.OrderButton:SetPoint("TOP", rowFrame.Icon, "BOTTOM", 0, -1)
+                
+                -- Use a clean, sharp, yellow micro-font text string as the interface trigger
+                rowFrame.OrderButton.Text = rowFrame.OrderButton:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                rowFrame.OrderButton.Text:SetAllPoints(rowFrame.OrderButton)
+                rowFrame.OrderButton.Text:SetText("|cFFFFD700[Order]|r")
+                rowFrame.OrderButton.Text:SetJustifyH("CENTER")
+                
+                -- Restore your Col2 container width to full size since the right side is now completely cleared
+                rowFrame.Col2:SetSize(AWProfScrollContent:GetWidth() - 80, 28)
+                
                 AW_RowsPool[count] = rowFrame
+            end
+            
+            -- Bind the dynamic recipe text string and active dropdown key safely into the click handlerpass
+            if rowFrame.OrderButton then
+                rowFrame.OrderButton:SetScript("OnClick", function()
+                    PlaySound(843) -- Play a satisfying, crisp mechanical Goblin engineering click sound!
+                    AlternateWorldProfessionsView.ProcessRecipeOrder(recName, mainSelectedCharacterKey)
+                end)
+                rowFrame.OrderButton:Show()
             end
             
             local activeHeight = rowFrame.fixedHeightCache or 48
@@ -435,6 +460,47 @@ function AlternateWorldProfessionsView.HidePanel()
     if AlternateWorldProfDropdown and AlternateWorldProfDropdown.HideSearch then AlternateWorldProfDropdown.HideSearch() end
 end
 
+-- ADDED v0.7.0 ORDER ENGINE: Captures the active character context and queues a fresh crafting order directly inside the database
+function AlternateWorldProfessionsView.ProcessRecipeOrder(recipeName, activeCharacterKey)
+    if not recipeName or recipeName == "" or not AlternateWorldDB then return end
+    
+    -- Fallback seamlessly to the global login cache if no specific UI dropdown key is provided
+    local lookupKey = activeCharacterKey or _G["AWCachedCharacterKey"] or AWCachedCharacterKey
+    if not lookupKey or lookupKey == "" then return end
+    
+    local characterData = AlternateWorldDB[lookupKey]
+    if not characterData then return end
+    
+    -- Extract vitals to guarantee absolute logistical symmetry across your server clusters
+    local characterName = characterData.name or "Character"
+    local characterRealm = characterData.realm or string.match(lookupKey, "%s*-%s*(.+)") or GetRealmName()
+    local characterFaction = characterData.faction or "Alliance"
+    
+    -- Initialize the core database tables if they do not exist in memory
+    if not AlternateWorldDB.Settings then AlternateWorldDB.Settings = {} end
+    if not AlternateWorldDB.Settings.WorkOrders then AlternateWorldDB.Settings.WorkOrders = {} end
+    
+    -- Compile the secure v0.7.0 data payload block
+    local orderPayload = {
+        recipeName = recipeName,
+        profession = AWLastSelectedProfession or "Unknown",
+        orderedBy = characterName,
+        realm = characterRealm,
+        faction = characterFaction,
+        timestamp = time(),
+        status = "Pending"
+    }
+    
+    -- Push the order directly into your structural database array
+    table.insert(AlternateWorldDB.Settings.WorkOrders, orderPayload)
+    
+    -- Broadcast a beautiful confirmation using your magnificent AddonPrint tool!
+    if AddonPrint then
+        AddonPrint(string.format("|cFFFFD700Order Placed:|r |cFFFFFFFF%s|r for |cFF00FF00%s-%s|r!", recipeName, characterName, characterRealm))
+    else
+        print(string.format("|cFF0070DD[Alternate World]|r Order Placed: %s", recipeName))
+    end
+end
 
 function AlternateWorldProfessionsView.IsShown() return AWIsViewActive end
 
