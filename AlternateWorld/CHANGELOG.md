@@ -1,5 +1,15 @@
 # Alternate World - Changelog
 
+## [v0.6.4] - 2026-07-13
+### Added
+* **Version Network Query**: Added `/awversion` shortcut to query group addon versions.
+* **Live Gear Debounce**: Added real-time item level updates with a dynamic trailing debounce to prevent model bugs during gear swaps.
+
+### Changed
+* **Multi-Interface Support**: Updated to client API versions 1.15.8 and 1.15.9.
+* **Code Centralization**: Centralized chat prefix and network constants inside global constants.
+
+
 ## [v0.6.3] - 2026-07-04
 ### Fixed
 * **Cross-Realm Loading Collision**: Fixed initialization loading failures for characters sharing identical names across different realms.
