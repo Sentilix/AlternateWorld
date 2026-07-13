@@ -204,11 +204,22 @@ function AlternateWorldProfessionsView.RefreshDisplay(mainSelectedCharacterKey)
             
             -- Bind the dynamic recipe text string and active dropdown key safely into the click handlerpass
             if rowFrame.OrderButton then
-                rowFrame.OrderButton:SetScript("OnClick", function()
-                    PlaySound(843) -- Play a satisfying, crisp mechanical Goblin engineering click sound!
-                    AlternateWorldProfessionsView.ProcessRecipeOrder(recName, mainSelectedCharacterKey)
-                end)
-                rowFrame.OrderButton:Show()
+                local currentProf = AWLastSelectedProfession or "Unknown"
+                local pLower = string.lower(currentProf)
+                
+                -- FIXED v0.7.0 UI ROOT SANITIZATION: Only show the order trigger link if the active selection is a valid crafting profession
+                if pLower == "tailoring" or pLower == "enchanting" or pLower == "engineering" or pLower == "leatherworking" or pLower == "blacksmithing" or pLower == "alchemy" then
+                    
+                    rowFrame.OrderButton:SetScript("OnClick", function()
+                        PlaySound(843) -- Play satisfying mechanical Goblin click sound!
+                        AlternateWorldProfessionsView.ProcessRecipeOrder(recName, mainSelectedCharacterKey)
+                    end)
+                    rowFrame.OrderButton:Show()
+                    
+                else
+                    -- Proactively hide the button for non-crafting disciplines (Fishing, Riding, Cooking, First Aid)
+                    rowFrame.OrderButton:Hide()
+                end
             end
             
             local activeHeight = rowFrame.fixedHeightCache or 48
@@ -464,41 +475,71 @@ end
 function AlternateWorldProfessionsView.ProcessRecipeOrder(recipeName, activeCharacterKey)
     if not recipeName or recipeName == "" or not AlternateWorldDB then return end
     
-    -- Fallback seamlessly to the global login cache if no specific UI dropdown key is provided
-    local lookupKey = activeCharacterKey or _G["AWCachedCharacterKey"] or AWCachedCharacterKey
-    if not lookupKey or lookupKey == "" then return end
+    local currentProf = AWLastSelectedProfession or "Unknown"
+    local pLower = string.lower(currentProf)
     
+    if pLower ~= "tailoring" and pLower ~= "enchanting" and pLower ~= "engineering" and pLower ~= "leatherworking" and pLower ~= "blacksmithing" and pLower ~= "alchemy" then
+        return -- Silent pass since the UI now handles the button visibility proactively
+    end
+
+    -- STAGE 2: Dynamic Recipe Quality Color Extraction Pass via the engine cache array
+    local extractedColor = "|cFFFFFFFF" -- Default to clean white if no data match exists
+    if AlternateWorldProfEngine and AlternateWorldProfEngine.CompileSortedRecipes then
+        local filterText = AlternateWorldProfessionsView.GetSearchText()
+        local sortedRecipes = AlternateWorldProfEngine.CompileSortedRecipes(currentProf, filterText) or {}
+        
+        -- Locate the active recipe profile inside the sorted data cache layer
+        for _, rObj in ipairs(sortedRecipes) do
+            if rObj.name == recipeName then
+                -- Extract the true Blizzard item rarity hex prefix string if stored by your scraper engine
+                if rObj.color or rObj.hexColor then
+                    extractedColor = rObj.color or rObj.hexColor
+                elseif rObj.quality then
+                    -- Fallback to standard color maps if quality integer exists (2 = Green, 3 = Blue, 4 = Epic Purple)
+                    if rObj.quality == 4 then extractedColor = "|cFFA335EE"     -- Epic
+                    elseif rObj.quality == 3 then extractedColor = "|cFF0070DD"   -- Rare
+                    elseif rObj.quality == 2 then extractedColor = "|cFF1EFF00"   -- Uncommon
+                    end
+                end
+                break
+            end
+        end
+    end
+
+    -- Compile the data block and queue it directly into the database hierarchy context safely
+    local lookupKey = activeCharacterKey or _G["AWCachedCharacterKey"] or AWCachedCharacterKey
     local characterData = AlternateWorldDB[lookupKey]
     if not characterData then return end
     
-    -- Extract vitals to guarantee absolute logistical symmetry across your server clusters
     local characterName = characterData.name or "Character"
     local characterRealm = characterData.realm or string.match(lookupKey, "%s*-%s*(.+)") or GetRealmName()
     local characterFaction = characterData.faction or "Alliance"
+    local characterClassToken = characterData.classToken or select(2, UnitClass("player"))
     
-    -- Initialize the core database tables if they do not exist in memory
     if not AlternateWorldDB.Settings then AlternateWorldDB.Settings = {} end
     if not AlternateWorldDB.Settings.WorkOrders then AlternateWorldDB.Settings.WorkOrders = {} end
     
-    -- Compile the secure v0.7.0 data payload block
     local orderPayload = {
         recipeName = recipeName,
-        profession = AWLastSelectedProfession or "Unknown",
+        recipeColor = extractedColor, -- Secured true qualities (Green/Blue/Purple) locked tight
+        profession = currentProf,
         orderedBy = characterName,
         realm = characterRealm,
         faction = characterFaction,
+        classToken = characterClassToken,
         timestamp = time(),
         status = "Pending"
     }
     
-    -- Push the order directly into your structural database array
+    -- Push the order directly into your structural database array matrix safely
     table.insert(AlternateWorldDB.Settings.WorkOrders, orderPayload)
     
-    -- Broadcast a beautiful confirmation using your magnificent AddonPrint tool!
     if AddonPrint then
-        AddonPrint(string.format("|cFFFFD700Order Placed:|r |cFFFFFFFF%s|r for |cFF00FF00%s-%s|r!", recipeName, characterName, characterRealm))
+        -- Automatically prepends your beautiful blue [Alternate World] logo prefix via the central engine
+        AddonPrint(string.format("Order placed: %s%s|r", extractedColor, recipeName))
     else
-        print(string.format("|cFF0070DD[Alternate World]|r Order Placed: %s", recipeName))
+        -- Absolute engine fallback loop
+        print(string.format("|cFF0070DD[Alternate World]|r Order placed: %s%s|r", extractedColor, recipeName))
     end
 end
 

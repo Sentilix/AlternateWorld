@@ -82,6 +82,9 @@
     <Content Include="alternatevirtualbankerui.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="alternateworkordersui.lua">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="AlternateWorld.toc">
       <SubType>TableOfContents</SubType>
     </Content>

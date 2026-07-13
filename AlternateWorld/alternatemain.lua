@@ -289,6 +289,11 @@ function AlternateWorldMainFrameEngine.OnAddonLoaded()
                 ["cluster_5"] = "Cluster 5"
             }
         end
+
+        -- FIXED v0.7.0 ORDER PANEL BOOTSTRAP: Spawn the McDonald's order tracking frame hierarchy securely upon load
+        if AlternateWorldWorkOrdersView and AlternateWorldWorkOrdersView.CreatePanel then
+            AlternateWorldWorkOrdersView.CreatePanel(AlternateWorldMainFrame)
+        end
     end
 end
 

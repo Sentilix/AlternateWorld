@@ -23,6 +23,7 @@ alternatehistory.lua
 alternaterestedxp.lua
 alternatenavigation.lua
 alternateprofessions.lua
+alternateworkordersui.lua
 alternatebankers.lua
 alternatebankersui.lua
 alternatevirtualbankerui.lua
