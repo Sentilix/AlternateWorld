@@ -3,7 +3,7 @@
 -- ============================================================================
 
 AlternateWorldMainFrameEngine = {}
-local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.4"
+local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.5"
 local addonAuthor = C_AddOns.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
 
 local cachedPlayerName = nil
