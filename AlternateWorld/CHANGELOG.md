@@ -1,5 +1,10 @@
 # Alternate World - Changelog
 
+## [v0.6.5] - 2026-07-25
+### Added
+* **Raid Overview**: Added AQ20, AQ40 and Zul'Gurub instances to the Raid overview page.
+
+
 ## [v0.6.4] - 2026-07-13
 ### Added
 * **Version Network Query**: Added `/awversion` shortcut to query group addon versions.

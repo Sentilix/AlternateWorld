@@ -133,6 +133,9 @@ local function ScanRaidLockouts()
             elseif string.find(name, "Blackwing Lair") then key = "bwl"
             elseif string.find(name, "Onyxia") then key = "ony"
             elseif string.find(name, "Naxxramas") then key = "naxx"
+            elseif string.find(name, "Zul'Gurub") then key = "zg"
+            elseif string.find(name, "Ruins of Ahn'Qiraj") then key = "aq20"
+            elseif string.find(name, "Temple of Ahn'Qiraj") then key = "aq40"
             end
 
             if key then savedLockouts[key] = time() + reset end
@@ -140,6 +143,7 @@ local function ScanRaidLockouts()
     end
     return savedLockouts
 end
+
 
 function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     local currentIlvl = 0

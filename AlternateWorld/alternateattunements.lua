@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - Attunements & Keys View Panel (v0.2.0 - PERFECT VERTICAL)
+-- Alternate World - Attunement & Lockout Master Data Mapping (v0.6.5 EXPANSION)
 -- ============================================================================
 
 AlternateWorldAttunementsView = {}
@@ -10,11 +10,15 @@ local LastUpdatedText = nil
 local KeysTitleText = nil 
 local UIEntries = {}
 
+
 local RAID_DATA = {
     { key = "mc", name = "Molten Core", icon = "Interface\\Icons\\Spell_Fire_LavaSpawn", reqText = "Attunement to the Core (Quest)" },
     { key = "bwl", name = "Blackwing Lair", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_Black", reqText = "Attunement to Blackwing Lair (Quest)" },
     { key = "ony", name = "Onyxia's Lair", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01", reqText = "Drakefire Amulet (Necklace)" },
-    { key = "naxx", name = "Naxxramas", icon = "Interface\\Icons\\INV_Jewelry_Necklace_19", reqText = "Argent Dawn Attunement (Reputation)" }
+    { key = "naxx", name = "Naxxramas", icon = "Interface\\Icons\\INV_Jewelry_Necklace_19", reqText = "Argent Dawn Attunement (Reputation)" },
+    { key = "aq40", name = "Temple of AQ", icon = "interface\\icons\\inv_qirajidol_strife", reqText = "Raid Lockout Tracking Only" },
+    { key = "aq20", name = "Ruins of AQ", icon = "interface\\icons\\inv_misc_statue_01", reqText = "Raid Lockout Tracking Only" },
+    { key = "zg", name = "Zul'Gurub", icon = "interface\\icons\\inv_misc_idol_02", reqText = "Raid Lockout Tracking Only" }
 }
 
 local DUNGEON_DATA = {
@@ -30,10 +34,15 @@ local DUNGEON_DATA = {
 
 local DATA_KEY_MAP = {
     ["mc"] = "MC", ["bwl"] = "BWL", ["ony"] = "Onyxia", ["naxx"] = "Naxxramas",
+    ["zg"] = "FREE", ["aq20"] = "FREE", ["aq40"] = "FREE",
     ["brd"] = "BRDKey", ["scholo"] = "ScholoKey", ["strat"] = "StratKey",
     ["ubrs"] = "UBRSKey", ["mara"] = "MaraKey", ["gnomer"] = "GnomereganKey", ["dm"] = "DMKey",
     ["sm"] = "ScarletKey"
 }
+
+
+
+
 
 local function GetFormattedResetTime(expirationTimestamp)
     if not expirationTimestamp then return nil end
@@ -92,9 +101,14 @@ local function BuildAttunementGrid(parentFrame, dataList, yAnchorOffset, attunem
         box:ClearAllPoints()
         box:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", xPos, yPos)
 
-        local dbToken = DATA_KEY_MAP[keyID] or keyID
-        local isUnlocked = attunementFlags[dbToken] or false
-        box.isAttuned = isUnlocked
+        local dbToken = DATA_KEY_MAP[keyID] or keyID       
+        local requireAttunement = (dbToken ~= "FREE");
+        local isUnlocked = true
+        box.isAttuned = not requireAttunement;
+
+        if requireAttunement then
+            isUnlocked = attunementFlags[dbToken] or false
+        end       
 
         local lockoutExpiration = activeLockouts and activeLockouts[keyID]
         local lockTimeLeftStr = GetFormattedResetTime(lockoutExpiration)
@@ -120,10 +134,12 @@ local function BuildAttunementGrid(parentFrame, dataList, yAnchorOffset, attunem
         box:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText(raid.name, 1, 1, 1)
-            if self.isAttuned then GameTooltip:AddLine("Status: Attuned / key obtained", 0.2, 1, 0.2)
-            else GameTooltip:AddLine("Status: Not attuned or no key obtained", 1, 0.2, 0.2) 
-                if raid.reqText then GameTooltip:AddLine("Requires: " .. raid.reqText, 1, 0.5, 0) end
-            end
+            if requireAttunement then
+                if self.isAttuned then GameTooltip:AddLine("Status: Attuned / key obtained", 0.2, 1, 0.2)
+                else GameTooltip:AddLine("Status: Not attuned or no key obtained", 1, 0.2, 0.2) 
+                    if raid.reqText then GameTooltip:AddLine("Requires: " .. raid.reqText, 1, 0.5, 0) end
+                end
+			end
             local currentLock = activeLockouts and activeLockouts[keyID]
             local liveTime = GetFormattedResetTime(currentLock)
             if liveTime then GameTooltip:AddLine("Raid Locked (ID Saved)", 1, 0.3, 0.3) GameTooltip:AddLine("Resets in: " .. liveTime, 0.6, 0.6, 1.0) end
