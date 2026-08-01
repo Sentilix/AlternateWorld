@@ -19,9 +19,6 @@
     <Content Include="alternatebankersui.lua">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="alternatecategorydb.lua">
-      <SubType>Code</SubType>
-    </Content>
     <Content Include="alternatecharacter.lua">
       <SubType>Code</SubType>
     </Content>
@@ -64,13 +61,7 @@
     <Content Include="alternateprofui.lua">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="alternateprofengine.lua">
-      <SubType>Code</SubType>
-    </Content>
     <Content Include="alternateprofessions.lua">
-      <SubType>Code</SubType>
-    </Content>
-    <Content Include="alternateprofscraper.lua">
       <SubType>Code</SubType>
     </Content>
     <Content Include="alternaterestedxp.lua">
