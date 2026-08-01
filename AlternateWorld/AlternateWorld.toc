@@ -18,7 +18,6 @@ alternateinventory.lua
 alternateattunements.lua
 alternatehistory.lua
 alternaterestedxp.lua
-alternatenavigation.lua
 alternateprofessions.lua
 alternatebankers.lua
 alternatebankersui.lua
