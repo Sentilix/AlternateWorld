@@ -1,5 +1,21 @@
 # Alternate World - Changelog
 
+## [v0.6.7] - 2026-08-23
+### Fixed
+* **Dire Maul Attunement**: Corrected the crescent key item ID check from 18250 (TBC) to 18249 (Era) to fix the Dire Maul key tracking status in the dungeon overview page.
+
+
+## [v0.6.6] - 2026-08-01
+### Added
+* **Raid Lockout Fix**: Corrected the scanner module to accurately track and display Temple of AQ (AQ40) lockout timestamps across characters.
+
+### Changed
+* **Code Consolidation**: Massively optimized project file layout structure by merging related modules into single codebases to ensure better load speeds and codebase clarity:
+  * Merged `categorydb` and `db` into `db.lua`.
+  * Merged `scraper` and `profscraper` into `scraper.lua`.
+  * Merged `profengine` and `profui` into `profui.lua`.
+  * Merged `navigation` and `main` into `alternatemain.lua` with initialization registers prioritized at the top.
+
 ## [v0.6.5] - 2026-07-25
 ### Added
 * **Raid Overview**: Added AQ20, AQ40 and Zul'Gurub instances to the Raid overview page.

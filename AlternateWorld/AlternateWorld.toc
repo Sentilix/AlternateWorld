@@ -2,18 +2,15 @@
 ## Interface: 11509
 ## Notes: Alternate Character Information
 ## Author: Mimma @ EU-Pyrewood Village
-## Version: 0.6.5
+## Version: 0.6.7
 ## SavedVariables: AlternateWorldDB
 
 alternateconstants.lua
 alternateconfig.lua
 alternatedb.lua
-alternatecategorydb.lua
 alternatescraper.lua
-alternateprofscraper.lua
 alternatecore.lua
 alternatecomm.lua
-alternateprofengine.lua
 alternateprofui.lua
 alternatecharacter.lua
 alternatecharacterui.lua
@@ -21,7 +18,6 @@ alternateinventory.lua
 alternateattunements.lua
 alternatehistory.lua
 alternaterestedxp.lua
-alternatenavigation.lua
 alternateprofessions.lua
 alternatebankers.lua
 alternatebankersui.lua
