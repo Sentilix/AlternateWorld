@@ -1,5 +1,10 @@
 # Alternate World - Changelog
 
+## [v0.6.7] - 2026-08-23
+### Fixed
+* **Dire Maul Attunement**: Corrected the crescent key item ID check from 18250 (TBC) to 18249 (Era) to fix the Dire Maul key tracking status in the dungeon overview page.
+
+
 ## [v0.6.6] - 2026-08-01
 ### Added
 * **Raid Lockout Fix**: Corrected the scanner module to accurately track and display Temple of AQ (AQ40) lockout timestamps across characters.

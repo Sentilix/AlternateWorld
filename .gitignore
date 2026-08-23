@@ -4,3 +4,7 @@
 .vs/AlternateWorld/v17/
 
 AlternateWorld/AlternateWorld.wowproj.user
+
+deploy.cmd
+
+AlternateWorld/.vscode/
