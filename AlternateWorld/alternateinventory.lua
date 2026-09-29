@@ -54,7 +54,13 @@ local function RenderGridSection(itemDataList, buttonPool, startX, startY, poolP
     for i, itemObj in ipairs(itemDataList) do
         local btn = buttonPool[i]
         if not btn then
-            btn = CreateFrame("Button", "AW_InvGrid" .. poolPrefix .. i, BagScrollContent, "ItemButtonTemplate")
+            -- FIXED v1.0.0 TEMPLATE FILTER: Split frame type creation dynamically based on engine era
+            if AlternateWorld.lib.ForeverEngine then
+                btn = CreateFrame("ItemButton", "AW_InvGrid" .. poolPrefix .. i, BagScrollContent)
+            else
+                btn = CreateFrame("Button", "AW_InvGrid" .. poolPrefix .. i, BagScrollContent, "ItemButtonTemplate")
+            end
+            
             btn:SetSize(BUTTON_SIZE, BUTTON_SIZE)
             btn:SetScript("OnEnter", function(self)
                 if self.itemID then
@@ -71,14 +77,21 @@ local function RenderGridSection(itemDataList, buttonPool, startX, startY, poolP
         local yOffset = startY - (row * (BUTTON_SIZE + PADDING))
         btn:SetPoint("TOPLEFT", BagScrollContent, "TOPLEFT", xOffset, yOffset)
 
-        local itemTexture = C_Item.GetItemIconByID(itemObj.id) or "interface\\icons\\inv_misc_questionmark"
-        local iconTextureFrame = _G[btn:GetName() .. "IconTexture"]
+        local itemTexture = AlternateWorld.API.GetItemIconByID(itemObj.id) or "interface\\icons\\inv_misc_questionmark"
+        
+        -- FIXED v1.0.0 METRICS: Dynamically resolve internal texture anchors across Legacy XML and Intrinsic frames
+        local iconTextureFrame = AlternateWorld.lib.ForeverEngine and btn.icon or _G[btn:GetName() .. "IconTexture"]
         if iconTextureFrame then iconTextureFrame:SetTexture(itemTexture) end
 
-        local countTextFrame = _G[btn:GetName() .. "Count"]
+        -- FIXED v1.0.0 METRICS: Dynamically resolve internal count font strings across Legacy XML and Intrinsic frames
+        local countTextFrame = AlternateWorld.lib.ForeverEngine and btn.Count or _G[btn:GetName() .. "Count"]
         if countTextFrame then
-            if itemObj.count > 1 then countTextFrame:SetText(itemObj.count) countTextFrame:Show()
-            else countTextFrame:Hide() end
+            if itemObj.count > 1 then 
+                countTextFrame:SetText(itemObj.count) 
+                countTextFrame:Show()
+            else 
+                countTextFrame:Hide() 
+            end
         end
 
         btn.itemID = itemObj.id

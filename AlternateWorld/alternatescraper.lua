@@ -384,7 +384,7 @@ function AlternateWorldProfScraper.GetUpdatedProfessions(oldProfessionsMap)
 
     local spellIndex = 1
     while true do
-        local spellName, spellSubName = AlternateWorld.API.GetSpellBookItemName(spellIndex, SpellBookFrame.bookType)
+        local spellName, spellSubName = AlternateWorld.API.GetSpellBookItemName(spellIndex, "spell")
         if not spellName then break end
         
         local lSpell = string.lower(spellName)
@@ -405,9 +405,14 @@ function AlternateWorldProfScraper.Initialize()
     if ScraperFrame then return end
     ScraperFrame = CreateFrame("Frame")
     ScraperFrame:RegisterEvent("TRADE_SKILL_SHOW")
-    ScraperFrame:RegisterEvent("TRADE_SKILL_UPDATE")
-    ScraperFrame:RegisterEvent("CRAFT_SHOW")
-    ScraperFrame:RegisterEvent("CRAFT_UPDATE")
+    if AlternateWorld.lib.ForeverEngine then
+        ScraperFrame:RegisterEvent("TRADE_SKILL_DATA_SOURCE_CHANGED")
+        ScraperFrame:RegisterEvent("NEW_RECIPE_LEARNED")
+    else
+        ScraperFrame:RegisterEvent("TRADE_SKILL_UPDATE")
+        ScraperFrame:RegisterEvent("CRAFT_SHOW")
+        ScraperFrame:RegisterEvent("CRAFT_UPDATE")
+        end;
     ScraperFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
     ScraperFrame:SetScript("OnEvent", function(self, event, ...)

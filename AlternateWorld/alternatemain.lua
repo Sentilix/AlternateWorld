@@ -16,8 +16,13 @@ local MENU_ITEMS = {
     { id = "professions", text = "Professions",      icon = "interface\\icons\\trade_blacksmithing" },
     { id = "bankers",     text = "Bankers",          icon = "interface\\icons\\inv_misc_coin_17" },
     { id = "virtualbankers", text = "Virtual Bankers", icon = 236424 },
-    { id = "clusters",    text = "Clusters",         icon = "interface\\icons\\inv_ore_arcanite_01" } 
 }
+
+if not AlternateWorld.lib.ForeverEngine then
+    tinsert(MENU_ITEMS, { id = "clusters", text = "Clusters", icon = "interface\\icons\\inv_ore_arcanite_01" } )
+end;
+
+
 
 local PANELS_MAP = {
     ["character"]   = "AlternateWorldCharacterView",
@@ -163,14 +168,15 @@ SlashCmdList["ALTERNATEWORLD"] = function()
         AlternateWorldNavigation.HideAllPanels()
         AlternateWorldMainFrame:Show()
         
-        -- FIXED v0.6.2 DROPDOWN ACTIVATION HOOK: Core callback reference now safely targets the validated engine scope
         if AlternateWorldCharDropdown and AlternateWorldMainFrameEngine.InitializeDropdown then
+            -- Call the decoupled engine function to draw the menu structure
             UIDropDownMenu_Initialize(AlternateWorldCharDropdown, AlternateWorldMainFrameEngine.InitializeDropdown)
             
             -- Render front-facing header string text safely after initialization is locked
             local data = AlternateWorldDB and AlternateWorldDB[AWCachedCharacterKey]
             if data and AlternateWorldConfig and AlternateWorldConfig.GetClassColoredText then
-                local displayName = AlternateWorldConfig.GetClassColoredText(AWCachedCharacterKey, data.classToken) or "|cFFFFFFFF" .. (data.name or "Character") .. "|r"
+                local charName = string.match(AWCachedCharacterKey, "([^%-]+)") or AWCachedCharacterKey
+                local displayName = AlternateWorldConfig.GetClassColoredText(charName, data.classToken) or "|cFFFFFFFF" .. charName .. "|r"
                 local factionIconInline = ""
                 if data.faction == "Alliance" then factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
                 elseif data.faction == "Horde" then factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t " end
@@ -181,6 +187,7 @@ SlashCmdList["ALTERNATEWORLD"] = function()
         AlternateWorldCharacterView.ShowData(AWCachedCharacterKey)
     end
 end
+
 
 -- FIXED v0.6.4 SLASH COMMAND: Displays local version and broadcasts queries utilizing the unified constants matrix
 SLASH_ALTERNATEWORLDVERSION1 = "/awversion"
@@ -259,13 +266,72 @@ AlternateWorldNavigation.CreateMenu(LeftMenu, GetSelectedCharacterKey)
 AlternateWorldRestedXPView.CreatePanel(AlternateWorldMainContentWindow)
 AlternateWorldBankersEngine.InitializeCorePanel(AlternateWorldMainContentWindow)
 
--- FIXED v0.6.2 REALM SUB-MENU ENGINE: Splits character data into Level 1 realms and strips realm suffixes from Level 2 rows to optimize text space
+-- FIXED v1.0.0 DROPDOWN MATRIX: Splits character data into Level 1 realms in Era, but forces a flat alphabetical list in Forever
 function AlternateWorldMainFrameEngine.InitializeDropdown(self, level)
     if not AlternateWorldDB then return end
     
     level = level or 1
 
-    -- LEVEL 1: Dynamically scan and extract all unique realms active inside your database
+    -- ========================================================================
+    -- FOREVER ENGINE: Flat list of all characters dynamically drawn on Level 1
+    -- ========================================================================
+    if AlternateWorld.lib.ForeverEngine then
+        if level == 1 then
+            local sortedKeys = {}
+            for key, data in pairs(AlternateWorldDB) do
+                if key ~= "Settings" and type(data) == "table" and data.classToken and not data.isVirtual then
+                    table.insert(sortedKeys, key)
+                end
+            end
+            table.sort(sortedKeys)
+
+            for _, key in ipairs(sortedKeys) do
+                local data = AlternateWorldDB[key]
+                local info = UIDropDownMenu_CreateInfo()
+                
+                local displayName = nil
+                if AlternateWorldConfig and AlternateWorldConfig.GetClassColoredText and data and data.classToken then
+                    displayName = AlternateWorldConfig.GetClassColoredText(key, data.classToken)
+                end
+                if not displayName or displayName == "" then
+                    displayName = "|cFFFFFFFF" .. (data and data.name or "Character") .. "|r"
+                end
+                
+                -- Strip any legacy server data naming layout parameters
+                local cleanDisplayName = string.gsub(displayName, "%s*-%s*[^|]+", "")
+                
+                local factionIconInline = ""
+                if data and data.faction == "Alliance" then 
+                    factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
+                elseif data and data.faction == "Horde" then 
+                    factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Horde:14:14:0:0:64:64:0:38:0:38|t " 
+                end
+
+                info.text = factionIconInline .. cleanDisplayName
+                info.value = key
+                info.arg1 = key
+                info.notCheckable = false
+                info.checked = (AWCachedCharacterKey == key)
+                
+                info.func = function(button, arg1)
+                    AWCachedCharacterKey = arg1
+                    if AlternateWorldCharDropdown then
+                        UIDropDownMenu_SetText(AlternateWorldCharDropdown, factionIconInline .. displayName)
+                    end
+                    if AlternateWorldNavigation and AlternateWorldNavigation.RefreshActiveView then
+                        AlternateWorldNavigation.RefreshActiveView(AWCachedCharacterKey)
+                    end
+                    CloseDropDownMenus()
+                end
+                UIDropDownMenu_AddButton(info, level)
+            end
+        end
+        return
+    end
+
+    -- ========================================================================
+    -- ERA ENGINE: Traditional 2-Level Realm Matrix 
+    -- ========================================================================
     if level == 1 then
         local realmSet = {}
         for key, data in pairs(AlternateWorldDB) do
@@ -275,29 +341,25 @@ function AlternateWorldMainFrameEngine.InitializeDropdown(self, level)
             end
         end
         
-        -- Sort realms alphabetically for precise UX structure
         local sortedRealms = {}
         for realmName in pairs(realmSet) do table.insert(sortedRealms, realmName) end
         table.sort(sortedRealms)
         
-        -- Build the Level 1 realm folder row entries
         for _, realmName in ipairs(sortedRealms) do
             local info = UIDropDownMenu_CreateInfo()
             info.text = "|TInterface\\Icons\\INV_Misc_Book_09:14:14:0:0|t |cFFFFFFFF" .. realmName .. "|r"
             info.value = realmName
-            info.hasArrow = true -- Spawns the Level 2 flyout arrow indicator dynamically
+            info.hasArrow = true 
             info.notCheckable = true
             UIDropDownMenu_AddButton(info, level)
         end
         return
     end
 
-    -- LEVEL 2: Render individual characters residing strictly on the hovered realm selection context
     if level == 2 then
-        local targetRealm = UIDROPDOWNMENU_MENU_VALUE -- Extract the hovered realm string from the Level 1 parent object
+        local targetRealm = UIDROPDOWNMENU_MENU_VALUE 
         local sortedKeys = {}
         
-        -- Filter character profile keys that match the active sub-menu realm boundary pass
         for key, data in pairs(AlternateWorldDB) do 
             if key ~= "Settings" and type(data) == "table" and data.classToken and not data.isVirtual then
                 local altRealm = data.realm or string.match(key, "%s*-%s*(.+)") or "Unknown Realm"
@@ -308,7 +370,6 @@ function AlternateWorldMainFrameEngine.InitializeDropdown(self, level)
         end
         table.sort(sortedKeys)
         
-        -- Populate individual character execution rows inside the designated server submenu container
         for _, key in ipairs(sortedKeys) do
             local data = AlternateWorldDB[key]
             local info = UIDropDownMenu_CreateInfo()
@@ -321,10 +382,8 @@ function AlternateWorldMainFrameEngine.InitializeDropdown(self, level)
                 displayName = "|cFFFFFFFF" .. (data and data.name or "Character") .. "|r"
             end
     
-            -- TECHNICAL TEXT PURIFICATION: Strip any realm naming suffixes from Level 2 to maximize text space layout parameters
             local cleanDisplayName = string.gsub(displayName, "%s*-%s*[^|]+", "")
             
-            -- Compile the faction alignment graphics safely to attach into the text string layout parameters
             local factionIconInline = ""
             if data and data.faction == "Alliance" then 
                 factionIconInline = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
@@ -336,19 +395,15 @@ function AlternateWorldMainFrameEngine.InitializeDropdown(self, level)
             info.value = key
             info.arg1 = key
             
-            -- Core function executor triggered instantly when a row item is clicked inside Level 2
             info.func = function(button, arg1)
                 AWCachedCharacterKey = arg1
-                
                 if AlternateWorldCharDropdown then
                     UIDropDownMenu_SetText(AlternateWorldCharDropdown, factionIconInline .. displayName)
                 end
-                
                 if AlternateWorldNavigation and AlternateWorldNavigation.RefreshActiveView then
                     AlternateWorldNavigation.RefreshActiveView(AWCachedCharacterKey)
                 end
-                
-                CloseDropDownMenus() -- Terminate all active dropdown matrices cleanly upon choice confirmation
+                CloseDropDownMenus() 
             end
             
             info.checked = (AWCachedCharacterKey == key)

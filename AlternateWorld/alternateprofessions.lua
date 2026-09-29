@@ -200,7 +200,7 @@ function AlternateWorldProfessionsView.RefreshDisplay(mainSelectedCharacterKey)
                 GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
                 GameTooltip:ClearLines()
                 
-                local _, itemLink = GetItemInfo(recName)
+                local _, itemLink = AlternateWorld.API.GetItemInfo(recName)
                 if itemLink then
                     GameTooltip:SetHyperlink(itemLink)
                 else

@@ -52,6 +52,11 @@ function API.GetInventoryItemLink(unit, slotID)
     return GetInventoryItemLink(unit, slotID);
 end;
 
+-- Returns iconFileID = C_Item.GetItemIconByID(itemID)
+function API.GetItemIconByID(itemID)
+    return C_Item.GetItemIconByID(itemID)
+end;
+
 --  Returns itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, 
 --  itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent, itemDescription
 function API.GetItemInfo(item)

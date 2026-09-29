@@ -71,15 +71,20 @@ function API.GetInventoryItemLink(unit, slotID)
     return GetInventoryItemLink(unit, slotID);
 end;
 
+-- Returns iconFileID = C_Item.GetItemIconByID(itemID)
+function API.GetItemIconByID(itemID)
+    return C_Item.GetItemIconByID(itemID)
+end;
+
 --  Returns itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, 
 --  itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent, itemDescription
 function API.GetItemInfo(item)
-    return GetItemInfo(item);
+    return C_Item.GetItemInfo(item);
 end;
 
 --  Returns itemID, itemType, itemSubType, itemEquipLoc, icon, classID, subclassID
 function API.GetItemInfoInstant(item)
-    return GetItemInfoInstant(item);
+    return C_Item.GetItemInfoInstant(item);
 end;
 
 function API.GetLootMethod()
@@ -104,9 +109,9 @@ function API.GetNumSavedInstances()
     return GetNumSavedInstances()
 end;
 
--- Returns numSkillLines = GetNumSkillLines()
+-- Returns numSkillLines = C_SkillInfo.GetNumSkillLines()
 function API.GetNumSkillLines()
-    return GetNumSkillLines()
+    return C_SkillInfo.GetNumSkillLines()
 end;
 
 --  Returns numTabs
@@ -159,7 +164,13 @@ end;
 
 -- Returns name, isHeader, isExpanded, skillRank, numSteps, skillModifier, maxRank, isAbandonable, stepCost, rankCost, minLevel, skillLineID, canEnhance = GetSkillLineInfo(index)
 function API.GetSkillLineInfo(index)
-    return GetSkillLineInfo(index)
+    local info = C_SkillInfo.GetSkillLineInfo(index)
+    if info then
+        return info.name, info.isHeader, info.isExpanded, info.skillRank, info.numSteps, 
+               info.skillModifier, info.maxRank, info.isAbandonable, info.stepCost, 
+               info.rankCost, info.minLevel, info.skillLineID, info.canEnhance
+    end
+    return nil
 end;
 
 -- Returns spellName, spellSubName = C_SpellBook.GetSpellBookItemName() equivalent variables
