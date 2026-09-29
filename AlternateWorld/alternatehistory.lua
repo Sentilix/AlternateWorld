@@ -105,7 +105,7 @@ end
 
 function AlternateWorldHistoryView.LogEvent(eventText)
     local charName = UnitName("player")
-    local realmName = GetRealmName()
+    local realmName = AlternateWorld.API.GetRealmName()
     if not charName or not realmName or not AlternateWorldDB then return end
     local myKey = charName .. " - " .. realmName
 

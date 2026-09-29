@@ -151,7 +151,7 @@ function AlternateWorldBankersView.ShowData(selectedCharacterKey)
     local panel, scrollContent = AlternateWorldBankersEngine.InitializeCorePanel(parentWindow)
     if not panel or not scrollContent then return end
 
-    local contextRealm = selectedCharacterKey and string.match(selectedCharacterKey, "%s*-%s*(.+)") or GetRealmName()
+    local contextRealm = selectedCharacterKey and string.match(selectedCharacterKey, "%s*-%s*(.+)") or AlternateWorld.API.GetRealmName()
     panel.activeContextRealmCache = contextRealm
 
     local mustIsolate = AlternateWorldDB.Settings and AlternateWorldDB.Settings.IsolateSingleRealms
@@ -175,8 +175,12 @@ function AlternateWorldBankersView.ShowData(selectedCharacterKey)
             GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
             GameTooltip:ClearLines()
             GameTooltip:AddLine("|cFFFFFFFFRestrict Banker Dropdowns|r")
-            GameTooltip:AddLine("|cFFFFD100When enabled, lists are strictly limited to characters from your current realm, or siblings inside your custom cluster.|r", 1, 1, 1, true)
-            GameTooltip:AddLine("|cFF888888Disable this to keep legacy behavior and view all characters across your entire account.|r", 1, 1, 1, true)
+            if AlternateWorld.lib.ForeverEngine then
+                GameTooltip:AddLine("|cFF888888View all characters across your entire account.|r", 1, 1, 1, true)
+            else
+                GameTooltip:AddLine("|cFFFFD100When enabled, lists are strictly limited to characters from your current realm, or siblings inside your custom cluster.|r", 1, 1, 1, true)
+                GameTooltip:AddLine("|cFF888888Disable this to keep legacy behavior and view all characters across your entire account.|r", 1, 1, 1, true)
+            end
             GameTooltip:Show()
         end)
         IsolateCB:SetScript("OnLeave", function() GameTooltip:Hide() end)

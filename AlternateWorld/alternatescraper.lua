@@ -7,9 +7,9 @@ AlternateWorldScraper = {}
 local function GetAverageItemLevel()
     local totalIlvl, equippedCount = 0, 0
     for slotID = 1, 17 do
-        local itemLink = GetInventoryItemLink("player", slotID)
+        local itemLink = AlternateWorld.API.GetInventoryItemLink("player", slotID)
         if itemLink then
-            local _, _, _, itemLevel = GetItemInfo(itemLink)
+            local _, _, _, itemLevel = AlternateWorld.API.GetItemInfo(itemLink)
             if itemLevel and itemLevel > 0 then
                 totalIlvl = totalIlvl + itemLevel
                 equippedCount = equippedCount + 1
@@ -21,15 +21,15 @@ local function GetAverageItemLevel()
 end
 
 local function GetCurrentSpec()
-    local currentLevel = UnitLevel("player") or 1
+    local currentLevel = AlternateWorld.API.UnitLevel("player") or 1
     if currentLevel < 10 then 
         return "No Talents Yet (under lvl 10)", "Interface\\Icons\\Spell_Nature_Invisibilty" 
     end
 
-    local numTabs = GetNumTalentTabs() or 0
+    local numTabs = AlternateWorld.API.GetNumTalentTabs() or 0
     if numTabs == 0 then return nil, nil end 
 
-    local _, classToken = UnitClass("player")
+    local _, classToken = AlternateWorld.API.UnitClass("player")
     if not classToken or not AlternateWorldConfig or not AlternateWorldConfig.TalentTrees[classToken] then 
         return "Unknown", "Interface\\Icons\\Spell_Nature_Invisibilty"
     end
@@ -39,10 +39,10 @@ local function GetCurrentSpec()
     local totalPointsAllocated = 0
     
     for tab = 1, 3 do
-        local numTalents = GetNumTalents(tab) or 0
+        local numTalents = AlternateWorld.API.GetNumTalents(tab) or 0
         local pointsInTab = 0
         for index = 1, numTalents do
-            local _, _, _, _, currentRank = GetTalentInfo(tab, index)
+            local _, _, _, _, currentRank = AlternateWorld.API.GetTalentInfo(tab, index)
             currentRank = tonumber(currentRank) or 0
             pointsInTab = pointsInTab + currentRank
         end
@@ -71,12 +71,12 @@ function AlternateWorldScraper.ScanContainers(startBag, endBag)
         local isContaminatedRow = (startBag == -1 and bag >= 0 and bag <= 4)
         
         if not isContaminatedRow then
-            local slots = C_Container.GetContainerNumSlots(bag) or 0
+            local slots = AlternateWorld.API.GetContainerNumSlots(bag) or 0
             for slot = 1, slots do
-                local itemLink = C_Container.GetContainerItemLink(bag, slot)
+                local itemLink = AlternateWorld.API.GetContainerItemLink(bag, slot)
                 if itemLink then
                     local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
-                    local containerInfo = C_Container.GetContainerItemInfo(bag, slot)
+                    local containerInfo = AlternateWorld.API.GetContainerItemInfo(bag, slot)
                     if itemID and containerInfo then
                         table.insert(itemsList, {
                             id = itemID,
@@ -97,9 +97,9 @@ local localKeyringCache = {}
 local function HasItemEverywhere(targetID, cachedBankItems)
     -- 1. Scan normal inventory bags (0 to 4)
     for bag = 0, 4 do
-        local slots = C_Container.GetContainerNumSlots(bag) or 0
+        local slots = AlternateWorld.API.GetContainerNumSlots(bag) or 0
         for slot = 1, slots do
-            local itemLink = C_Container.GetContainerItemLink(bag, slot)
+            local itemLink = AlternateWorld.API.GetContainerItemLink(bag, slot)
             if itemLink then
                 local id = tonumber(string.match(itemLink, "item:(%d+)"))
                 if id == targetID then return true end
@@ -123,10 +123,10 @@ end
 
 local function ScanRaidLockouts()
     local savedLockouts = {}
-    local numSaved = GetNumSavedInstances() or 0
+    local numSaved = AlternateWorld.API.GetNumSavedInstances() or 0
 
     for i = 1, numSaved do
-        local name, _, reset, _, locked = GetSavedInstanceInfo(i)
+        local name, _, reset, _, locked = AlternateWorld.API.GetSavedInstanceInfo(i)
         if locked and reset and reset > 0 and name then
             local key = nil
             if string.find(name, "Molten Core") then key = "mc"
@@ -150,9 +150,9 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     -- FIXED v0.6.1 SINGLE-PASS KEYRING SCANNER: Populates the lookup table once per snapshot to kill API storms permanently
     localKeyringCache = {} -- Wipe memory buffer fresh
     if KEYRING_CONTAINER then
-        local keyringSlots = C_Container.GetContainerNumSlots(KEYRING_CONTAINER) or 0
+        local keyringSlots = AlternateWorld.API.GetContainerNumSlots(KEYRING_CONTAINER) or 0
         for slot = 1, keyringSlots do
-            local itemLink = C_Container.GetContainerItemLink(KEYRING_CONTAINER, slot)
+            local itemLink = AlternateWorld.API.GetContainerItemLink(KEYRING_CONTAINER, slot)
             if itemLink then
                 local id = tonumber(string.match(itemLink, "item:(%d+)"))
                 if id then
@@ -163,7 +163,7 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     end
 
     local currentIlvl = 0
-    pcall(function() currentIlvl = GetAverageItemLevel() end)
+    pcall(function() currentIlvl = AlternateWorld.API.GetAverageItemLevel() end)
     
     local pSpecName, pSpecIcon = nil, nil
     pcall(function() pSpecName, pSpecIcon = GetCurrentSpec() end)
@@ -217,12 +217,12 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     
     -- FIXED v0.6.1 API COMPATIBILITY: Query the keyring vault utilizing the dedicated Blizzard engine constant directly
     if KEYRING_CONTAINER then
-        local keyringSlots = C_Container.GetContainerNumSlots(KEYRING_CONTAINER) or 0
+        local keyringSlots = AlternateWorld.API.GetContainerNumSlots(KEYRING_CONTAINER) or 0
         for slot = 1, keyringSlots do
-            local itemLink = C_Container.GetContainerItemLink(KEYRING_CONTAINER, slot)
+            local itemLink = AlternateWorld.API.GetContainerItemLink(KEYRING_CONTAINER, slot)
             if itemLink then
                 local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
-                local containerInfo = C_Container.GetContainerItemInfo(KEYRING_CONTAINER, slot)
+                local containerInfo = AlternateWorld.API.GetContainerItemInfo(KEYRING_CONTAINER, slot)
                 if itemID and containerInfo then
                     table.insert(currentBagData, {
                         id = itemID,
@@ -236,22 +236,22 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     
     local currentTimestamp = date("%Y-%m-%d %H:%M")
     
-    local isMC = C_QuestLog.IsQuestFlaggedCompleted(7848) or false
-    local isBWL = C_QuestLog.IsQuestFlaggedCompleted(7761) or false
-    local isOny = C_QuestLog.IsQuestFlaggedCompleted(6502) or C_QuestLog.IsQuestFlaggedCompleted(6570) or HasItemEverywhere(16309, currentBankData) or false
-    local isNaxx = C_QuestLog.IsQuestFlaggedCompleted(9121) or C_QuestLog.IsQuestFlaggedCompleted(9122) or C_QuestLog.IsQuestFlaggedCompleted(9123) or false
+    local isMC = AlternateWorld.API.IsQuestFlaggedCompleted(7848) or false
+    local isBWL = AlternateWorld.API.IsQuestFlaggedCompleted(7761) or false
+    local isOny = AlternateWorld.API.IsQuestFlaggedCompleted(6502) or AlternateWorld.API.IsQuestFlaggedCompleted(6570) or HasItemEverywhere(16309, currentBankData) or false
+    local isNaxx = AlternateWorld.API.IsQuestFlaggedCompleted(9121) or AlternateWorld.API.IsQuestFlaggedCompleted(9122) or AlternateWorld.API.IsQuestFlaggedCompleted(9123) or false
 
-    local isBRD = HasItemEverywhere(11000, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(4731) or false
-    local isScholo = HasItemEverywhere(13704, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(5511) or false
+    local isBRD = HasItemEverywhere(11000, currentBankData) or AlternateWorld.API.IsQuestFlaggedCompleted(4731) or false
+    local isScholo = HasItemEverywhere(13704, currentBankData) or AlternateWorld.API.IsQuestFlaggedCompleted(5511) or false
     local isStrat = HasItemEverywhere(12382, currentBankData) or false
     local isGnomeregan = HasItemEverywhere(6893, currentBankData) or false 
-    local isMara = HasItemEverywhere(17191, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(7046) or false
+    local isMara = HasItemEverywhere(17191, currentBankData) or AlternateWorld.API.IsQuestFlaggedCompleted(7046) or false
     local isDM = HasItemEverywhere(18249, currentBankData) or false
-    local isUBRS = HasItemEverywhere(12344, currentBankData) or C_QuestLog.IsQuestFlaggedCompleted(4742) or C_QuestLog.IsQuestFlaggedCompleted(4743) or false
+    local isUBRS = HasItemEverywhere(12344, currentBankData) or AlternateWorld.API.IsQuestFlaggedCompleted(4742) or AlternateWorld.API.IsQuestFlaggedCompleted(4743) or false
     local isSM = HasItemEverywhere(7146, currentBankData) or false
 
     local currentLockouts = ScanRaidLockouts()
-    if GetNumSavedInstances() == 0 and existingLockouts then
+    if AlternateWorld.API.GetNumSavedInstances() == 0 and existingLockouts then
         for k, v in pairs(existingLockouts) do
             if v > time() then currentLockouts[k] = v end
         end
@@ -262,24 +262,24 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
         finalProfessions = AlternateWorldProfScraper.GetUpdatedProfessions(existingProfessions)
     end
 
-    local currentXP = UnitXP("player") or 0
-    local maxXP = UnitXPMax("player") or 1
-    local restedXP = GetXPExhaustion() or 0
-    local isCharacterResting = IsResting() or false
+    local currentXP = AlternateWorld.API.UnitXP("player") or 0
+    local maxXP = AlternateWorld.API.UnitXPMax("player") or 1
+    local restedXP = AlternateWorld.API.GetXPExhaustion() or 0
+    local isCharacterResting = AlternateWorld.API.IsResting() or false
     
     -- FIXED v0.6.1 LIVE GOLD SCRAPER: Capture current player money wealth directly from the Blizzard API engine
-    local liveMoneyValue = GetMoney() or cachedMoneyValue or 0
+    local liveMoneyValue = AlternateWorld.API.GetMoney() or cachedMoneyValue or 0
 
     return {
-        name = UnitName("player"),
-        realm = GetRealmName(),
-        level = UnitLevel("player") or 1,
-        race = UnitRace("player") or "Unknown",
-        classToken = select(2, UnitClass("player")),
-        classNameLocal = UnitClass("player") or "Unknown",
-        faction = UnitFactionGroup("player") or "Alliance",
+        name = AlternateWorld.lib:GetNormalName("player"),
+        realm = AlternateWorld.API.GetRealmName(),
+        level = AlternateWorld.API.UnitLevel("player") or 1,
+        race = AlternateWorld.API.UnitRace("player") or "Unknown",
+        classToken = select(2, AlternateWorld.API.UnitClass("player")),
+        classNameLocal = AlternateWorld.API.UnitClass("player") or "Unknown",
+        faction = AlternateWorld.API.UnitFactionGroup("player") or "Alliance",
         gender = genderString,
-        zone = GetRealZoneText() or "Unknown Zone",
+        zone = AlternateWorld.API.GetRealZoneText() or "Unknown Zone",
         
         specText = pSpecName,
         specIcon = pSpecIcon,
@@ -348,9 +348,9 @@ function AlternateWorldProfScraper.GetUpdatedProfessions(oldProfessionsMap)
         end
     end
 
-    local numSkills = GetNumSkillLines() or 0
+    local numSkills = AlternateWorld.API.GetNumSkillLines() or 0
     for i = 1, numSkills do
-        local skillName, isHeader, _, skillRank, _, _, skillMax = GetSkillLineInfo(i)
+        local skillName, isHeader, _, skillRank, _, _, skillMax = AlternateWorld.API.GetSkillLineInfo(i)
         if not isHeader and IsTrackingProfession(skillName) then
             if not currentMap[skillName] then currentMap[skillName] = { recipes = {} } end
             currentMap[skillName].level = skillRank
@@ -359,23 +359,23 @@ function AlternateWorldProfScraper.GetUpdatedProfessions(oldProfessionsMap)
     end
 
     -- FIXED v0.4.0 CORE SCRACTER LINK: Inject recipes safely into the primary profiles recipes data container cache array
-    local craftName, _, numCrafts = GetCraftDisplaySkillLine()
+    local craftName, _, numCrafts = AlternateWorld.API.GetCraftDisplaySkillLine()
     if craftName and IsTrackingProfession(craftName) and numCrafts and numCrafts > 0 then
         if not currentMap[craftName] then currentMap[craftName] = { recipes = {} } end
         for i = 1, numCrafts do
-            local recipeName, recipeType = GetCraftInfo(i)
+            local recipeName, recipeType = AlternateWorld.API.GetCraftInfo(i)
             if recipeName and recipeType ~= "header" then 
                 currentMap[craftName].recipes[recipeName] = true 
             end
         end
     end
 
-    local tradeName = GetTradeSkillLine()
-    local numTradeSkills = GetNumTradeSkills() or 0
+    local tradeName = AlternateWorld.API.GetTradeSkillLine()
+    local numTradeSkills = AlternateWorld.API.GetNumTradeSkills() or 0
     if tradeName and IsTrackingProfession(tradeName) and numTradeSkills > 0 then
         if not currentMap[tradeName] then currentMap[tradeName] = { recipes = {} } end
         for i = 1, numTradeSkills do
-            local recipeName, recipeType = GetTradeSkillInfo(i)
+            local recipeName, recipeType = AlternateWorld.API.GetTradeSkillInfo(i)
             if recipeName and recipeType ~= "header" then 
                 currentMap[tradeName].recipes[recipeName] = true 
             end
@@ -384,7 +384,7 @@ function AlternateWorldProfScraper.GetUpdatedProfessions(oldProfessionsMap)
 
     local spellIndex = 1
     while true do
-        local spellName, spellSubName = GetSpellBookItemName(spellIndex, SpellBookFrame.bookType)
+        local spellName, spellSubName = AlternateWorld.API.GetSpellBookItemName(spellIndex, SpellBookFrame.bookType)
         if not spellName then break end
         
         local lSpell = string.lower(spellName)

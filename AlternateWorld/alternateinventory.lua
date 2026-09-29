@@ -98,7 +98,7 @@ local function CompileSortedArray(rawItemsTable)
             if rawNumericID then
                 local currentName = itemData.name
                 if not currentName or currentName == "Unknown Item" or currentName == "" then
-                    currentName = GetItemInfo(rawNumericID) or "Unknown Item"
+                    currentName = AlternateWorld.API.GetItemInfo(rawNumericID) or "Unknown Item"
                 end
                 table.insert(itemArray, { id = rawNumericID, name = currentName, count = itemData.count or 1 })
             end

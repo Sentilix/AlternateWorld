@@ -195,7 +195,7 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
             local isNameValid = (nameLen >= 2 and nameLen <= 12 and not string.match(nameText, "[^%a]"))
             if not isNameValid then
                 UIErrorsFrame:AddMessage("|cFFFF0000Error: Invalid name! Letters only (2-12 chars).|r")
-                PlaySound(846)
+                AlternateWorld.API.PlaySound(846)
                 return
             end
 
@@ -206,7 +206,7 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
             end
             if not isRealmValid then
                 UIErrorsFrame:AddMessage("|cFFFF0000Error: Invalid realm name format detected!|r")
-                PlaySound(846)
+                AlternateWorld.API.PlaySound(846)
                 return
             end
 
@@ -293,6 +293,7 @@ function AlternateWorldVirtualBankersView.CreatePanel(parentWindow)
     doc:SetJustifyV("TOP")
     doc:SetSpacing(5)
     
+    --  TODO: Adjust for Forever
     local docText = "|cFFFFFFFFWelcome to the Virtual Banker setup!|r\n\n" ..
                     "If you want to set up automatic mail recipients for characters that are " ..
                     "not on your current account, you can create a " .. AlternateWorldConstants.VIRTUAL_BANKER_COLOR_HEX .. "Virtual Banker|r.\n\n" ..
@@ -328,7 +329,7 @@ function AlternateWorldVirtualBankersView.CreatePanel(parentWindow)
         dlg.CustomRealmBox:SetText("")
         dlg.CustomRealmBox:Hide()
         
-        local activeRealm = GetRealmName()
+        local activeRealm = AlternateWorld.API.GetRealmName()
         UIDropDownMenu_SetText(dlg.RealmMenu, activeRealm)
         dlg.RealmMenu.selectedValue = activeRealm
         dlg.CustomRealmBox:SetText(activeRealm)
@@ -695,7 +696,7 @@ local function GetScannedCharactersInContext()
     local scopedChars = {}
     if not AlternateWorldDB then return scopedChars end
 
-    local currentRealm = GetRealmName()
+    local currentRealm = AlternateWorld.API.GetRealmName()
     local assignedCluster = AlternateWorldDB.Settings and AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[currentRealm]
 
     local function IsInScope(charRealm)

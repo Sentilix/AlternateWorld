@@ -5,6 +5,9 @@
 ## Version: 1.0.0
 ## SavedVariables: AlternateWorldDB
 
+Libs\LibDigam-1.0\DigamAddonLib.lua
+Libs\LibDigam-1.0\DigamAddonLib-Forever.lua
+
 alternateconstants.lua
 alternateconfig.lua
 alternatedb.lua
@@ -22,7 +25,6 @@ alternateprofessions.lua
 alternatebankers.lua
 alternatebankersui.lua
 alternatevirtualbankerui.lua
-alternateclusterconstants.lua
 alternateclustersui.lua
 alternatepost.lua
 alternatemain.lua

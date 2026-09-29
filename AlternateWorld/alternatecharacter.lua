@@ -89,7 +89,7 @@ function AlternateWorldCharacterEngine.ProcessShowData(selectedCharacterKey, ele
 
     if elements.DefaultPortrait2D then
         elements.DefaultPortrait2D:SetTexture("Interface\\CharacterFrame\\TemporaryPortrait")
-        if data.name == UnitName("player") then SetPortraitTexture(elements.DefaultPortrait2D, "player") end
+        if data.name == UnitName("player") then AlternateWorld.API.SetPortraitTexture(elements.DefaultPortrait2D, "player") end
     end
 
     local classColorHex = "|cFFFFFFFF"

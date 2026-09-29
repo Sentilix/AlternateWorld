@@ -1,5 +1,7 @@
 -- ============================================================================
 -- Alternate World - Server Clusters Layout UI Panel Module (v0.4.0 - FINAL)
+--
+--  Note: Clusters are not active in Forever.
 -- ============================================================================
 
 AlternateWorldClustersView = {}

@@ -23,8 +23,8 @@ end
 
 -- Bank Sync Entry Hook
 function AlternateWorldDBEngine.ScanBankData()
-    local charName = UnitName("player")
-    local realmName = GetRealmName()
+    local charName = AlternateWorld.lib:GetNormalName("player")
+    local realmName = AlternateWorld.API.GetRealmName()
     if not charName or not realmName then return end
     local myKey = charName .. " - " .. realmName
     
@@ -60,7 +60,7 @@ function AlternateWorldCategoryDB.GetItemCategory(itemID, itemType, itemSubtype)
     local idNum = tonumber(itemID)
 
     -- STEP 1: PRIORITY SCANNER - Inspects proper 4-argument Era GetItemInfoInstant structure
-    local _, typeStr, subTypeStr = GetItemInfoInstant(idNum)
+    local _, typeStr, subTypeStr = AlternateWorld.API.GetItemInfoInstant(idNum)
     if typeStr then
         local lowerType = string.lower(typeStr)
         local lowerSub = subTypeStr and string.lower(subTypeStr) or ""

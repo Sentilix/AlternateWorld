@@ -81,11 +81,11 @@ function AlternateWorldCore.Initialize()
             end
             
             isAddonFullyLoaded = true
-            RequestRaidInfo()
+            AlternateWorld.API.RequestRaidInfo()
         end
 
         if event == "PLAYER_ENTERING_WORLD" then
-            local checkRealmOnLoad = GetRealmName()
+            local checkRealmOnLoad = AlternateWorld.API.GetRealmName()
             if checkRealmOnLoad and checkRealmOnLoad ~= "" then
                 if AlternateWorldDBEngine and AlternateWorldDBEngine.SaveCurrentCharacterData then
                     AlternateWorldDBEngine.SaveCurrentCharacterData()
@@ -214,7 +214,7 @@ function AlternateWorldCore.Initialize()
         end
 
         if isAddonFullyLoaded and event ~= "ADDON_LOADED" then
-            local currentLiveRealm = GetRealmName()
+            local currentLiveRealm = AlternateWorld.API.GetRealmName()
             if currentLiveRealm and currentLiveRealm ~= "" then
                 if AlternateWorldDBEngine and AlternateWorldDBEngine.SaveCurrentCharacterData then
                     AlternateWorldDBEngine.SaveCurrentCharacterData()

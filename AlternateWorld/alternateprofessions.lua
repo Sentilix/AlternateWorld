@@ -100,7 +100,7 @@ function AlternateWorldProfessionsView.RefreshDisplay(mainSelectedCharacterKey)
         return realmName
     end
 
-    local liveContext = GetProfRealmContext(activeRealm or GetRealmName())
+    local liveContext = GetProfRealmContext(activeRealm or AlternateWorld.API.GetRealmName())
     local currentYOffset, count = -10, 0
     
     -- FIXED v0.4.0 SEARCH ENGINE: Loop directly over the pre-sorted and pre-filtered records array map from your engine
@@ -206,7 +206,7 @@ function AlternateWorldProfessionsView.RefreshDisplay(mainSelectedCharacterKey)
                 else
                     local foundSpellID = nil
                     for id = 1, 50000 do
-                        local sName = GetSpellInfo(id)
+                        local sName = AlternateWorld.API.GetSpellInfo(id)
                         if sName and string.lower(sName) == string.lower(recName) then
                             foundSpellID = id
                             break
@@ -278,7 +278,7 @@ function AlternateWorldProfessionsView.ShowData(selectedCharacterKey)
     AWIsViewActive = true 
     AWProfessionsPanel:Show()
     
-    local activeRealm = selectedCharacterKey and string.match(selectedCharacterKey, "%s*-%s*(.+)") or GetRealmName()
+    local activeRealm = selectedCharacterKey and string.match(selectedCharacterKey, "%s*-%s*(.+)") or AlternateWorld.API.GetRealmName()
     local assignedCluster = AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[activeRealm]
     
     -- INITIALIZE CONFIG LAYER: Fills with true automatically on a cluster realm if settings are untouched
@@ -310,6 +310,7 @@ function AlternateWorldProfessionsView.ShowData(selectedCharacterKey)
     end
 
     -- 1. UNIVERSAL PLUG-AND-PLAY CHECKBOX GENERATOR: Anchored dynamically inside the top bar lane
+    --  TODO: Remove from Forever!!
     local ProfIsolateCB = _G["AW_ProfIsolateCheckbox"]
     if not ProfIsolateCB and AWProfessionsPanel then
         ProfIsolateCB = CreateFrame("CheckButton", "AW_ProfIsolateCheckbox", AWProfessionsPanel, "InterfaceOptionsCheckButtonTemplate")
@@ -324,6 +325,7 @@ function AlternateWorldProfessionsView.ShowData(selectedCharacterKey)
         end)
 
         -- THE SIMPLE VERBATIM INDEX TOOLTIP LAYOUT CONFIG
+        --  TODO: Update for Forever
         ProfIsolateCB:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
             GameTooltip:ClearLines()

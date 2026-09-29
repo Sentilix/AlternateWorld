@@ -106,11 +106,10 @@ end
 -- ============================================================================
 
 AlternateWorldMainFrameEngine = {}
-local addonVersion = C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "0.6.6"
-local addonAuthor = C_AddOns.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
+local addonVersion = AlternateWorld.API.GetAddOnMetadata("AlternateWorld", "Version") or "(Unknown)"
+local addonAuthor = AlternateWorld.API.GetAddOnMetadata("AlternateWorld", "Author") or "Mimma @ EU-Pyrewood Village"
 
 local cachedPlayerName = nil
-local cachedPlayerRealm = nil
 AWCachedCharacterKey = nil
 
 local AlternateWorldMainFrame = CreateFrame("Frame", "AlternateWorldMainFrame", UIParent, "BasicFrameTemplateWithInset")
@@ -141,8 +140,8 @@ local function GetSelectedCharacterKey()
     end
     
     -- Emergency fallback if cache was uninitialized
-    local liveName = UnitName("player")
-    local liveRealm = GetRealmName()
+    local liveName = AlternateWorld.lib:GetNormalName("player")
+    local liveRealm = AlternateWorld.API.GetRealmName()
     if liveName and liveRealm and liveRealm ~= "" then
         AWCachedCharacterKey = liveName .. " - " .. liveRealm;
         return AWCachedCharacterKey;
@@ -187,20 +186,20 @@ end
 SLASH_ALTERNATEWORLDVERSION1 = "/awversion"
 SLASH_ALTERNATEWORLDVERSION2 = "/alternateworldversion"
 SlashCmdList["ALTERNATEWORLDVERSION"] = function()
-    local localVersion = C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata("AlternateWorld", "Version") or "Unknown"
-    local myPlayerName = UnitName("player") or "Character"
+    local localVersion = AlternateWorld.API.GetAddOnMetadata("AlternateWorld", "Version") or "Unknown"
+    local myPlayerName = AlternateWorld.lib:GetNormalName("player") or "Character"
     
     -- FIXED v0.6.4 LEAN PRINT: Stripped all text concatenation hooks to leverage the centralized wrapper natively
     AddonPrint("Querying network for other active versions...")
     AddonPrint(string.format("%s is using Alternate World v%s", myPlayerName, localVersion))
     
     local targetChannel = nil
-    if IsInRaid() then targetChannel = "RAID"
-    elseif IsInGroup() then targetChannel = "PARTY" end
+    if AlternateWorld.API.IsInRaid() then targetChannel = "RAID"
+    elseif AlternateWorld.API.IsInGroup() then targetChannel = "PARTY" end
     
     if targetChannel and AlternateWorldConstants and AlternateWorldConstants.ADDON_COMM_PREFIX then
         pcall(function()
-            C_ChatInfo.SendAddonMessage(AlternateWorldConstants.ADDON_COMM_PREFIX, "VERSION_REQUEST", targetChannel)
+            AlternateWorld.API.SendAddonMessage(AlternateWorldConstants.ADDON_COMM_PREFIX, "VERSION_REQUEST", targetChannel)
         end)
     end
 end
@@ -365,9 +364,9 @@ function AlternateWorldMainFrameEngine.OnAddonLoaded()
         AWCachedCharacterKey = myFullName;
         
         local currentData = AlternateWorldDB[AWCachedCharacterKey]
-        local currentClassToken = currentData and currentData.classToken or select(2, UnitClass("player"))
+        local currentClassToken = currentData and currentData.classToken or select(2, AlternateWorld.API.UnitClass("player"))
         local coloredName = AlternateWorldConfig.GetClassColoredText(AWCachedCharacterKey, currentClassToken)
-        local myFaction = currentData and currentData.faction or UnitFactionGroup("player")
+        local myFaction = currentData and currentData.faction or AlternateWorld.API.UnitFactionGroup("player")
         
         local myFactionIcon = ""
         if myFaction == "Alliance" then myFactionIcon = "|TInterface\\TargetingFrame\\UI-PVP-Alliance:14:14:0:0:64:64:0:38:0:38|t "
@@ -503,10 +502,9 @@ integrationBootstrapper:SetScript("OnEvent", function(self, event)
         self:UnregisterEvent("PLAYER_LOGIN")
             
         -- FIXED v0.6.1 INSTANCE CAPTURE: Safely locks character identity strings before flight status alterations
-        cachedPlayerName = UnitName("player")
-        cachedPlayerRealm = GetRealmName()
-        if cachedPlayerName and cachedPlayerRealm then
-            AWCachedCharacterKey = cachedPlayerName .. " - " .. cachedPlayerRealm
+        cachedPlayerName = AlternateWorld.lib:GetFullName("player")
+        if cachedPlayerName then
+            AWCachedCharacterKey = cachedPlayerName;
         end
         
         -- FIXED v0.6.1 MASTER ONHIDE WATCHDOG: Syncs all inner layers perfectly when the frame window is closed via the red X

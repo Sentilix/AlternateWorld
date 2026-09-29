@@ -48,8 +48,8 @@ function AlternateWorldProfEngine.GetSortedScannedProfessions(recipeID, contextR
     -- POLICY BRANCH B: Called by recipe grid to locate specific learned item crafters
     local matchingCrafters = {}
     local mustIsolate = AlternateWorldDB.Settings and AlternateWorldDB.Settings.IsolateSingleRealmsProf
-    local liveContext = GetBankerRealmContext(contextRealm or GetRealmName())
-    local myName = UnitName("player")
+    local liveContext = GetBankerRealmContext(contextRealm or AlternateWorld.API.GetRealmName())
+    local myName = AlternateWorld.lib:GetNormalName("player")
 
     for key, altData in pairs(AlternateWorldDB) do
         if key ~= "Settings" and altData and altData.name and altData.professions then
@@ -97,7 +97,7 @@ end
 function AlternateWorldProfEngine.GetRecipeColorAndWeight(n)
     local hex, w = "|cFFFFFFFF", WEIGHTS["white"]
     if not n then return hex, w end
-    local _, link = GetItemInfo(n)
+    local _, link = AlternateWorld.API.GetItemInfo(n)
     if link then
         if string.find(link, "cffff8000") then hex, w = "|cFFFF8000", WEIGHTS["orange"]
         elseif string.find(link, "ffa335ee") then hex, w = "|cFFA335EE", WEIGHTS["purple"]

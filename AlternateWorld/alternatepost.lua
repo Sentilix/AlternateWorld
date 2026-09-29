@@ -19,18 +19,18 @@ MailClerkFrame:SetScript("OnEvent", function(self, event, ...)
         local currentRecipient = SendMailNameEditBox:GetText() or ""
         if string.gsub(currentRecipient, "%s+", "") ~= "" then return end
 
-        local currentRealm = GetRealmName()
-        local currentFaction = UnitFactionGroup("player") or "Alliance"
+        local currentRealm = AlternateWorld.API.GetRealmName()
+        local currentFaction = AlternateWorld.API.UnitFactionGroup("player") or "Alliance"
         local livePostContext = GetPostRealmContext(currentRealm)
 
         for slotIndex = 1, 12 do
-            local itemLink = GetSendMailItemLink(slotIndex)
+            local itemLink = AlternateWorld.API.GetSendMailItemLink(slotIndex)
             
             if itemLink then
                 local itemID = string.match(itemLink, "item:(%d+)")
                 
                 if itemID then
-                    local itemName, _, _, _, _, _, itemType, itemSubtype = GetSendMailItem(slotIndex)
+                    local itemName, _, _, _, _, _, itemType, itemSubtype = AlternateWorld.API.GetSendMailItem(slotIndex)
                     local categoryID = AlternateWorldCategoryDB.GetItemCategory(itemID, itemType, itemSubtype)
                     
                     if categoryID and AlternateWorldDB.Settings and AlternateWorldDB.Settings.Bankers then
@@ -54,7 +54,7 @@ MailClerkFrame:SetScript("OnEvent", function(self, event, ...)
                                 else
                                     SendMailNameEditBox:SetText(namePart)
                                 end
-                                PlaySound(856)
+                                AlternateWorld.API.PlaySound(856)
                                 return 
                             end
                         end
