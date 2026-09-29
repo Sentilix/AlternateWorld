@@ -1,0 +1,28 @@
+## Title: Alternate World
+## Interface: 11509
+## Notes: Alternate Character Information
+## Author: Mimma @ EU-Pyrewood Village
+## Version: 1.0.0
+## SavedVariables: AlternateWorldDB
+
+alternateconstants.lua
+alternateconfig.lua
+alternatedb.lua
+alternatescraper.lua
+alternatecore.lua
+alternatecomm.lua
+alternateprofui.lua
+alternatecharacter.lua
+alternatecharacterui.lua
+alternateinventory.lua
+alternateattunements.lua
+alternatehistory.lua
+alternaterestedxp.lua
+alternateprofessions.lua
+alternatebankers.lua
+alternatebankersui.lua
+alternatevirtualbankerui.lua
+alternateclusterconstants.lua
+alternateclustersui.lua
+alternatepost.lua
+alternatemain.lua
