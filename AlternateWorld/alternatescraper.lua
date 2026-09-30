@@ -375,8 +375,9 @@ function AlternateWorldProfScraper.GetUpdatedProfessions(oldProfessionsMap)
     if tradeName and IsTrackingProfession(tradeName) and numTradeSkills > 0 then
         if not currentMap[tradeName] then currentMap[tradeName] = { recipes = {} } end
         for i = 1, numTradeSkills do
-            local recipeName, recipeType = AlternateWorld.API.GetTradeSkillInfo(i)
-            if recipeName and recipeType ~= "header" then 
+            -- FIXED v1.0.0 SCRAPER GATE: Explicitly capture and enforce the 4th argument (isHeader) across frames
+            local recipeName, recipeType, _, isHeader = AlternateWorld.API.GetTradeSkillInfo_Era(i, tradeName)
+            if recipeName and recipeType ~= "header" and not isHeader then 
                 currentMap[tradeName].recipes[recipeName] = true 
             end
         end

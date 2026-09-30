@@ -66,7 +66,7 @@ function AlternateWorldProfessionsView.RefreshDisplay(mainSelectedCharacterKey)
     end
 
     -- Extract active realm and configuration context flags safely
-    local activeRealm = mainSelectedCharacterKey and string.match(mainSelectedCharacterKey, "%s*-%s*(.+)") or GetRealmName()
+    local activeRealm = mainSelectedCharacterKey and string.match(mainSelectedCharacterKey, "%s*-%s*(.+)") or AlternateWorld.API.GetRealmName()
     local activeCharName = mainSelectedCharacterKey and string.gsub(string.match(mainSelectedCharacterKey, "([^%-]+)") or mainSelectedCharacterKey, "%s+", "")
     local mustIsolate = AlternateWorldDB.Settings and AlternateWorldDB.Settings.IsolateSingleRealmsProf
     local assignedCluster = AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[activeRealm]

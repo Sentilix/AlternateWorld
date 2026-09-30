@@ -25,7 +25,6 @@ alternateprofessions.lua
 alternatebankers.lua
 alternatebankersui.lua
 alternatevirtualbankerui.lua
-## alternateclusterconstants.lua
 alternateclustersui.lua
 alternatepost.lua
 alternatemain.lua

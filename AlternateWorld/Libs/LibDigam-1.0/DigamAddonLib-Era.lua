@@ -212,6 +212,11 @@ function API.GetTradeSkillInfo(index)
     return GetTradeSkillInfo(index)
 end;
 
+--  Same as GetTradeSkillInfo but supports professionName (for Forever - Era just skips it)
+function API.GetTradeSkillInfo_Era(index, professionName)
+    return API.GetTradeSkillInfo(index)
+end
+
 -- Returns tradeskillName, currentLevel, maxLevel, skillLineModifier = GetTradeSkillLine()
 function API.GetTradeSkillLine()
     return GetTradeSkillLine()

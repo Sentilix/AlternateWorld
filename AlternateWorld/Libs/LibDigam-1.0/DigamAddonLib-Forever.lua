@@ -257,21 +257,57 @@ function API.GetTrackingTexture()
 end;
 
 -- Returns name, difficulty, numAvailable, isHeader, isExpanded, id
-function API.GetTradeSkillInfo(index)
-    local recipeIDs = C_TradeSkillUI.GetAllRecipeIDs()
+--  NOTE: THIS IS NOT COMPATIBLE WITH ERA, USE GetTradeSkillInfo_Era(index, professionName), which
+--  has an added professionName parameter for filtering.
+function API.GetTradeSkillInfo_Era(index, professionName)
+    return API.GetTradeSkillInfo(index)
+end
+
+-- FIXED v1.0.0 FOREVER PROPER FILTER: Uses true underlying profession ID tracking maps to crush contamination
+local PROFESSION_ID_MAP = {
+    [171] = "Alchemy",
+    [185] = "Cooking",
+    [164] = "Blacksmithing",
+    [333] = "Enchanting",
+    [202] = "Engineering",
+    [165] = "Leatherworking",
+    [197] = "Tailoring",
+    [186] = "Mining",
+    [182] = "Herbalism",
+    [393] = "Skinning",
+    [129] = "First Aid",
+    [356] = "Fishing",
+}
+
+-- Returns name, difficulty, numAvailable, isHeader, isExpanded, id
+function API.GetTradeSkillInfo_Era(index, professionName)
+    local recipeIDs = C_TradeSkillUI.GetFilteredRecipeIDs()
     if not recipeIDs or not recipeIDs[index] then return nil end
-    
+      
     local recipeID = recipeIDs[index]
     local info = C_TradeSkillUI.GetRecipeInfo(recipeID)
     if info then
-        -- Map modern difficulty tokens to legacy string indicators
+        local currentProfInfo = C_TradeSkillUI.GetProfessionInfoByRecipeID(info.recipeID)
+        local activeProfessionName = PROFESSION_ID_MAP[currentProfInfo.parentProfessionID];
+
         local difficulty = info.difficulty or "trivial"
-        if info.isHeader then difficulty = "header" end
+        local isHeader = info.isHeader
         
-        return info.name, difficulty, info.numAvailable, info.isHeader, info.isExpanded, recipeID
+        if not info.learned or not activeProfessionName then
+            isHeader = true
+            difficulty = "header"
+        elseif professionName and activeProfessionName ~= professionName then
+            -- If the scraper loops "Cooking", but the UI engine is still processing "Alchemy" -> Evict instantly!
+            isHeader = true
+            difficulty = "header"
+        elseif info.isHeader then 
+            difficulty = "header" 
+        end
+        
+        return info.name, difficulty, info.numAvailable, isHeader, info.isExpanded, recipeID
     end
     return nil
-end;
+end
 
 -- Returns tradeskillName, currentLevel, maxLevel, skillLineModifier = C_TradeSkillUI.GetBaseProfessionInfo() equivalent variables
 function API.GetTradeSkillLine()
