@@ -17,12 +17,9 @@ local MENU_ITEMS = {
     { id = "bankers",     text = "Bankers",          icon = "interface\\icons\\inv_misc_coin_17" },
     { id = "virtualbankers", text = "Virtual Bankers", icon = 236424 },
 }
-
 if not AlternateWorld.lib.ForeverEngine then
     tinsert(MENU_ITEMS, { id = "clusters", text = "Clusters", icon = "interface\\icons\\inv_ore_arcanite_01" } )
 end;
-
-
 
 local PANELS_MAP = {
     ["character"]   = "AlternateWorldCharacterView",
@@ -33,8 +30,11 @@ local PANELS_MAP = {
     ["restedxp"]    = "AlternateWorldRestedXPView",
     ["bankers"]     = "AlternateWorldBankersView",
     ["virtualbankers"] = "AlternateWorldVirtualBankersView",
-    ["clusters"]    = "AlternateWorldClustersView" 
+     
 }
+if not AlternateWorld.lib.ForeverEngine then
+    PANELS_MAP["clusters"] = "AlternateWorldClustersView";
+end;
 
 function AlternateWorldNavigation.HideAllPanels()
     for _, globalName in pairs(PANELS_MAP) do
@@ -432,19 +432,21 @@ function AlternateWorldMainFrameEngine.OnAddonLoaded()
 
         if not AlternateWorldDB.Settings then AlternateWorldDB.Settings = {} end
 
-        if not AlternateWorldDB.Settings.Clusters then 
-            AlternateWorldCategoryDB = AlternateWorldCategoryDB or {} -- Safe check
-            AlternateWorldDB.Settings.Clusters = {} 
-        end
+        if not AlternateWorld.lib.ForeverEngine then
+            if not AlternateWorldDB.Settings.Clusters then 
+                AlternateWorldCategoryDB = AlternateWorldCategoryDB or {} -- Safe check
+                AlternateWorldDB.Settings.Clusters = {} 
+            end
 
-        if not AlternateWorldDB.Settings.ClusterNames then
-            AlternateWorldDB.Settings.ClusterNames = {
-                ["cluster_1"] = "Cluster 1",
-                ["cluster_2"] = "Cluster 2",
-                ["cluster_3"] = "Cluster 3",
-                ["cluster_4"] = "Cluster 4",
-                ["cluster_5"] = "Cluster 5"
-            }
+            if not AlternateWorldDB.Settings.ClusterNames then
+                AlternateWorldDB.Settings.ClusterNames = {
+                    ["cluster_1"] = "Cluster 1",
+                    ["cluster_2"] = "Cluster 2",
+                    ["cluster_3"] = "Cluster 3",
+                    ["cluster_4"] = "Cluster 4",
+                    ["cluster_5"] = "Cluster 5"
+                }
+            end;
         end
     end
 end

@@ -21,13 +21,16 @@ local function GetAverageItemLevel()
 end
 
 local function GetCurrentSpec()
-    local currentLevel = AlternateWorld.API.UnitLevel("player") or 1
+
+    local currentLevel = AlternateWorld.API.UnitLevel("player") or 1;
     if currentLevel < 10 then 
         return "No Talents Yet (under lvl 10)", "Interface\\Icons\\Spell_Nature_Invisibilty" 
     end
 
     local numTabs = AlternateWorld.API.GetNumTalentTabs() or 0
-    if numTabs == 0 then return nil, nil end 
+    if numTabs == 0 then
+        return nil, nil
+    end 
 
     local _, classToken = AlternateWorld.API.UnitClass("player")
     if not classToken or not AlternateWorldConfig or not AlternateWorldConfig.TalentTrees[classToken] then 
@@ -40,9 +43,10 @@ local function GetCurrentSpec()
     
     for tab = 1, 3 do
         local numTalents = AlternateWorld.API.GetNumTalents(tab) or 0
+
         local pointsInTab = 0
         for index = 1, numTalents do
-            local _, _, _, _, currentRank = AlternateWorld.API.GetTalentInfo(tab, index)
+            local _, _, _, _, currentRank = AlternateWorld.API.GetTalentInfo(tab, index);
             currentRank = tonumber(currentRank) or 0
             pointsInTab = pointsInTab + currentRank
         end
@@ -50,7 +54,9 @@ local function GetCurrentSpec()
         totalPointsAllocated = totalPointsAllocated + pointsInTab
     end
     
-    if totalPointsAllocated == 0 then return nil, nil end
+    if totalPointsAllocated == 0 then
+        return nil, nil
+     end
 
     local maxPoints, mainTreeIndex = -1, 1
     for i = 1, 3 do
@@ -59,7 +65,7 @@ local function GetCurrentSpec()
             mainTreeIndex = i
         end
     end
-    
+
     local treeString = trees[mainTreeIndex].name .. " (" .. treePoints[1] .. "/" .. treePoints[2] .. "/" .. treePoints[3] .. ")"
     return treeString, trees[mainTreeIndex].icon
 end
@@ -375,7 +381,6 @@ function AlternateWorldProfScraper.GetUpdatedProfessions(oldProfessionsMap)
     if tradeName and IsTrackingProfession(tradeName) and numTradeSkills > 0 then
         if not currentMap[tradeName] then currentMap[tradeName] = { recipes = {} } end
         for i = 1, numTradeSkills do
-            -- FIXED v1.0.0 SCRAPER GATE: Explicitly capture and enforce the 4th argument (isHeader) across frames
             local recipeName, recipeType, _, isHeader = AlternateWorld.API.GetTradeSkillInfo_Era(i, tradeName)
             if recipeName and recipeType ~= "header" and not isHeader then 
                 currentMap[tradeName].recipes[recipeName] = true 

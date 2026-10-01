@@ -41,14 +41,17 @@ function AlternateWorldCharacterEngine.CalculateRealmOrClusterTotals(contextReal
     if not AlternateWorldDB or not contextRealm then return totals end
 
     -- Resolve active cluster mappings contexts safely
-    local assignedCluster = AlternateWorldDB.Settings and AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[contextRealm]
-    if assignedCluster then
-        totals.isCluster = true
-        local customName = AlternateWorldDB.Settings.ClusterNames and AlternateWorldDB.Settings.ClusterNames[assignedCluster] or "Cluster"
-        totals.title = customName .. " Overview"
-    else
-        totals.title = contextRealm .. " Overview"
-    end
+    local assignedCluster = nil;
+    if not AlternateWorld.lib.ForeverEngine then
+        assignedCluster = AlternateWorldDB.Settings and AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[contextRealm]
+        if assignedCluster then
+            totals.isCluster = true
+            local customName = AlternateWorldDB.Settings.ClusterNames and AlternateWorldDB.Settings.ClusterNames[assignedCluster] or "Cluster"
+            totals.title = customName .. " Overview"
+        else
+            totals.title = contextRealm .. " Overview"
+        end
+    end;
 
     -- Helper to check server group match boundaries cleanly
     local function IsInActiveScope(charRealm)
@@ -89,7 +92,9 @@ function AlternateWorldCharacterEngine.ProcessShowData(selectedCharacterKey, ele
 
     if elements.DefaultPortrait2D then
         elements.DefaultPortrait2D:SetTexture("Interface\\CharacterFrame\\TemporaryPortrait")
-        if data.name == UnitName("player") then AlternateWorld.API.SetPortraitTexture(elements.DefaultPortrait2D, "player") end
+        if data.name == AlternateWorld.lib:GetFullName("player") then 
+            AlternateWorld.API.SetPortraitTexture(elements.DefaultPortrait2D, "player")
+        end
     end
 
     local classColorHex = "|cFFFFFFFF"
@@ -131,31 +136,55 @@ function AlternateWorldCharacterEngine.ProcessShowData(selectedCharacterKey, ele
     local maxIlvl = data.maxItemLevel or 0
     local formattedMoney = AlternateWorldCharacterEngine.FormatMoneyString(data.money or 0)
     if elements.InfoTextLeft then
-        elements.InfoTextLeft:SetText(string.format("Gold: %s\n\nItem Level: |cFFFFFFFF%.1f|r  |cFF888888(Max: %.1f)|r\n\nZone: |cFFFFFFFF%s|r", formattedMoney, currentIlvl, maxIlvl, data.zone or "Unknown"))
+        elements.InfoTextLeft:SetText(string.format("Gold: %s\n\nItem Level: |cFFFFFFFF%.1f|r  |cFF888888(Max: %.1f)|r\n\nZone: |cFFFFFFFF%s|r", 
+            formattedMoney, currentIlvl, maxIlvl, data.zone or "Unknown"))
     end
 
     -- FETCH v0.4.1 ECONOMIC TIERS: Resolves local scope summaries vs broad account-wide ledgers
-    local targetRealm = data.realm or GetRealmName()
+    local targetRealm = data.realm or AlternateWorld.API.GetRealmName()
     local r = AlternateWorldCharacterEngine.CalculateRealmOrClusterTotals(targetRealm)
     local t = AlternateWorldCharacterEngine.CalculateAccountTotals()
     
     if elements.AccountTotalsLeft and elements.AccountTotalsRight then
         -- TYPOGRAPHY: Stripped yellow brackets and enforced clean white headers verbatim
         local leftText = string.format(
-            "|cFFFFFFFF%s|r\nGold, Alliance: %s\nGold, Horde: %s\nGold, Total: %s\n\n" ..
-            "|cFFFFFFFFAccount Overview|r\nGold, Alliance: %s\nGold, Horde: %s\nGold, Total: %s",
+            "|cFFFFFFFF%s|r\nGold, Alliance: %s\nGold, Horde: %s\nGold, Total: %s\n\n",
             r.title,
-            AlternateWorldCharacterEngine.FormatMoneyString(r.allyGold), AlternateWorldCharacterEngine.FormatMoneyString(r.hordeGold), AlternateWorldCharacterEngine.FormatMoneyString(r.allyGold + r.hordeGold),
-            AlternateWorldCharacterEngine.FormatMoneyString(t.allyGold), AlternateWorldCharacterEngine.FormatMoneyString(t.hordeGold), AlternateWorldCharacterEngine.FormatMoneyString(t.allyGold + t.hordeGold)
-        )
+            AlternateWorldCharacterEngine.FormatMoneyString(r.allyGold), 
+            AlternateWorldCharacterEngine.FormatMoneyString(r.hordeGold), 
+            AlternateWorldCharacterEngine.FormatMoneyString(r.allyGold + r.hordeGold)        
+        );
+
+        if not AlternateWorld.lib.ForeverEngine then
+            leftText = leftText .. string.format(
+                "\n|cFFFFFFFFAccount Overview|r\nGold, Alliance: %s\nGold, Horde: %s\nGold, Total: %s",
+                AlternateWorldCharacterEngine.FormatMoneyString(t.allyGold), 
+                AlternateWorldCharacterEngine.FormatMoneyString(t.hordeGold), 
+                AlternateWorldCharacterEngine.FormatMoneyString(t.allyGold + t.hordeGold)
+            );
+        end;
 
         -- FIXED v0.4.1 SYMMETRY: Added (lvl 60: X) trackers to the cluster/realm rows to match account layout perfectly
         local rightText = string.format(
-            "\nChars, Alliance: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Horde: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Total: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\n\n" ..
-            "\nChars, Alliance: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Horde: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Total: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r",
-            r.allyChars, r.ally60s, r.hordeChars, r.horde60s, r.allyChars + r.hordeChars, r.ally60s + r.horde60s,
-            t.allyChars, t.ally60s, t.hordeChars, t.horde60s, t.allyChars + t.hordeChars, t.ally60s + t.horde60s
-        )
+            "\nChars, Alliance: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Horde: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Total: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\n\n",
+            r.allyChars, 
+            r.ally60s, 
+            r.hordeChars, 
+            r.horde60s, 
+            r.allyChars + r.hordeChars, 
+            r.ally60s + r.horde60s
+        );
+        if not AlternateWorld.lib.ForeverEngine then
+            rightText = rightText .. string.format(
+                "\nChars, Alliance: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Horde: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Total: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r",
+                t.allyChars, 
+                t.ally60s, 
+                t.hordeChars, 
+                t.horde60s, 
+                t.allyChars + t.hordeChars, 
+                t.ally60s + t.horde60s
+            );
+        end;
 
         elements.AccountTotalsLeft:SetText(leftText)
         elements.AccountTotalsRight:SetText(rightText)

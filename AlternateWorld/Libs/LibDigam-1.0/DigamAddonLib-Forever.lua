@@ -1,6 +1,24 @@
 
 local API = DigamAddonLib.API;
 
+-- FIXED v1.0.0 FOREVER PROPER FILTER: Uses true underlying profession ID tracking maps to crush contamination
+local PROFESSION_ID_MAP = {
+    [171] = { name = "Alchemy",        isSecondary = false },
+    [164] = { name = "Blacksmithing",  isSecondary = false },
+    [333] = { name = "Enchanting",     isSecondary = false },
+    [202] = { name = "Engineering",    isSecondary = false },
+    [165] = { name = "Leatherworking", isSecondary = false },
+    [197] = { name = "Tailoring",      isSecondary = false },
+    [186] = { name = "Mining",         isSecondary = false },
+    [182] = { name = "Herbalism",      isSecondary = false },
+    [393] = { name = "Skinning",       isSecondary = false },
+    -- SECONDARY ALIGNMENT TIERS
+    [185] = { name = "Cooking",        isSecondary = true },
+    [129] = { name = "First Aid",      isSecondary = true },
+    [356] = { name = "Fishing",        isSecondary = true },
+}
+
+
 -- 1. CreateFrame requires BackdropTemplate in Forever if using :SetBackdrop()
 function API.CreateFrame(frameType, frameName, parentFrame, inheritsFrame, id)
     -- Add BackdropTemplate if creating a Frame with a name/parent:
@@ -110,14 +128,119 @@ function API.GetNumSavedInstances()
 end;
 
 -- Returns numSkillLines = C_SkillInfo.GetNumSkillLines()
-function API.GetNumSkillLines()
-    return C_SkillInfo.GetNumSkillLines()
-end;
+--  See the Profession emulation
+--function API.GetNumSkillLines()
+--    return C_SkillInfo.GetNumSkillLines()
+--end;
 
---  Returns numTabs
+-- Global high-performance points cache for the three talent tabs in Forever
+local emulatedTalentPoints = { [1] = 0, [2] = 0, [3] = 0 }
+local emulatedNumTalents = { [1] = 0, [2] = 0, [3] = 0 }
+
+-- Private core function to parse modern C_Traits config maps into classic 3-tab buckets
+local function PopulateForeverTalentCache()
+    emulatedTalentPoints[1], emulatedTalentPoints[2], emulatedTalentPoints[3] = 0, 0, 0
+    emulatedNumTalents[1], emulatedNumTalents[2], emulatedNumTalents[3] = 0, 0, 0
+
+    local configID = C_ClassTalents and C_ClassTalents.GetActiveConfigID()
+    if not configID then return end
+
+    local configInfo = C_Traits.GetConfigInfo(configID)
+    local treeIDs = configInfo and configInfo.treeIDs
+    local treeID = treeIDs and treeIDs[1]
+    if not treeID then return end
+
+    -- Extract all active node entries inside the structural class talent tree
+    local nodes = C_Traits.GetTreeNodes(treeID)
+    if not nodes then return end
+
+    -- Map modern structural node elements directly to index 1, 2 and 3 tabs
+    for _, nodeID in ipairs(nodes) do
+        local nodeInfo = C_Traits.GetNodeInfo(configID, nodeID)
+        if nodeInfo and nodeInfo.subTreeID then
+            -- Blizzard's subTreeID structure naturally maps to sequential tab buckets (1, 2, 3)
+            local tabIndex = nodeInfo.subTreeID
+            if emulatedTalentPoints[tabIndex] then
+                emulatedNumTalents[tabIndex] = emulatedNumTalents[tabIndex] + 1
+                
+                -- Check if the player has allocated points in this node
+                local entryID = nodeInfo.activeEntry and nodeInfo.activeEntry.entryID
+                if entryID then
+                    local assignmentInfo = C_Traits.GetAssignmentInfo(configID, nodeID)
+                    local ranksAllocated = assignmentInfo and assignmentInfo.ranksAllocated or 0
+                    emulatedTalentPoints[tabIndex] = emulatedTalentPoints[tabIndex] + ranksAllocated
+                end
+            end
+        end
+    end
+end
+
+-- BEGIN EMULATED TALENT API: Returns numTabs = 3 (Matches Classic Era perfectly)
+-- Static emulated storage container array counters
+local emulatedTotalPoints = 0
+local cacheIsPopulated = false
+
+-- Private high-performance parser that rips true allocated ranks directly out of Blizzards active layout config
+local function PopulateForeverTalentCache()
+    emulatedTotalPoints = 0
+
+    local configID = C_ClassTalents and C_ClassTalents.GetActiveConfigID()
+    if not configID then return end
+
+    -- Fetch the universal trait tree mapping structure safely
+    local specID = GetSpecialization and GetSpecialization()
+    local specInfoID = specID and GetSpecializationInfo(specID)
+    
+    -- FIXED v1.0.0 NAMESPACE: Fallback directly onto the configuration info structure via C_Traits to block nil-pointer crashes
+    local treeID = specInfoID and C_ClassTalents.GetTraitTreeForSpec(specInfoID)
+    if not treeID then
+        local configInfo = C_Traits.GetConfigInfo(configID)
+        local treeIDs = configInfo and configInfo.treeIDs
+        treeID = treeIDs and treeIDs[1]
+    end
+    
+    if not treeID then return end
+
+    local nodes = C_Traits.GetTreeNodes(treeID)
+    if not nodes then return end
+
+    -- Loop directly through every single node blueprint inside the active layout context
+    for _, nodeID in ipairs(nodes) do
+        local nodeInfo = C_Traits.GetNodeInfo(configID, nodeID)
+        if nodeInfo and nodeInfo.isVisible then
+            -- FIXED v1.0.0 FOREVER FIELD: Use activeRank instead of currentRank to accurately tally allocated points
+            local ranks = nodeInfo.activeRank or 0
+            if ranks > 0 then
+                emulatedTotalPoints = emulatedTotalPoints + ranks
+            end
+        end
+    end
+    cacheIsPopulated = true
+end
+
+-- EMULATED API: Returns numTabs = 3 (Blocks silent crashes completely)
 function API.GetNumTalentTabs(isInspect, isPet)
-    return GetNumTalentTabs(isInspect, isPet);
-end;
+    PopulateForeverTalentCache()
+    return 3
+end
+
+-- EMULATED API: We fake exactly 1 loop iteration per tab to make calculation super fast and elegant
+function API.GetNumTalents(tabIndex)
+    if not cacheIsPopulated then
+        PopulateForeverTalentCache()
+    end
+    return 1
+end
+
+-- EMULATED API: Safely returns all 5 arguments across all tabs to prevent indexing crashes
+function API.GetTalentInfo(tabIndex, talentIndex)
+    if tabIndex == 1 and talentIndex == 1 then
+        return "EmulatedTalent", nil, nil, nil, emulatedTotalPoints
+    end
+    return "DummyTalent", nil, nil, nil, 0
+end
+--  END EMULATED TALENT API
+
 
 function API.GetNumTrackingTypes()
     return C_Minimap.GetNumTrackingTypes();
@@ -162,16 +285,83 @@ function API.GetSendMailItemLink(index)
     return GetSendMailItemLink(index);
 end;
 
--- Returns name, isHeader, isExpanded, skillRank, numSteps, skillModifier, maxRank, isAbandonable, stepCost, rankCost, minLevel, skillLineID, canEnhance = GetSkillLineInfo(index)
+--  BEGIN Profession emulation
+local function GetActiveProfessionsCache()
+    local list = {}
+    
+    -- Step 1: Core dynamic scan for learned Primary Professions
+    if _G.GetProfessions then
+        local p1, p2 = _G.GetProfessions()
+        local primaries = { p1, p2 }
+        
+        for _, profIndex in ipairs(primaries) do
+            if profIndex and profIndex > 0 then
+                local name, _, skillLevel, maxSkillLevel, _, _, skillLineID = _G.GetProfessionInfo(profIndex)
+                
+                local mapData = skillLineID and PROFESSION_ID_MAP[skillLineID]
+                local finalName = mapData and mapData.name or name
+                
+                if finalName and skillLevel and skillLevel > 0 then
+                    table.insert(list, {
+                        name = finalName,
+                        isHeader = false,
+                        skillRank = skillLevel,
+                        skillMax = maxSkillLevel or 0,
+                        id = skillLineID or profIndex
+                    })
+                end
+            end
+        end
+    end
+
+    -- Step 2: Cataclysm Native Secondary Profession Injection via immutable Skill Line IDs
+    for id, meta in pairs(PROFESSION_ID_MAP) do
+        if meta.isSecondary then
+            -- FIXED v1.0.0 CATA ENGINE LINK: Pull info directly from the modern sync SkillLine structural ledger
+            if C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
+                local info = C_TradeSkillUI.GetProfessionInfoBySkillLineID(id)
+                if info and info.skillLevel and info.skillLevel > 0 then
+                    table.insert(list, {
+                        name = meta.name,
+                        isHeader = false,
+                        skillRank = info.skillLevel,
+                        skillMax = info.maxSkillLevel or 0,
+                        id = id
+                    })
+                end
+            end
+        end
+    end
+
+    return list
+end
+
+function API.GetNumSkillLines()
+    local cache = GetActiveProfessionsCache()
+    return cache and #cache or 0
+end
+
 function API.GetSkillLineInfo(index)
-    local info = C_SkillInfo.GetSkillLineInfo(index)
-    if info then
-        return info.name, info.isHeader, info.isExpanded, info.skillRank, info.numSteps, 
-               info.skillModifier, info.maxRank, info.isAbandonable, info.stepCost, 
-               info.rankCost, info.minLevel, info.skillLineID, info.canEnhance
+    local profList = GetActiveProfessionsCache()
+    if not profList or not profList[index] then return nil end
+    local profData = profList[index]
+    
+    return profData.name, profData.isHeader, false, profData.skillRank, 0, 0, profData.skillMax, false, 0, 0, 1, profData.id, false
+end
+
+function API.GetTradeSkillLine()
+    local currentProfInfo = C_TradeSkillUI.GetBaseProfessionInfo()
+    if currentProfInfo and currentProfInfo.professionName then
+        return currentProfInfo.professionName
     end
     return nil
-end;
+end
+
+function API.GetNumTradeSkills()
+    local recipeIDs = C_TradeSkillUI.GetFilteredRecipeIDs()
+    return recipeIDs and #recipeIDs or 0
+end
+--  END Profession emulation
 
 -- Returns spellName, spellSubName = C_SpellBook.GetSpellBookItemName() equivalent variables
 function API.GetSpellBookItemName(index, bookType)
@@ -232,9 +422,10 @@ function API.GetSpellName(spellIdentifier)
 end;
 
 --  Returns name, iconTexture, tier, column, currentRank, maxRank, isExceptional, meetsPrereq = GetTalentInfo(tabIndex, talentIndex [, isInspect, isPet, groupIndex])
-function API.GetTalentInfo(tabIndex, talentIndex, isInspect, isPet, groupIndex)
-    return GetTalentInfo(tabIndex, talentIndex, isInspect, isPet, groupIndex);
-end;
+--See the emulated talent API!
+--function API.GetTalentInfo(tabIndex, talentIndex, isInspect, isPet, groupIndex)
+--    return GetTalentInfo(tabIndex, talentIndex, isInspect, isPet, groupIndex);
+--end;
 
 function API.GetTime()
     return GetTime();
@@ -263,22 +454,6 @@ function API.GetTradeSkillInfo_Era(index, professionName)
     return API.GetTradeSkillInfo(index)
 end
 
--- FIXED v1.0.0 FOREVER PROPER FILTER: Uses true underlying profession ID tracking maps to crush contamination
-local PROFESSION_ID_MAP = {
-    [171] = "Alchemy",
-    [185] = "Cooking",
-    [164] = "Blacksmithing",
-    [333] = "Enchanting",
-    [202] = "Engineering",
-    [165] = "Leatherworking",
-    [197] = "Tailoring",
-    [186] = "Mining",
-    [182] = "Herbalism",
-    [393] = "Skinning",
-    [129] = "First Aid",
-    [356] = "Fishing",
-}
-
 -- Returns name, difficulty, numAvailable, isHeader, isExpanded, id
 function API.GetTradeSkillInfo_Era(index, professionName)
     local recipeIDs = C_TradeSkillUI.GetFilteredRecipeIDs()
@@ -288,7 +463,8 @@ function API.GetTradeSkillInfo_Era(index, professionName)
     local info = C_TradeSkillUI.GetRecipeInfo(recipeID)
     if info then
         local currentProfInfo = C_TradeSkillUI.GetProfessionInfoByRecipeID(info.recipeID)
-        local activeProfessionName = PROFESSION_ID_MAP[currentProfInfo.parentProfessionID];
+        local activeProfessionInfo = PROFESSION_ID_MAP[currentProfInfo.parentProfessionID];
+        local activeProfessionName = activeProfessionInfo and activeProfessionInfo.Name;
 
         local difficulty = info.difficulty or "trivial"
         local isHeader = info.isHeader

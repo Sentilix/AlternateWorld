@@ -56,11 +56,18 @@ function AlternateWorldCharacterView.CreatePanel(parentWindow)
 
     ElementsRegistry.AccountTotalsLeft = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     ElementsRegistry.AccountTotalsLeft:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 20, -255)
+    -- FIXED v1.0.0 BOUNDBOX: Anchor the right edge to give the string maximum breathing room
+    ElementsRegistry.AccountTotalsLeft:SetPoint("BOTTOMRIGHT", CharacterPanel, "TOPLEFT", 210, -350)
     ElementsRegistry.AccountTotalsLeft:SetJustifyH("LEFT")
+    ElementsRegistry.AccountTotalsLeft:SetJustifyV("TOP")
 
     ElementsRegistry.AccountTotalsRight = CharacterPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     ElementsRegistry.AccountTotalsRight:SetPoint("TOPLEFT", CharacterPanel, "TOPLEFT", 220, -255)
+    -- FIXED v1.0.0 BOUNDBOX: Expand the right edge explicitly to X=420 to crush the automatic word-wrap layout bug
+    ElementsRegistry.AccountTotalsRight:SetPoint("BOTTOMRIGHT", CharacterPanel, "TOPRIGHT", -20, -350)
     ElementsRegistry.AccountTotalsRight:SetJustifyH("LEFT")
+    ElementsRegistry.AccountTotalsRight:SetJustifyV("TOP")
+
 
     ElementsRegistry.DeleteCharButton = CreateFrame("Button", "AW_DeleteCharacterProfileButton", CharacterPanel, "UIPanelButtonTemplate")
     ElementsRegistry.DeleteCharButton:SetSize(110, 22)
