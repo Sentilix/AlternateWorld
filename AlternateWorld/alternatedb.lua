@@ -8,8 +8,12 @@ AlternateWorldDBEngine = {}
 function AlternateWorldDBEngine.SaveCurrentCharacterData()
     if not AlternateWorldDB then AlternateWorldDB = {} end
         
-    local myKey = _G["AWCachedCharacterKey"];
-    
+    local currentKey = _G["AWCachedCharacterKey"];
+    local myKey = AlternateWorld.lib:GetFullName("player");
+    if not myKey or currentKey ~= myKey then
+        return;
+    end;
+
     -- Safety hook: If the scraping module hasn't loaded yet, abort to prevent zero-overwrites
     if not myKey or not AlternateWorldScraper or not AlternateWorldScraper.GatherFullSnapshot then return end
     
@@ -23,10 +27,7 @@ end
 
 -- Bank Sync Entry Hook
 function AlternateWorldDBEngine.ScanBankData()
-    local charName = AlternateWorld.lib:GetNormalName("player")
-    local realmName = AlternateWorld.API.GetRealmName()
-    if not charName or not realmName then return end
-    local myKey = charName .. " - " .. realmName
+    local myKey = AlternateWorld.lib:GetFullName("player")
     
     if AlternateWorldDB and AlternateWorldDB[myKey] and AlternateWorldScraper and AlternateWorldScraper.ScanContainers then
         -- Force a synchronous scan of the bank bags (-1 and 5 to 11)

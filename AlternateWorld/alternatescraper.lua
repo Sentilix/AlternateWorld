@@ -72,9 +72,22 @@ end
 
 function AlternateWorldScraper.ScanContainers(startBag, endBag)
     local itemsList = {}
+    
+    -- FIXED v1.0.0 FOREVER BOUNDS: Automatically expand the search array parameters if scanning the bank in Forever
+    if AlternateWorld.lib.ForeverEngine and startBag == -1 and endBag == 11 then
+        endBag = 12
+    end
+
     for bag = startBag, endBag do
-        -- FIXED v0.6.0 BANK ISOLATION: Explicitly skips active inventory bags (0-4) ONLY during a bank vault scan (-1 to 11)
-        local isContaminatedRow = (startBag == -1 and bag >= 0 and bag <= 4)
+        -- FIXED v1.0.0 BANK ISOLATION: Explicitly block character equipment bags (0-4). In Forever, also drop active Reagent Bag (5) during a bank scan.
+        local isContaminatedRow = false
+        if startBag == -1 then
+            if AlternateWorld.lib.ForeverEngine then
+                isContaminatedRow = (bag >= 0 and bag <= 5) -- Blocks 0-4 (Bags) AND 5 (Reagent Bag) from polluting bank datasets
+            else
+                isContaminatedRow = (bag >= 0 and bag <= 4) -- Classic Era boundary protection
+            end
+        end
         
         if not isContaminatedRow then
             local slots = AlternateWorld.API.GetContainerNumSlots(bag) or 0
