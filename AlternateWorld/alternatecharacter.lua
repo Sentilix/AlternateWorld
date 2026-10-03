@@ -91,9 +91,22 @@ function AlternateWorldCharacterEngine.ProcessShowData(selectedCharacterKey, ele
     end
 
     if elements.DefaultPortrait2D then
-        elements.DefaultPortrait2D:SetTexture("Interface\\CharacterFrame\\TemporaryPortrait")
         if data.name == AlternateWorld.lib:GetFullName("player") then 
             AlternateWorld.API.SetPortraitTexture(elements.DefaultPortrait2D, "player")
+            elements.DefaultPortrait2D:SetTexCoord(0, 1, 0, 1)
+        else
+            local classToken = data.classToken or "WARRIOR"
+            local coords = _G.CLASS_ICON_TCOORDS and _G.CLASS_ICON_TCOORDS[classToken]
+            
+            if coords then
+                -- Target Blizzard's native crisp class circle texture atlas directly
+                elements.DefaultPortrait2D:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
+                elements.DefaultPortrait2D:SetTexCoord(unpack(coords))
+            else
+                -- Ultimate emergency fallback safeguard
+                elements.DefaultPortrait2D:SetTexture("Interface\\CharacterFrame\\TemporaryPortrait")
+                elements.DefaultPortrait2D:SetTexCoord(0, 1, 0, 1)
+            end
         end
     end
 
