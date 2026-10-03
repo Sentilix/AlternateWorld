@@ -191,7 +191,7 @@ function AlternateWorldCharacterEngine.ProcessShowData(selectedCharacterKey, ele
     end
 
     if elements.DeleteCharButton then
-        if data.name == UnitName("player") then elements.DeleteCharButton:Disable()
+        if data.name == AlternateWorld.lib:GetFullName("player") then elements.DeleteCharButton:Disable()
         else
             elements.DeleteCharButton:Enable()
             elements.DeleteCharButton:SetScript("OnClick", function()

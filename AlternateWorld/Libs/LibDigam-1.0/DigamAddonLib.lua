@@ -442,6 +442,10 @@ Era: Mimma
 Forever: Mimma
 --]]
 function DigamAddonLib:GetShortName(unitId)
+	if not unitId then
+		unitId = "player";
+	end;
+
 	local firstName, lastName = self.API.UnitName(unitId);
 
 	return firstName;
@@ -455,6 +459,10 @@ Forever: Mimma
 --]]
 function DigamAddonLib:GetNormalName(unitId)
 	--	The Forever engine have Firstname + Lastname: we only return Firstname:
+	if not unitId then
+		unitId = "player";
+	end;
+
 	local firstName, lastName = self.API.UnitName(unitId);
 
 	if self.ForeverEngine then
@@ -473,6 +481,9 @@ Era: Mimma Forever
 Forever: Mimma-Pyrewood Village
 --]]
 function DigamAddonLib:GetFullName(unitId)
+	if not unitId then
+		unitId = "player";
+	end;
 	local firstName, lastName = self.API.UnitName(unitId);
 
 	--	The Forever engine have Firstname + Lastname: we only return Firstname:
