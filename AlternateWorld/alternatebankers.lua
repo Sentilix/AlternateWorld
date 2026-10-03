@@ -14,7 +14,7 @@ local BankersScrollContent = nil
 
 -- NEW v0.4.0 CLUSTER ROUTER: Determines whether to map data to a specific realm or a global cluster bucket
 local function GetBankerRealmContext(realmName)
-    if AlternateWorldDB and AlternateWorldDB.Settings and AlternateWorldDB.Settings.Clusters then
+    if not AlternateWorld.lib.ForeverEngine and AlternateWorldDB and AlternateWorldDB.Settings and AlternateWorldDB.Settings.Clusters then
         local assignedCluster = AlternateWorldDB.Settings.Clusters[realmName]
         if assignedCluster then
             return assignedCluster -- Returns "cluster_1", "cluster_2", etc.
@@ -127,7 +127,11 @@ end
 -- FIXED v0.5.0 BANKER CLASS: Hardcodes classToken to "BANKER" to streamline creation and unlock silver identity
 function AlternateWorldBankersEngine.AddVirtualBanker(name, faction, realmName)
     if not AlternateWorldDB or not name or name == "" then return end
-    local virtualKey = name .. " - " .. (realmName or AlternateWorld.API.GetRealmName())
+
+    local virtualKey = name;
+    if not AlternateWorld.lib.ForeverEngine then
+        virtualKey = name .. " - " .. (realmName or AlternateWorld.API.GetRealmName())
+    end;
     
     AlternateWorldDB[virtualKey] = {
         name = name,

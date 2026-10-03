@@ -187,12 +187,15 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
         local realmText = customRealmBox:IsShown() and customRealmBox:GetText() or UIDropDownMenu_GetText(realmMenu)
 
         if nameText and nameText ~= "" and realmText and realmText ~= "" and realmText ~= "(Custom Realm...)" then
-            nameText = string.gsub(nameText, "%s+", "")
+            if not AlternateWorld.lib.ForeverEngine then
+                nameText = string.gsub(nameText, "%s+", "")
+            end;
             if string.trim then realmText = string.trim(realmText)
             else realmText = string.gsub(realmText, "^%s*(.-)%s*$", "%1") end
             
-            local nameLen = strlenutf8(nameText)
-            local isNameValid = (nameLen >= 2 and nameLen <= 12 and not string.match(nameText, "[^%a]"))
+            --local nameLen = strlenutf8(nameText)
+
+            local isNameValid = AlternateWorld.lib.ForeverEngine or (nameLen >= 2 and nameLen <= 12 and not string.match(nameText, "[^%a]"))
             if not isNameValid then
                 UIErrorsFrame:AddMessage("|cFFFF0000Error: Invalid name! Letters only (2-12 chars).|r")
                 AlternateWorld.API.PlaySound(846)
@@ -418,7 +421,10 @@ function AlternateWorldVirtualBankersView.RefreshList()
 
     for _, data in ipairs(rawList) do
         local exactRealm = data.realm or "Unknown Realm"
-        local vKey = data.name .. " - " .. exactRealm
+        local vKey = data.name
+        if not AlternateWorld.lib.ForeverEngine then
+            vKey = vKey .. " - " .. exactRealm
+        end;
 
         if exactRealm ~= lastSeenRealm then
             lastSeenRealm = exactRealm
@@ -709,7 +715,7 @@ local function GetScannedCharactersInContext()
 
     for key, data in pairs(AlternateWorldDB) do
         if key ~= "Settings" and data and data.realm and not data.isVirtual then
-            if IsInScope(data.realm) then
+            if AlternateWorkd.lib.ForeverEngine or IsInScope(data.realm) then
                 table.insert(scopedChars, data)
             end
         end

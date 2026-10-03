@@ -42,8 +42,9 @@ MailClerkFrame:SetScript("OnEvent", function(self, event, ...)
                         if assignedBankerKey then
                             local namePart, realmPart = string.match(assignedBankerKey, "([^%-]+)%s*-%s*(.+)")
                             if namePart and realmPart then
-                                namePart = string.gsub(namePart, "%s+", "")
-                                realmPart = string.gsub(realmPart, "%s+", "")
+                                -- FIXED v1.0.0 FOREVER POST ENGINE: Trim spaces ONLY from ends to preserve internal spaces in First/Lastnames and Realms
+                                namePart = string.match(namePart, "^%s*(.-)%s*$") or namePart
+                                realmPart = string.match(realmPart, "^%s*(.-)%s*$") or realmPart
                                 
                                 local cleanCurrentRealm = string.gsub(currentRealm, "%s+", "")
                                 local cleanDestRealm = string.gsub(realmPart, "%s+", "")

@@ -2,7 +2,7 @@
 ## Interface: 11509
 ## Notes: Alternate Character Information
 ## Author: Mimma @ EU-Pyrewood Village
-## Version: 1.0.0
+## Version: 1.0.0b1
 ## SavedVariables: AlternateWorldDB
 
 Libs\LibDigam-1.0\DigamAddonLib.lua
