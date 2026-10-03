@@ -1,5 +1,5 @@
 -- ============================================================================
--- Alternate World - History & Log Module Panel (v0.2.0 - MASTER GENOPRETTET)
+-- Alternate World - History & Log Module Panel (v0.2.0)
 -- ============================================================================
 
 AlternateWorldHistoryView = {}
@@ -104,12 +104,9 @@ function AlternateWorldHistoryView.ShowData(selectedCharacterKey)
 end
 
 function AlternateWorldHistoryView.LogEvent(eventText)
-    local charName = UnitName("player")
-    local realmName = AlternateWorld.API.GetRealmName()
-    if not charName or not realmName or not AlternateWorldDB then return end
-    local myKey = charName .. " - " .. realmName
+    local myKey = AlternateWorld.lib:GetFullName("player");
 
-    if not AlternateWorldDB[myKey] then return end
+    if not AlternateWorldDB or not myKey or not AlternateWorldDB[myKey] then return end
     if not AlternateWorldDB[myKey].historyLog then AlternateWorldDB[myKey].historyLog = {} end
 
     table.insert(AlternateWorldDB[myKey].historyLog, {

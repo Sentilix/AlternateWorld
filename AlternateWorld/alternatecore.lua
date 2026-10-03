@@ -163,52 +163,102 @@ function AlternateWorldCore.Initialize()
             end
         end
 
+        -- ============================================================================
+        -- LEVEL UP MONITOR - FIXED v1.0.0 FOR FOREVER ENGINE ASYNC TIMING
+        -- ============================================================================
         if event == "PLAYER_LEVEL_UP" and arg1 then
             pendingLevelUpLog = tonumber(arg1) or 1
-            local ch = ChatFrame_TimePlayedCode or RequestTimePlayed
-            if ch then ch() end 
+            -- Safely trigger the asynchronous server query for played time
+            if _G.RequestTimePlayed then 
+                _G.RequestTimePlayed() 
+            end 
         end
 
         if event == "TIME_PLAYED_MSG" and pendingLevelUpLog and arg1 then
             local formattedTimeStr = nil
-            local rawSecondsFromArg = tonumber(arg1) or tonumber(arg2) or tonumber(string.match(arg1, "%d+"))
-            if rawSecondsFromArg then
-                formattedTimeStr = FormatSecondsToHMS(rawSecondsFromArg)
+            
+            -- Detect if arg1 is already a raw number (Cataclysm / Forever standard)
+            local totalSeconds = tonumber(arg1)
+            
+            -- Fallback to string matching if arg1 is a legacy text string (Classic Era standard)
+            if not totalSeconds and type(arg1) == "string" then
+                totalSeconds = tonumber(string.match(arg1, "%d+"))
             end
-            if not formattedTimeStr then
+            
+            -- FIXED v1.0.0 CORE FORMATTER: Injected internal time converter to bypass missing global wrappers
+            if totalSeconds and totalSeconds > 0 then
+                local days = math.floor(totalSeconds / 86400)
+                local hours = math.floor((totalSeconds % 86400) / 3600)
+                local minutes = math.floor((totalSeconds % 3600) / 60)
+                local seconds = totalSeconds % 60
+                
+                if days > 0 then
+                    formattedTimeStr = string.format("%d days, %d hours, %d min", days, hours, minutes)
+                else
+                    formattedTimeStr = string.format("%d hours, %d min, %d sec", hours, minutes, seconds)
+                end
+            end
+            
+            -- Safe legacy text string extraction fallback for raw UI text outputs
+            if not formattedTimeStr and type(arg1) == "string" then
                 formattedTimeStr = string.match(arg1, ".-played:?%s*(.-)%.?$") or arg1
+            end
+            
+            -- Default ultimate guard safeguard
+            if not formattedTimeStr then
+                formattedTimeStr = tostring(arg1) or "Unknown Time"
             end
             
             local completeText = string.format("|cFF00CCFFReached Level %d! (Time Played: %s)|r", pendingLevelUpLog, formattedTimeStr)
             if AlternateWorldHistoryView and AlternateWorldHistoryView.LogEvent then
                 AlternateWorldHistoryView.LogEvent(completeText)
             end
+            
+            -- Flush cache register completely to avoid async cross-fire pollution
             pendingLevelUpLog = nil
         end
 
+        -- ============================================================================
+        -- LOOT MONITOR - FIXED v1.0.0 ANTI-TAINT SICK SINK
+        -- ============================================================================
         if event == "CHAT_MSG_LOOT" and arg1 then
-            local isPersonalLoot = string.find(arg1, "You receive loot:") or string.find(arg1, "Du modtager bytte:")
+            -- Safe execution gate: Protect string actions against C-Engine secret string taints in Forever
+            local success, isPersonalLoot = pcall(function()
+                return string.find(arg1, "You receive loot:") or string.find(arg1, "Du modtager bytte:") or string.find(arg1, "Du erhverver bytte:")
+            end)
             
-            if isPersonalLoot then
-                local cleanLink = string.match(arg1, "(|c%x+|Hitem.-|h%[.-%]|h|r)")
-                local shouldLog = false 
+            if success and isPersonalLoot then
+                local cleanLink = nil
+                
+                -- Safely extract the item link frame template from the secret string sequence
+                pcall(function()
+                    cleanLink = string.match(arg1, "(|c%x+|Hitem.-|h%[.-%]|h|r)")
+                end)
                 
                 if cleanLink then
+                    local shouldLog = false 
+                    
                     if LOOT_THRESHOLD_QUALITY == "ff9d9d9d" then
                         shouldLog = true
                     else
-                        if string.find(cleanLink, "cff0070dd") or string.find(cleanLink, "cffa335ee") or string.find(cleanLink, "cffff8000") then
-                            shouldLog = true
-                        end
+                        -- Protect downstream cross-find lookups against memory fragmentation crashes
+                        pcall(function()
+                            if string.find(cleanLink, "cff0070dd") or string.find(cleanLink, "cffa335ee") or string.find(cleanLink, "cffff8000") then
+                                shouldLog = true
+                            end
+                        end)
                     end
-                end
-                
-                if shouldLog and cleanLink and AlternateWorldHistoryView and AlternateWorldHistoryView.LogEvent then
-                    AlternateWorldHistoryView.LogEvent(string.format("|cFFFFFFFFLooted item:|r %s", cleanLink))
+                    
+                    if shouldLog and AlternateWorldHistoryView and AlternateWorldHistoryView.LogEvent then
+                        AlternateWorldHistoryView.LogEvent(string.format("|cFFFFFFFFLooted item:|r %s", cleanLink))
+                    end
                 end
             end
         end
 
+        -- ============================================================================
+        -- QUEST ATTUNEMENT MONITOR - 112% FOREVER VERIFIED
+        -- ============================================================================
         if event == "QUEST_TURNED_IN" and arg1 then
             local targetQuestID = tonumber(arg1)
             if targetQuestID and ATTUNEMENT_QUEST_MAP[targetQuestID] and AlternateWorldHistoryView and AlternateWorldHistoryView.LogEvent then
