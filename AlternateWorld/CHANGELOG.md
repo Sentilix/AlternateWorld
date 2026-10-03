@@ -1,5 +1,15 @@
 # Alternate World - Changelog
 
+## [v1.0.0 - beta 1] - 2026-10-03
+### Changed
+* **Forever Support**: Addon now works in WoW Forever.
+
+### Noticeable Changes in Forever
+* Cluster support is disabled within the Forever engine matrix.
+* Attunements currently remain unchanged compared to Classic Era. This tracker sequence will be updated as further raid and dungeon frameworks are established.
+* Automatic item tracking caches (gear, recipes, and crafting materials) have not been finalized for the upgraded backend ledger and may temporarily fail to recognize modern Forever items.
+
+
 ## [v0.6.7] - 2026-08-23
 ### Fixed
 * **Dire Maul Attunement**: Corrected the crescent key item ID check from 18250 (TBC) to 18249 (Era) to fix the Dire Maul key tracking status in the dungeon overview page.
