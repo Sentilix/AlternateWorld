@@ -1,5 +1,10 @@
 # Alternate World - Changelog
 
+## [v1.0.0 - beta 2] - 2026-10-08
+### Changed
+* Bugfix: Forever mail posting for bankers works now.
+
+
 ## [v1.0.0 - beta 1] - 2026-10-03
 ### Changed
 * **Forever Support**: Addon now works in WoW Forever.
