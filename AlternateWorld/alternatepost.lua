@@ -38,26 +38,30 @@ MailClerkFrame:SetScript("OnEvent", function(self, event, ...)
                         local realmData = AlternateWorldDB.Settings.Bankers[livePostContext]
                         local factionData = realmData and realmData[currentFaction]
                         local assignedBankerKey = factionData and factionData[categoryID]
-
+                        
                         if assignedBankerKey then
-                            local namePart, realmPart = string.match(assignedBankerKey, "([^%-]+)%s*-%s*(.+)")
-                            if namePart and realmPart then
-                                -- FIXED v1.0.0 FOREVER POST ENGINE: Trim spaces ONLY from ends to preserve internal spaces in First/Lastnames and Realms
-                                namePart = string.match(namePart, "^%s*(.-)%s*$") or namePart
-                                realmPart = string.match(realmPart, "^%s*(.-)%s*$") or realmPart
-                                
-                                local cleanCurrentRealm = string.gsub(currentRealm, "%s+", "")
-                                local cleanDestRealm = string.gsub(realmPart, "%s+", "")
-                                
-                                -- FIXED v0.4.0 POST ENGINE: Appends cross-realm -Server suffixes automatically if inside cluster family
-                                if string.lower(cleanDestRealm) ~= string.lower(cleanCurrentRealm) then
-                                    SendMailNameEditBox:SetText(namePart .. "-" .. realmPart)
-                                else
-                                    SendMailNameEditBox:SetText(namePart)
-                                end
-                                AlternateWorld.API.PlaySound(856)
-                                return 
+                            local fullName = assignedBankerKey;
+                            if AlternateWorld.lib.ForeverEngine then
+                                SendMailNameEditBox:SetText(fullName)
+                            else
+                                local namePart, realmPart = string.match(assignedBankerKey, "([^%-]+)%s*-%s*(.+)")
+                                if namePart and realmPart then
+                                    -- FIXED v1.0.0 FOREVER POST ENGINE: Trim spaces ONLY from ends to preserve internal spaces in First/Lastnames and Realms
+                                    namePart = string.match(namePart, "^%s*(.-)%s*$") or namePart
+                                    realmPart = string.match(realmPart, "^%s*(.-)%s*$") or realmPart
+                                    
+                                    local cleanCurrentRealm = string.gsub(currentRealm, "%s+", "")
+                                    local cleanDestRealm = string.gsub(realmPart, "%s+", "")
+                                    
+                                    -- FIXED v0.4.0 POST ENGINE: Appends cross-realm -Server suffixes automatically if inside cluster family
+                                    if string.lower(cleanDestRealm) ~= string.lower(cleanCurrentRealm) then
+                                        SendMailNameEditBox:SetText(namePart .. "-" .. realmPart)
+                                    else
+                                        SendMailNameEditBox:SetText(namePart)
+                                    end
+                                end;
                             end
+                            AlternateWorld.API.PlaySound(856)
                         end
                     end
                 end
