@@ -276,7 +276,7 @@ function API.SendAddonMessage(addonPrefix, message, channel, target)
 end;
 
 function API.SendChatMessage(message, chatType, languageID, target)
-    SendChatMessage(message, chatType, languageID, target)
+    C_ChatInfo.SendChatMessage(message, chatType, languageID, target)
 end;
 
 function API.SetPortraitTexture(textureObject, unitToken, disableMasking)

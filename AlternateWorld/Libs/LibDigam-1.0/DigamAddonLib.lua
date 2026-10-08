@@ -11,7 +11,7 @@
 
 
 local DIGAM_IsDebugBuild					= false;
-local DIGAM_BuildVersion					= 10.101;
+local DIGAM_BuildVersion					= 10.104;
 
 local DIGAM_COLOR_BEGIN						= "|c80";
 local DIGAM_CHAT_END						= "|r";
@@ -19,6 +19,7 @@ local DIGAM_DEFAULT_ColorNormal				= "40A0F8"
 local DIGAM_DEFAULT_ColorHot				= "B0F0F0"
 
 local RAID_CHANNEL							= "RAID"
+local PARTY_CHANNEL							= "PARTY"
 local YELL_CHANNEL							= "YELL"
 local SAY_CHANNEL							= "SAY"
 local WARN_CHANNEL							= "RAID_WARNING"
@@ -35,6 +36,8 @@ DIGAM_CHANNEL_CUSTOM						= { ["id"] = "?", ["mask"] = 0x0008, ["name"] = "(Cust
 DigamAddonLib = CreateFrame("Frame"); 
 DigamAddonLib.Locales = { };
 DigamAddonLib.API = { };
+
+local _isForeverEngine = false;
 
 
 --[[
@@ -85,7 +88,7 @@ function DigamAddonLib:New(addonSettings)
 	local _major = tonumber(_major) or 1;
 	local _minor = tonumber(_minor) or 1;
 
-	local _isForeverEngine = ( _major == 1 and _minor == 60);
+	_isForeverEngine = ( _major == 1 and _minor == 60);
 
 	local parent = {
 		addonName = _addonName,
@@ -100,7 +103,9 @@ function DigamAddonLib:New(addonSettings)
 		ForeverEngine = _isForeverEngine,
 
 		localPlayerName = self:GetFullName("player"),
+		localPlayerNameNoSpaces = self:StripRealmSpaces(self:GetFullName("player")),
 		localPlayerClass = self:GetUnitClass("player"),
+		localPlayerFaction = self.API.UnitFactionGroup("player");
 		localPlayerRealm = self:GetPlayerRealm("player"),
 		localPlayerGUID = self.API.UnitGUID("player"),
 
@@ -111,7 +116,7 @@ function DigamAddonLib:New(addonSettings)
 		isDebugBuild = DIGAM_IsDebugBuild,
 		buildVersion = DIGAM_BuildVersion,
 	};
-
+	
 	setmetatable(parent, self);
 	self.__index = self;
 
@@ -465,7 +470,7 @@ function DigamAddonLib:GetNormalName(unitId)
 
 	local firstName, lastName = self.API.UnitName(unitId);
 
-	if self.ForeverEngine then
+	if _isForeverEngine then
 		if lastName and lastName ~= "" then
 			firstName = firstName .." ".. lastName;
 		end;
@@ -485,18 +490,19 @@ function DigamAddonLib:GetFullName(unitId)
 		unitId = "player";
 	end;
 	local firstName, lastName = self.API.UnitName(unitId);
-
-	--	The Forever engine have Firstname + Lastname: we only return Firstname:
-	if self.ForeverEngine then
-		if lastName and lastName ~= "" then
-			firstName = firstName .." ".. lastName;
+	if firstName then
+		--	The Forever engine have Firstname + Lastname: we only return Firstname:
+		if _isForeverEngine then
+			if lastName and lastName ~= "" then
+				firstName = firstName .." ".. lastName;
+			end;
+		else
+			--	Era: LastName is the RealmName
+			if not lastName or lastName == "" then
+				lastName = self.API.GetRealmName();
+			end;
+			firstName = firstName .."-".. lastName;
 		end;
-	else
-		--	Era: LastName is the RealmName
-		if not lastName or lastName == "" then
-			lastName = self.API.GetRealmName();
-		end;
-		firstName = firstName .."-".. lastName;
 	end;
 
 	return firstName;
@@ -541,7 +547,7 @@ This does nothing in Forever.
 return name of player.
 --]]
 function DigamAddonLib:StripRealmName(playerName)
-	if self.ForeverEngine then
+	if _isForeverEngine then
 		return playerName;
 	end
 
@@ -550,18 +556,32 @@ function DigamAddonLib:StripRealmName(playerName)
 end;
 
 --[[
+Strip spaces in eventual realm name:
+--]]
+function DigamAddonLib:StripRealmSpaces(playername)
+    local name, realm = string.match(playername, "([^-]+)%-(.*)")   
+    if name and realm then
+        return name .. "-" .. string.gsub(realm, " ", "")
+    end
+    return playername
+end
+
+--[[
 ApplyRealmName to current name. Usefull on Era only.
 --]]
-
 function DigamAddonLib:ApplyRealmName(playerName)
 	--	Forever: pass through; we cannot add last name!!
-	if self.ForeverEngine then
+	if _isForeverEngine then
 		return playerName;
 	end;
 
 	local _, _, name, realm = string.find(playerName, "([^-]*)-([%S ]*)");
-	if not realm then
-		name = name .."-"..  self.localPlayerRealm;
+	name = name or playerName;
+	if name then
+		if not realm then
+			realm = self.localPlayerRealm;
+		end;
+		name = name ..'-'.. realm;
 	end;
 
 	return name;
@@ -570,7 +590,7 @@ end;
 --	deprecated since 10.100. ApplyRealmName(playerName) works for Era.
 function DigamAddonLib:getFullPlayerName(playerName)
 	--	Forever: pass through; we cannot add last name!!
-	if self.ForeverEngine then
+	if _isForeverEngine then
 		return playerName;
 	end;
 
@@ -595,7 +615,7 @@ function DigamAddonLib:getPlayerAndRealm(unitid, keepRealmnameSpaces)
 
 	if not playername then return nil; end;
 
-	if self.ForeverEngine then
+	if _isForeverEngine then
 		if realmname then
 			playername = playername ..' '.. realmname;
 		end;
@@ -636,7 +656,7 @@ return name of realm
 --]]
 function DigamAddonLib:GetPlayerRealm(unitId)
 	local _, realmname = UnitName(unitId);
-	if self.ForeverEngine or not realmname or realmname == "" then
+	if _isForeverEngine or not realmname or realmname == "" then
 		realmname = self.API.GetRealmName();
 	end;
 	return realmname;
