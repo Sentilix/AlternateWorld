@@ -1,5 +1,10 @@
 # Alternate World - Changelog
 
+## [v1.0.0 - beta 3] - 2026-10-12
+### Changed
+* Bugfix: Forever reagent bag is now checked also.
+
+
 ## [v1.0.0 - beta 2] - 2026-10-08
 ### Changed
 * Bugfix: Forever mail posting for bankers works now.

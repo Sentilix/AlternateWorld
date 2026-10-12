@@ -11,7 +11,7 @@
 
 
 local DIGAM_IsDebugBuild					= false;
-local DIGAM_BuildVersion					= 10.104;
+local DIGAM_BuildVersion					= 10.105;
 
 local DIGAM_COLOR_BEGIN						= "|c80";
 local DIGAM_CHAT_END						= "|r";
@@ -754,7 +754,7 @@ function DigamAddonLib:refreshChannelList(skipGroupTypeCheck)
 	end;
 
 	local publicChannels = { GetChatWindowChannels(DEFAULT_CHAT_FRAME:GetID()) };
-	for n = 1, table.getn(publicChannels), 2 do
+	for n = 1, #publicChannels, 2 do
 		--	0: Everywhere
 		--	1: Current zone
 		--	2: Major cities
