@@ -231,8 +231,13 @@ function AlternateWorldScraper.GatherFullSnapshot(existingCharData)
     local genderString = "Male"
     if UnitSex("player") == 3 then genderString = "Female" end
     
-    -- Scan normal bags (0 to 4)
-    local currentBagData = AlternateWorldScraper.ScanContainers(0, 4)
+    -- FIXED v1.0.0 REAGENT BAG SUPPORT: Dynamically adjust the end boundary to slot 5 if executing in WoW Forever
+    local endBagSlot = 4
+    if AlternateWorld.lib.ForeverEngine then
+        endBagSlot = 5
+    end
+
+    local currentBagData = AlternateWorldScraper.ScanContainers(0, endBagSlot)
     
     -- FIXED v0.6.1 API COMPATIBILITY: Query the keyring vault utilizing the dedicated Blizzard engine constant directly
     if KEYRING_CONTAINER then
