@@ -731,7 +731,7 @@ local function GetScannedCharactersInContext()
 
     for key, data in pairs(AlternateWorldDB) do
         if key ~= "Settings" and data and data.realm and not data.isVirtual then
-            if AlternateWorkd.lib.ForeverEngine or IsInScope(data.realm) then
+            if AlternateWorld.lib.ForeverEngine or IsInScope(data.realm) then
                 table.insert(scopedChars, data)
             end
         end
