@@ -229,7 +229,7 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
 
             local testKey = nameText;
             if realmText ~= "" then
-                testKey = realmText .. " - " .. realmText;
+                testKey = realmText .. "-" .. realmText;
             end;
             local testKeyLower = string.lower(testKey);
             
@@ -439,7 +439,7 @@ function AlternateWorldVirtualBankersView.RefreshList()
         local exactRealm = data.realm or "Unknown Realm"
         local vKey = data.name
         if not AlternateWorld.lib.ForeverEngine then
-            vKey = vKey .. " - " .. exactRealm
+            vKey = vKey .. "-" .. exactRealm
         end;
 
         if exactRealm ~= lastSeenRealm then
@@ -662,7 +662,7 @@ function AlternateWorldVirtualBankersView.OpenCopyPasteBox(titleLabel, textConte
                         local isFactionValid = (faction == "Alliance" or faction == "Horde")
 
                         if isNameValid and isRealmValid and isFactionValid then
-                            local dbKey = name .. " - " .. realm
+                            local dbKey = name .. "-" .. realm
                             
                             if AlternateWorldDB and AlternateWorldDB[dbKey] then
                                 if AlternateWorldDB[dbKey].isVirtual then

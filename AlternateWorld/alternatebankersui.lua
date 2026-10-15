@@ -89,7 +89,7 @@ local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMen
         local altKey = altData.name
         
         if not AlternateWorld.lib.ForeverEngine then
-            altKey = altKey .. " - " .. exactRealm;
+            altKey = altKey .. "-" .. exactRealm;
         end;
 
         -- GENERATE REALM HEADER ROW WITH INTERMITTENT BLANK SPACERS

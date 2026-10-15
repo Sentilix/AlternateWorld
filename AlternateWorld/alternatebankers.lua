@@ -130,7 +130,7 @@ function AlternateWorldBankersEngine.AddVirtualBanker(name, faction, realmName)
 
     local virtualKey = name;
     if not AlternateWorld.lib.ForeverEngine then
-        virtualKey = name .. " - " .. (realmName or AlternateWorld.API.GetRealmName())
+        virtualKey = name .. "-" .. (realmName or AlternateWorld.API.GetRealmName())
     end;
     
     AlternateWorldDB[virtualKey] = {

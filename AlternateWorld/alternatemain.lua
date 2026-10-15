@@ -148,7 +148,7 @@ local function GetSelectedCharacterKey()
     local liveName = AlternateWorld.lib:GetNormalName("player")
     local liveRealm = AlternateWorld.API.GetRealmName()
     if liveName and liveRealm and liveRealm ~= "" then
-        AWCachedCharacterKey = liveName .. " - " .. liveRealm;
+        AWCachedCharacterKey = liveName .. "-" .. liveRealm;
         return AWCachedCharacterKey;
     end
 
