@@ -14,7 +14,7 @@ local BankersScrollContent = nil
 
 -- NEW v0.4.0 CLUSTER ROUTER: Determines whether to map data to a specific realm or a global cluster bucket
 local function GetBankerRealmContext(realmName)
-    if AlternateWorldDB and AlternateWorldDB.Settings and AlternateWorldDB.Settings.Clusters then
+    if not AlternateWorld.lib.ForeverEngine and AlternateWorldDB and AlternateWorldDB.Settings and AlternateWorldDB.Settings.Clusters then
         local assignedCluster = AlternateWorldDB.Settings.Clusters[realmName]
         if assignedCluster then
             return assignedCluster -- Returns "cluster_1", "cluster_2", etc.
@@ -46,7 +46,7 @@ function AlternateWorldBankersEngine.GetSortedFactionKeys(targetFaction)
     if not AlternateWorldDB then return sortedKeys end
     
     -- FIXED v0.4.0 SCOPE FILTER: Resolve the active live player's cluster/realm family node first
-    local currentRealm = GetRealmName()
+    local currentRealm = AlternateWorld.API.GetRealmName()
     local liveContext = GetBankerRealmContext(currentRealm)
 
     for key, altData in pairs(AlternateWorldDB) do
@@ -127,11 +127,15 @@ end
 -- FIXED v0.5.0 BANKER CLASS: Hardcodes classToken to "BANKER" to streamline creation and unlock silver identity
 function AlternateWorldBankersEngine.AddVirtualBanker(name, faction, realmName)
     if not AlternateWorldDB or not name or name == "" then return end
-    local virtualKey = name .. " - " .. (realmName or GetRealmName())
+
+    local virtualKey = name;
+    if not AlternateWorld.lib.ForeverEngine then
+        virtualKey = name .. "-" .. (realmName or AlternateWorld.API.GetRealmName())
+    end;
     
     AlternateWorldDB[virtualKey] = {
         name = name,
-        realm = realmName or GetRealmName(),
+        realm = realmName or AlternateWorld.API.GetRealmName(),
         faction = faction or "Alliance",
         classToken = "BANKER", -- FIXED v0.5.0: Centralized fictive identity class token hook
         isVirtual = true 

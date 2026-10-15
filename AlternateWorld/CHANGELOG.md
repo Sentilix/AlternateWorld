@@ -1,5 +1,31 @@
 # Alternate World - Changelog
 
+## [v1.0.0 - beta 3] - 2026-10-15
+### Changed
+* Bugfix: Last traces of clustered realms removed from Forever.
+* Bugfix: The lookup key was not always generated same way, making character duplicates in Era.
+
+
+## [v1.0.0 - beta 3] - 2026-10-12
+### Changed
+* Bugfix: Forever reagent bag is now checked also.
+
+
+## [v1.0.0 - beta 2] - 2026-10-08
+### Changed
+* Bugfix: Forever mail posting for bankers works now.
+
+
+## [v1.0.0 - beta 1] - 2026-10-03
+### Changed
+* **Forever Support**: Addon now works in WoW Forever.
+
+### Noticeable Changes in Forever
+* Cluster support is disabled within the Forever engine matrix.
+* Attunements currently remain unchanged compared to Classic Era. This tracker sequence will be updated as further raid and dungeon frameworks are established.
+* Automatic item tracking caches (gear, recipes, and crafting materials) have not been finalized for the upgraded backend ledger and may temporarily fail to recognize modern Forever items.
+
+
 ## [v0.6.7] - 2026-08-23
 ### Fixed
 * **Dire Maul Attunement**: Corrected the crescent key item ID check from 18250 (TBC) to 18249 (Era) to fix the Dire Maul key tracking status in the dungeon overview page.

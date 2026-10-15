@@ -86,7 +86,11 @@ local function InitializeCategoryDropdown(self, faction, categoryID, dropdownMen
     -- 4. INJECT STRUCTURAL RENDERING ROWS WITH BLANK SPACERS AND INDENTED NAMES
     for _, altData in ipairs(rawAlts) do
         local exactRealm = altData.realm or "Unknown Realm"
-        local altKey = altData.name .. " - " .. exactRealm
+        local altKey = altData.name
+        
+        if not AlternateWorld.lib.ForeverEngine then
+            altKey = altKey .. "-" .. exactRealm;
+        end;
 
         -- GENERATE REALM HEADER ROW WITH INTERMITTENT BLANK SPACERS
         if exactRealm ~= lastSeenRealm then
@@ -151,7 +155,7 @@ function AlternateWorldBankersView.ShowData(selectedCharacterKey)
     local panel, scrollContent = AlternateWorldBankersEngine.InitializeCorePanel(parentWindow)
     if not panel or not scrollContent then return end
 
-    local contextRealm = selectedCharacterKey and string.match(selectedCharacterKey, "%s*-%s*(.+)") or GetRealmName()
+    local contextRealm = selectedCharacterKey and string.match(selectedCharacterKey, "%s*-%s*(.+)") or AlternateWorld.API.GetRealmName()
     panel.activeContextRealmCache = contextRealm
 
     local mustIsolate = AlternateWorldDB.Settings and AlternateWorldDB.Settings.IsolateSingleRealms
@@ -175,19 +179,37 @@ function AlternateWorldBankersView.ShowData(selectedCharacterKey)
             GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
             GameTooltip:ClearLines()
             GameTooltip:AddLine("|cFFFFFFFFRestrict Banker Dropdowns|r")
-            GameTooltip:AddLine("|cFFFFD100When enabled, lists are strictly limited to characters from your current realm, or siblings inside your custom cluster.|r", 1, 1, 1, true)
-            GameTooltip:AddLine("|cFF888888Disable this to keep legacy behavior and view all characters across your entire account.|r", 1, 1, 1, true)
+            if AlternateWorld.lib.ForeverEngine then
+                GameTooltip:AddLine("|cFF888888View all characters across your entire account.|r", 1, 1, 1, true)
+            else
+                GameTooltip:AddLine("|cFFFFD100When enabled, lists are strictly limited to characters from your current realm, or siblings inside your custom cluster.|r", 1, 1, 1, true)
+                GameTooltip:AddLine("|cFF888888Disable this to keep legacy behavior and view all characters across your entire account.|r", 1, 1, 1, true)
+            end
             GameTooltip:Show()
         end)
         IsolateCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end
 
-    -- 2. FIXED ANCHOR LOGIC: Instantiate or fetch Faction strings attached safely directly below the checkbox frame object
+    -- FIXED v1.0.0 FOREVER VISIBILITY: Completely hide the checkbox option visually if inside Forever engine
+    if AlternateWorld.lib.ForeverEngine then
+        IsolateCB:Hide()
+    else
+        IsolateCB:Show()
+    end
+
+    -- 2. FIXED ANCHOR LOGIC: Instantiate or fetch Faction strings with dynamic layout shifting for Forever
     local AllyHeaderLabel = panel.AllyHeaderLabel
     local HordeHeaderLabel = panel.HordeHeaderLabel
     if not AllyHeaderLabel then
         AllyHeaderLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        AllyHeaderLabel:SetPoint("TOPLEFT", IsolateCB, "BOTTOMLEFT", 160, -12) -- Anchors flawlessly 12px below checkbox
+        
+        -- FIXED v1.0.0 DYNAMIC ANCHORING: Shift up if checkbox is hidden in Forever, keep classic anchor for Era
+        if AlternateWorld.lib.ForeverEngine then
+            AllyHeaderLabel:SetPoint("TOPLEFT", panel, "TOPLEFT", 180, -53) -- Snaps beautiful and higher up directly onto the core panel
+        else
+            AllyHeaderLabel:SetPoint("TOPLEFT", IsolateCB, "BOTTOMLEFT", 160, -12) -- Era standard location
+        end
+        
         AllyHeaderLabel:SetText("|TInterface\\TargetingFrame\\UI-PVP-Alliance:12:12:0:0:64:64:0:38:0:38|t |cFF0070DDAlliance Bankers|r")
         panel.AllyHeaderLabel = AllyHeaderLabel
 
@@ -195,6 +217,14 @@ function AlternateWorldBankersView.ShowData(selectedCharacterKey)
         HordeHeaderLabel:SetPoint("TOPLEFT", AllyHeaderLabel, "TOPRIGHT", 25, 0) -- Anchors directly to the right of alliance string
         HordeHeaderLabel:SetText("|TInterface\\TargetingFrame\\UI-PVP-Horde:12:12:0:0:64:64:0:38:0:38|t |cFFFF0000Horde Bankers|r")
         panel.HordeHeaderLabel = HordeHeaderLabel
+    else
+        -- Recalculate and override anchors dynamically during UI frame updates or panel context redrawing
+        AllyHeaderLabel:ClearAllPoints()
+        if AlternateWorld.lib.ForeverEngine then
+            AllyHeaderLabel:SetPoint("TOPLEFT", panel, "TOPLEFT", 180, -53)
+        else
+            AllyHeaderLabel:SetPoint("TOPLEFT", IsolateCB, "BOTTOMLEFT", 160, -12)
+        end
     end
 
     -- 3. Title Engine
@@ -224,7 +254,12 @@ function AlternateWorldBankersView.ShowData(selectedCharacterKey)
 
     local scrollFrame = _G["AW_BankersScrollFrameInstance"]
     if scrollFrame then
-        scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -115)
+        -- FIXED v1.0.0 DYNAMIC LAYOUT: Shift scroll frame anchor boundaries up dynamically in Forever to close the blank spacer gap
+        if AlternateWorld.lib.ForeverEngine then
+            scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -85)
+        else
+            scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -115)
+        end
     end
 
     for _, line in ipairs(AW_BankerRowsPool) do line:Hide() end

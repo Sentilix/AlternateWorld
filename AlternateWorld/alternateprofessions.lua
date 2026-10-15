@@ -66,7 +66,7 @@ function AlternateWorldProfessionsView.RefreshDisplay(mainSelectedCharacterKey)
     end
 
     -- Extract active realm and configuration context flags safely
-    local activeRealm = mainSelectedCharacterKey and string.match(mainSelectedCharacterKey, "%s*-%s*(.+)") or GetRealmName()
+    local activeRealm = mainSelectedCharacterKey and string.match(mainSelectedCharacterKey, "%s*-%s*(.+)") or AlternateWorld.API.GetRealmName()
     local activeCharName = mainSelectedCharacterKey and string.gsub(string.match(mainSelectedCharacterKey, "([^%-]+)") or mainSelectedCharacterKey, "%s+", "")
     local mustIsolate = AlternateWorldDB.Settings and AlternateWorldDB.Settings.IsolateSingleRealmsProf
     local assignedCluster = AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[activeRealm]
@@ -100,7 +100,7 @@ function AlternateWorldProfessionsView.RefreshDisplay(mainSelectedCharacterKey)
         return realmName
     end
 
-    local liveContext = GetProfRealmContext(activeRealm or GetRealmName())
+    local liveContext = GetProfRealmContext(activeRealm or AlternateWorld.API.GetRealmName())
     local currentYOffset, count = -10, 0
     
     -- FIXED v0.4.0 SEARCH ENGINE: Loop directly over the pre-sorted and pre-filtered records array map from your engine
@@ -200,13 +200,13 @@ function AlternateWorldProfessionsView.RefreshDisplay(mainSelectedCharacterKey)
                 GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
                 GameTooltip:ClearLines()
                 
-                local _, itemLink = GetItemInfo(recName)
+                local _, itemLink = AlternateWorld.API.GetItemInfo(recName)
                 if itemLink then
                     GameTooltip:SetHyperlink(itemLink)
                 else
                     local foundSpellID = nil
                     for id = 1, 50000 do
-                        local sName = GetSpellInfo(id)
+                        local sName = AlternateWorld.API.GetSpellInfo(id)
                         if sName and string.lower(sName) == string.lower(recName) then
                             foundSpellID = id
                             break
@@ -278,10 +278,13 @@ function AlternateWorldProfessionsView.ShowData(selectedCharacterKey)
     AWIsViewActive = true 
     AWProfessionsPanel:Show()
     
-    local activeRealm = selectedCharacterKey and string.match(selectedCharacterKey, "%s*-%s*(.+)") or GetRealmName()
+    local activeRealm = selectedCharacterKey and string.match(selectedCharacterKey, "%s*-%s*(.+)") or AlternateWorld.API.GetRealmName()
     local assignedCluster = AlternateWorldDB.Settings.Clusters and AlternateWorldDB.Settings.Clusters[activeRealm]
     
     -- INITIALIZE CONFIG LAYER: Fills with true automatically on a cluster realm if settings are untouched
+    if AlternateWorld.lib.ForeverEngine then
+        AlternateWorldDB.Settings.IsolateSingleRealmsProf = true;
+    end;        
     if AlternateWorldDB.Settings.IsolateSingleRealmsProf == nil then
         AlternateWorldDB.Settings.IsolateSingleRealmsProf = (assignedCluster ~= nil)
     end
@@ -310,40 +313,44 @@ function AlternateWorldProfessionsView.ShowData(selectedCharacterKey)
     end
 
     -- 1. UNIVERSAL PLUG-AND-PLAY CHECKBOX GENERATOR: Anchored dynamically inside the top bar lane
-    local ProfIsolateCB = _G["AW_ProfIsolateCheckbox"]
-    if not ProfIsolateCB and AWProfessionsPanel then
-        ProfIsolateCB = CreateFrame("CheckButton", "AW_ProfIsolateCheckbox", AWProfessionsPanel, "InterfaceOptionsCheckButtonTemplate")
-        ProfIsolateCB:SetPoint("TOPLEFT", AWProfessionsPanel, "TOPLEFT", 15, -35)
-        _G[ProfIsolateCB:GetName() .. "Text"]:SetText("Restrict professions to local realm or cluster")
-        
-        ProfIsolateCB:SetScript("OnClick", function(self)
-            if AlternateWorldDB and AlternateWorldDB.Settings then
-                AlternateWorldDB.Settings.IsolateSingleRealmsProf = self:GetChecked() and true or false
-                AlternateWorldProfessionsView.RefreshDisplay(selectedCharacterKey)
-            end
-        end)
+    if AlternateWorld.lib.ForeverEngine then
+        AlternateWorldProfessionsView.RefreshDisplay(selectedCharacterKey);
+    else
+        local ProfIsolateCB = _G["AW_ProfIsolateCheckbox"]
+        if not ProfIsolateCB and AWProfessionsPanel then
+            ProfIsolateCB = CreateFrame("CheckButton", "AW_ProfIsolateCheckbox", AWProfessionsPanel, "InterfaceOptionsCheckButtonTemplate")
+            ProfIsolateCB:SetPoint("TOPLEFT", AWProfessionsPanel, "TOPLEFT", 15, -35)
+            _G[ProfIsolateCB:GetName() .. "Text"]:SetText("Restrict professions to local realm or cluster")
+            
+            ProfIsolateCB:SetScript("OnClick", function(self)
+                if AlternateWorldDB and AlternateWorldDB.Settings then
+                    AlternateWorldDB.Settings.IsolateSingleRealmsProf = self:GetChecked() and true or false
+                    AlternateWorldProfessionsView.RefreshDisplay(selectedCharacterKey)
+                end
+            end)
 
-        -- THE SIMPLE VERBATIM INDEX TOOLTIP LAYOUT CONFIG
-        ProfIsolateCB:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-            GameTooltip:ClearLines()
-            GameTooltip:AddLine("|cFFFFFFFFRestrict Profession Lists|r")
-            GameTooltip:AddLine("|cFFFFD100When enabled, only crafters on the same realm or cluster as you will be listed.|r", 1, 1, 1, true)
-            GameTooltip:AddLine("|cFF888888Disable this to view all crafters across your entire account.|r", 1, 1, 1, true)
-            GameTooltip:Show()
-        end)
-        ProfIsolateCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    end
+            -- THE SIMPLE VERBATIM INDEX TOOLTIP LAYOUT CONFIG
+            ProfIsolateCB:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+                GameTooltip:ClearLines()
+                GameTooltip:AddLine("|cFFFFFFFFRestrict Profession Lists|r")
+                GameTooltip:AddLine("|cFFFFD100When enabled, only crafters on the same realm or cluster as you will be listed.|r", 1, 1, 1, true)
+                GameTooltip:AddLine("|cFF888888Disable this to view all crafters across your entire account.|r", 1, 1, 1, true)
+                GameTooltip:Show()
+            end)
+            ProfIsolateCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        end
 
-    -- 2. FIXED v0.4.0 ENFORCE LIBERATION LAYER: Hard-forces the Classic Era frame engine to unlock button interaction states
-    if ProfIsolateCB then
-        ProfIsolateCB:Enable() -- HARD RE-ENABLE: Smashes through the UI cache block permanently
-        ProfIsolateCB:SetChecked(mustIsolate)
-        _G[ProfIsolateCB:GetName()]:SetAlpha(1.0) -- Restores layout visibility to 100%
-        _G[ProfIsolateCB:GetName() .. "Text"]:SetTextColor(1.0, 0.82, 0) -- Forces crisp Blizzard Gold back on screen
-        _G[ProfIsolateCB:GetName() .. "Text"]:SetAlpha(1.0)
-        ProfIsolateCB:Show()
-    end
+        -- 2. FIXED v0.4.0 ENFORCE LIBERATION LAYER: Hard-forces the Classic Era frame engine to unlock button interaction states
+        if ProfIsolateCB then
+            ProfIsolateCB:Enable() -- HARD RE-ENABLE: Smashes through the UI cache block permanently
+            ProfIsolateCB:SetChecked(mustIsolate)
+            _G[ProfIsolateCB:GetName()]:SetAlpha(1.0) -- Restores layout visibility to 100%
+            _G[ProfIsolateCB:GetName() .. "Text"]:SetTextColor(1.0, 0.82, 0) -- Forces crisp Blizzard Gold back on screen
+            _G[ProfIsolateCB:GetName() .. "Text"]:SetAlpha(1.0)
+            ProfIsolateCB:Show()
+        end
+    end;
 
     if AWProfessionDropdown and AlternateWorldProfDropdown then AlternateWorldProfDropdown.Setup(AWProfessionDropdown, AWProfessionsPanel, selectedCharacterKey) AWProfessionDropdown:Show() end
     local scanned = AlternateWorldProfEngine and AlternateWorldProfEngine.GetSortedScannedProfessions() or {}
