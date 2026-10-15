@@ -309,7 +309,6 @@ function AlternateWorldVirtualBankersView.CreatePanel(parentWindow)
     doc:SetJustifyV("TOP")
     doc:SetSpacing(5)
     
-    --  TODO: Adjust for Forever
     local docText = "|cFFFFFFFFWelcome to the Virtual Banker setup!|r\n\n" ..
                     "If you want to set up automatic mail recipients for characters that are " ..
                     "not on your current account, you can create a " .. AlternateWorldConstants.VIRTUAL_BANKER_COLOR_HEX .. "Virtual Banker|r.\n\n" ..
