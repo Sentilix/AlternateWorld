@@ -1,5 +1,11 @@
 # Alternate World - Changelog
 
+## [v1.0.0 - beta 3] - 2026-10-15
+### Changed
+* Bugfix: Last traces of clustered realms removed from Forever.
+* Bugfix: The lookup key was not always generated same way, making character duplicates in Era.
+
+
 ## [v1.0.0 - beta 3] - 2026-10-12
 ### Changed
 * Bugfix: Forever reagent bag is now checked also.
