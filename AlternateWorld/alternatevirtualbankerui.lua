@@ -143,23 +143,31 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
     nameBox:SetSize(190, 20)
     nameBox:SetPoint("TOPLEFT", nameLabel, "BOTTOMLEFT", 4, -4)
     nameBox:SetAutoFocus(false)
+    nameBox:SetScript("OnEnterPressed", function() f.SaveBtn:Click() end)
+    nameBox:SetScript("OnEscapePressed", function() f:Hide() end)
+
     f.NameBox = nameBox
 
-    local realmLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    realmLabel:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -95)
-    realmLabel:SetText("Target Realm Context:")
+    if not AlternateWorld.lib.ForeverEngine then
+        local realmLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        realmLabel:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -95)
+        realmLabel:SetText("Target Realm Context:")
 
-    local realmMenu = CreateFrame("Frame", "AW_VirtualRealmDropdown", f, "UIDropDownMenuTemplate")
-    realmMenu:SetPoint("TOPLEFT", realmLabel, "BOTTOMLEFT", -15, -2)
-    UIDropDownMenu_SetWidth(realmMenu, 165)
-    f.RealmMenu = realmMenu
+        local realmMenu = CreateFrame("Frame", "AW_VirtualRealmDropdown", f, "UIDropDownMenuTemplate")
+        realmMenu:SetPoint("TOPLEFT", realmLabel, "BOTTOMLEFT", -15, -2)
+        UIDropDownMenu_SetWidth(realmMenu, 165)
+        f.RealmMenu = realmMenu
 
-    local customRealmBox = CreateFrame("EditBox", "AW_VirtualCustomRealmInput", f, "InputBoxTemplate")
-    customRealmBox:SetSize(190, 20)
-    customRealmBox:SetPoint("TOPLEFT", realmMenu, "BOTTOMLEFT", 19, -2)
-    customRealmBox:SetAutoFocus(false)
-    customRealmBox:Hide()
-    f.CustomRealmBox = customRealmBox
+        local customRealmBox = CreateFrame("EditBox", "AW_VirtualCustomRealmInput", f, "InputBoxTemplate")
+        customRealmBox:SetSize(190, 20)
+        customRealmBox:SetPoint("TOPLEFT", realmMenu, "BOTTOMLEFT", 19, -2)
+        customRealmBox:SetAutoFocus(false)
+        customRealmBox:Hide()
+        customRealmBox:SetScript("OnEnterPressed", function() f.SaveBtn:Click() end)
+        customRealmBox:SetScript("OnEscapePressed", function() f:Hide() end)
+
+        f.CustomRealmBox = customRealmBox
+    end;
 
     local factionLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     factionLabel:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -150)
@@ -170,11 +178,6 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
     UIDropDownMenu_SetWidth(factionMenu, 165)
     f.FactionMenu = factionMenu
 
-    nameBox:SetScript("OnEnterPressed", function() f.SaveBtn:Click() end)
-    nameBox:SetScript("OnEscapePressed", function() f:Hide() end)
-    customRealmBox:SetScript("OnEnterPressed", function() f.SaveBtn:Click() end)
-    customRealmBox:SetScript("OnEscapePressed", function() f:Hide() end)
-
     local saveBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
     saveBtn:SetSize(85, 22)
     saveBtn:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 25, 20)
@@ -184,24 +187,24 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
     saveBtn:SetScript("OnClick", function()
         local nameText = nameBox:GetText()
         local selectedFaction = factionMenu.selectedValue
-        local realmText = customRealmBox:IsShown() and customRealmBox:GetText() or UIDropDownMenu_GetText(realmMenu)
+        local realmText = "";
+        if AlternateWorld.lib.ForeverEngine then
+            realmText = AlternateWorld.API.GetRealmName();
+        else
+            realmText = customRealmBox:IsShown() and customRealmBox:GetText() or UIDropDownMenu_GetText(realmMenu);
+        end;
 
         if nameText and nameText ~= "" and realmText and realmText ~= "" and realmText ~= "(Custom Realm...)" then
+            
             if not AlternateWorld.lib.ForeverEngine then
                 nameText = string.gsub(nameText, "%s+", "")
             end;
-            if string.trim then realmText = string.trim(realmText)
-            else realmText = string.gsub(realmText, "^%s*(.-)%s*$", "%1") end
-            
-            --local nameLen = strlenutf8(nameText)
 
-            local isNameValid = AlternateWorld.lib.ForeverEngine or (nameLen >= 2 and nameLen <= 12 and not string.match(nameText, "[^%a]"))
-            if not isNameValid then
-                UIErrorsFrame:AddMessage("|cFFFF0000Error: Invalid name! Letters only (2-12 chars).|r")
-                AlternateWorld.API.PlaySound(846)
-                return
+            if string.trim then
+                realmText = string.trim(realmText)
+            else
+                realmText = string.gsub(realmText, "^%s*(.-)%s*$", "%1")
             end
-
             local realmLen = strlenutf8(realmText)
             local isRealmValid = (realmLen >= 4 and realmLen <= 24)
             if isRealmValid and not string.match(realmText, "[\128-\255]") then
@@ -211,14 +214,24 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
                 UIErrorsFrame:AddMessage("|cFFFF0000Error: Invalid realm name format detected!|r")
                 AlternateWorld.API.PlaySound(846)
                 return
+            end    
+
+            local isNameValid = AlternateWorld.lib.ForeverEngine or (nameLen >= 2 and nameLen <= 12 and not string.match(nameText, "[^%a]"))
+            if not isNameValid then
+                UIErrorsFrame:AddMessage("|cFFFF0000Error: Invalid name! Letters only (2-12 chars).|r")
+                AlternateWorld.API.PlaySound(846)
+                return
             end
 
             if string.len(nameText) > 0 then
                 nameText = string.upper(string.sub(nameText, 1, 1)) .. string.lower(string.sub(nameText, 2))
             end
 
-            local testKey = nameText .. " - " .. realmText
-            local testKeyLower = string.lower(testKey)
+            local testKey = nameText;
+            if realmText ~= "" then
+                testKey = realmText .. " - " .. realmText;
+            end;
+            local testKeyLower = string.lower(testKey);
             
             if AlternateWorldDB and not f.isEditingActiveMode then
                 for dbKey, dbData in pairs(AlternateWorldDB) do
@@ -329,17 +342,21 @@ function AlternateWorldVirtualBankersView.CreatePanel(parentWindow)
         dlg.isEditingActiveMode = false 
         dlg.originalKeyCache = nil
         dlg.NameBox:SetText("")
-        dlg.CustomRealmBox:SetText("")
-        dlg.CustomRealmBox:Hide()
+
+        if dlg.CustomRealmBox then
+            dlg.CustomRealmBox:SetText("")
+            dlg.CustomRealmBox:Hide()
         
-        local activeRealm = AlternateWorld.API.GetRealmName()
-        UIDropDownMenu_SetText(dlg.RealmMenu, activeRealm)
-        dlg.RealmMenu.selectedValue = activeRealm
-        dlg.CustomRealmBox:SetText(activeRealm)
+            local activeRealm = AlternateWorld.API.GetRealmName()
+            UIDropDownMenu_SetText(dlg.RealmMenu, activeRealm)
+            dlg.RealmMenu.selectedValue = activeRealm
+            dlg.CustomRealmBox:SetText(activeRealm)
+            
+            UIDropDownMenu_Initialize(dlg.RealmMenu, InitializeRealmDropdown)
+        end;
+
         UIDropDownMenu_SetText(dlg.FactionMenu, "Select Faction...")
         dlg.FactionMenu.selectedValue = nil
-        
-        UIDropDownMenu_Initialize(dlg.RealmMenu, InitializeRealmDropdown)
         UIDropDownMenu_Initialize(dlg.FactionMenu, InitializeFactionDropdown)
         dlg:Show()
         dlg.NameBox:SetFocus()
