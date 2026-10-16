@@ -4,6 +4,53 @@
 
 AlternateWorldDBEngine = {}
 
+function AlternateWorldDBEngine.MigrateLegacyDatabaseKeys()
+    if not AlternateWorldDB then return end
+    
+    -- FIXED v1.0.0 FOREVER BYPASS: This key issue only exists in Era. Abort immediately if in Forever.
+    if AlternateWorld.lib.ForeverEngine then return end
+
+    local keysToMigrate = {}
+
+    for dbKey, dbData in pairs(AlternateWorldDB) do
+        if dbKey ~= "Settings" and type(dbData) == "table" then
+            if string.find(dbKey, " %- ") then
+                table.insert(keysToMigrate, dbKey)
+            end
+        end
+    end
+
+    for _, oldKey in ipairs(keysToMigrate) do
+        local oldData = AlternateWorldDB[oldKey]
+        local newKey = string.gsub(oldKey, "%s*-%s*", "-")
+        local newData = AlternateWorldDB[newKey]
+
+        if not newData then
+            AlternateWorldDB[newKey] = oldData
+            AlternateWorldDB[oldKey] = nil
+        else
+            if newData.historyLog and type(newData.historyLog) == "table" then
+                if not oldData.historyLog or type(oldData.historyLog) ~= "table" then
+                    oldData.historyLog = {}
+                end
+                
+                for _, newEntry in ipairs(newData.historyLog) do
+                    table.insert(oldData.historyLog, newEntry)
+                end
+                
+                table.sort(oldData.historyLog, function(a, b)
+                    local aDate = type(a) == "table" and a.date or ""
+                    local bDate = type(b) == "table" and b.date or ""
+                    return aDate < bDate
+                end)
+            end
+
+            AlternateWorldDB[newKey] = oldData
+            AlternateWorldDB[oldKey] = nil
+        end
+    end
+end
+
 -- Main Constructor: Packages fully gathered data snapshots securely into account matrices
 function AlternateWorldDBEngine.SaveCurrentCharacterData()
     if not AlternateWorldDB then AlternateWorldDB = {} end

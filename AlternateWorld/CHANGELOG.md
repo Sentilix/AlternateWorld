@@ -1,5 +1,10 @@
 # Alternate World - Changelog
 
+## [v1.0.1] - 2026-10-16
+### Changed
+* Data fix: The main index key was renamed in 1.0.0 which caused old historik to be hidden. This fix will "migrate" historic data to the new index key during initialization.
+
+
 ## [v1.0.0] - 2026-10-15
 ### Changed
 * Bugfix: Last traces of clustered realms removed from Forever.

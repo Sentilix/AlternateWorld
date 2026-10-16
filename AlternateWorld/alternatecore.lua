@@ -109,7 +109,11 @@ function AlternateWorldCore.Initialize()
 
         if event == "ADDON_LOADED" and arg1 == "AlternateWorld" then
             if not AlternateWorldDB then AlternateWorldDB = {} end
-            
+
+            if AlternateWorldDBEngine and AlternateWorldDBEngine.MigrateLegacyDatabaseKeys then
+                AlternateWorldDBEngine.MigrateLegacyDatabaseKeys()
+            end
+                        
             if AlternateWorldMainFrameEngine and AlternateWorldMainFrameEngine.OnAddonLoaded then
                 AlternateWorldMainFrameEngine.OnAddonLoaded()
             end
