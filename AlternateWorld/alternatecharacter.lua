@@ -189,7 +189,7 @@ function AlternateWorldCharacterEngine.ProcessShowData(selectedCharacterKey, ele
         );
         if not AlternateWorld.lib.ForeverEngine then
             rightText = rightText .. string.format(
-                "\nChars, Alliance: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Horde: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Total: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r",
+                "\n\nChars, Alliance: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Horde: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r\nChars, Total: |cFFFFFFFF%d|r  |cFF888888(60s: %d)|r",
                 t.allyChars, 
                 t.ally60s, 
                 t.hordeChars, 
