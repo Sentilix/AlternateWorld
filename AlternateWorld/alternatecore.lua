@@ -189,18 +189,14 @@ function AlternateWorldCore.Initialize()
                 totalSeconds = tonumber(string.match(arg1, "%d+"))
             end
             
-            -- FIXED v1.0.0 CORE FORMATTER: Injected internal time converter to bypass missing global wrappers
+            -- FIXED v1.0.0 CORE FORMATTER: Strict hh:mm:ss time converter wrapping all days into total hours
             if totalSeconds and totalSeconds > 0 then
-                local days = math.floor(totalSeconds / 86400)
-                local hours = math.floor((totalSeconds % 86400) / 3600)
+                local hours = math.floor(totalSeconds / 3600)
                 local minutes = math.floor((totalSeconds % 3600) / 60)
                 local seconds = totalSeconds % 60
                 
-                if days > 0 then
-                    formattedTimeStr = string.format("%d days, %d hours, %d min", days, hours, minutes)
-                else
-                    formattedTimeStr = string.format("%d hours, %d min, %d sec", hours, minutes, seconds)
-                end
+                -- Enforces leading zeros for double-digit symmetry (e.g., 42:05:09)
+                formattedTimeStr = string.format("%02d:%02d:%02d", hours, minutes, seconds)
             end
             
             -- Safe legacy text string extraction fallback for raw UI text outputs
