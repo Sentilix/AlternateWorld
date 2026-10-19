@@ -1,5 +1,11 @@
 # Alternate World - Changelog
 
+## [v1.0.2] - 2026-10-19
+### Changed
+* Bugfix: Level-up history log changed back to hours:minute:seconds.
+* Bugfix: Account Overview on the Era Character page did not show all lines.
+
+
 ## [v1.0.1] - 2026-10-16
 ### Changed
 * Data fix: The main index key was renamed in 1.0.0 which caused old historik to be hidden. This fix will "migrate" historic data to the new index key during initialization.
