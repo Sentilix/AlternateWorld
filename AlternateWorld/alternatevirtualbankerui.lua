@@ -191,7 +191,7 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
         if AlternateWorld.lib.ForeverEngine then
             realmText = AlternateWorld.API.GetRealmName();
         else
-            realmText = customRealmBox:IsShown() and customRealmBox:GetText() or UIDropDownMenu_GetText(realmMenu);
+            realmText = f.CustomRealmBox:IsShown() and f.CustomRealmBox:GetText() or UIDropDownMenu_GetText(f.RealmMenu);
         end;
 
         if nameText and nameText ~= "" and realmText and realmText ~= "" and realmText ~= "(Custom Realm...)" then
@@ -216,7 +216,19 @@ function AlternateWorldVirtualBankersView.CreateVirtualBankerDialog(mode)
                 return
             end    
 
-            local isNameValid = AlternateWorld.lib.ForeverEngine or (nameLen >= 2 and nameLen <= 12 and not string.match(nameText, "[^%a]"))
+            local isNameValid = false
+            local nameLen = strlenutf8(nameText) -- FIXED: Defined in common scope to prevent nil comparisons downstream
+            
+            if AlternateWorld.lib.ForeverEngine then
+                nameText = string.gsub(nameText, "^%s*(.-)%s*$", "%1")
+                nameLen = strlenutf8(nameText)
+                isNameValid = (nameLen >= 2 and nameLen <= 24 and not string.match(nameText, "[^%a%s]"))
+            else
+                nameText = string.gsub(nameText, "%s+", "")
+                nameLen = strlenutf8(nameText)
+                isNameValid = (nameLen >= 2 and nameLen <= 12 and not string.match(nameText, "[^%a]"))
+            end
+
             if not isNameValid then
                 UIErrorsFrame:AddMessage("|cFFFF0000Error: Invalid name! Letters only (2-12 chars).|r")
                 AlternateWorld.API.PlaySound(846)
