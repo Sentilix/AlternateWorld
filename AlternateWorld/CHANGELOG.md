@@ -1,5 +1,10 @@
 # Alternate World - Changelog
 
+## [v1.0.3] - 2026-10-24
+### Changed
+* Bugfix: Adding a virtual banker in Era did no longer work (LUA error).
+
+
 ## [v1.0.2] - 2026-10-19
 ### Changed
 * Bugfix: Level-up history log changed back to hours:minute:seconds.
